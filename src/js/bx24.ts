@@ -39,13 +39,30 @@ export function fitFrame(): void {
  * когда фрейм уже стал ниже, — fitWindow(), чтобы вернуть ширину 100%.
  * Высоту меряем по body; класс b24-in-frame снимает min-height: 100vh (см. layout.css).
  */
-export function autoFitFrame(target: Element = document.body): () => void {
+export interface AutoFitOptions {
+  /** за чьим размером следить (по умолчанию body) */
+  target?: Element;
+  /**
+   * Минимальная высота фрейма, px. 'initial' (по умолчанию) — высота, которую портал дал фрейму при открытии:
+   * короткий контент не оставляет под приложением пустую подложку портала. 0 — без ограничения.
+   */
+  minHeight?: number | 'initial';
+}
+
+export function autoFitFrame(options: AutoFitOptions | Element = {}): () => void {
+  const opts: AutoFitOptions = options instanceof Element ? { target: options } : options;
+  const target = opts.target ?? document.body;
   const api = bx();
   if (!api?.fitWindow || typeof ResizeObserver === 'undefined') return () => {};
-  document.documentElement.classList.add('b24-in-frame');
+  const root = document.documentElement;
+  // Стартовая высота фрейма — до первой подгонки
+  const floor = Math.max(0, Math.floor(opts.minHeight === undefined || opts.minHeight === 'initial' ? window.innerHeight : opts.minHeight));
+  root.classList.add('b24-in-frame');
+  // Фиксированные px, а не vh: не зависит от текущей высоты фрейма, поэтому петли роста нет
+  if (floor) root.style.setProperty('--b24-frame-min-height', `${floor}px`);
   let last = 0;
   const ro = new ResizeObserver(() => {
-    const height = Math.ceil(document.body.getBoundingClientRect().height);
+    const height = Math.max(floor, Math.ceil(document.body.getBoundingClientRect().height));
     if (height <= 0 || Math.abs(height - last) < 2) return;
     const shrink = last > 0 && height < last;
     last = height;
@@ -58,7 +75,8 @@ export function autoFitFrame(target: Element = document.body): () => void {
   ro.observe(target);
   return () => {
     ro.disconnect();
-    document.documentElement.classList.remove('b24-in-frame');
+    root.classList.remove('b24-in-frame');
+    root.style.removeProperty('--b24-frame-min-height');
   };
 }
 

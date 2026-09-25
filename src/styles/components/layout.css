@@ -24,9 +24,10 @@
 }
 .b24-app--flush { padding: 0; }
 /* Внутри фрейма портала (ставит bx24.autoFitFrame) высоту задаёт контент, а не 100vh:
-   иначе высота фрейма и контента подпитывают друг друга */
+   иначе высота фрейма и контента подпитывают друг друга. Нижний предел — стартовая высота фрейма
+   в фиксированных px (--b24-frame-min-height), чтобы под коротким контентом не было подложки портала */
 .b24-in-frame .b24-app,
-.b24-in-frame .b24-shell { min-height: 0; }
+.b24-in-frame .b24-shell { min-height: var(--b24-frame-min-height, 0px); }
 .b24-app--white { background: var(--b24-bg-surface); }
 
 .b24-page { display: flex; flex-direction: column; gap: var(--b24-space-md); max-width: var(--b24-page-max, none); margin: 0 auto; }
