@@ -4,7 +4,7 @@
  */
 interface BX24Like {
   fitWindow?: (cb?: () => void) => void;
-  resizeWindow?: (w: number | string, h: number, cb?: () => void) => void;
+  resizeWindow?: (w: number, h: number, cb?: () => void) => void;
   setTitle?: (title: string, cb?: () => void) => void;
   scrollParentWindow?: (y: number, cb?: () => void) => void;
   openPath?: (path: string, cb?: (r: unknown) => void) => void;
@@ -29,32 +29,42 @@ export function fitFrame(): void {
 }
 
 /**
- * Подгоняет высоту фрейма под контент при каждом изменении размеров — и в большую, и в меньшую сторону.
- * Возвращает отписку.
+ * Подгоняет высоту фрейма под контент (рост и уменьшение). Возвращает отписку.
  *
- * - Ширину не трогаем ('100%'): если передавать scrollWidth, фрейм «защёлкивается» на текущей ширине
- *   и сжимается петлёй ResizeObserver → resizeWindow.
- * - Высоту меряем по body, а не по documentElement.scrollHeight: scrollHeight не бывает меньше
- *   высоты самого фрейма, и фрейм не смог бы уменьшиться после перехода на короткую вкладку.
- *   Чтобы body не тянулся на 100vh, на <html> ставится класс b24-in-frame (см. layout.css).
+ * Как устроен портал (api.bitrix24.com/api/v1 + bitrix/js/rest/applayout.js):
+ *  - BX24.resizeWindow(w, h) делает parseInt(w): '100%' превращается в 100px — ширину туда передавать нельзя;
+ *  - BX24.fitWindow() шлёт width:'100%' и height = scrollHeight документа (не меньше высоты фрейма);
+ *  - портал применяет размер и вызывает колбэк.
+ * Поэтому: рост — fitWindow(); уменьшение — resizeWindow(текущая ширина фрейма, h), а в его колбэке,
+ * когда фрейм уже стал ниже, — fitWindow(), чтобы вернуть ширину 100%.
+ * Высоту меряем по body; класс b24-in-frame снимает min-height: 100vh (см. layout.css).
  */
 export function autoFitFrame(target: Element = document.body): () => void {
   const api = bx();
-  if (!api || (!api.fitWindow && !api.resizeWindow) || typeof ResizeObserver === 'undefined') return () => {};
+  if (!api?.fitWindow || typeof ResizeObserver === 'undefined') return () => {};
   document.documentElement.classList.add('b24-in-frame');
   let last = 0;
   const ro = new ResizeObserver(() => {
     const height = Math.ceil(document.body.getBoundingClientRect().height);
     if (height <= 0 || Math.abs(height - last) < 2) return;
+    const shrink = last > 0 && height < last;
     last = height;
-    if (api.resizeWindow) api.resizeWindow('100%', height);
-    else api.fitWindow!();
+    if (shrink && api.resizeWindow && window.innerWidth > 0) {
+      api.resizeWindow(window.innerWidth, height, () => api.fitWindow!());
+    } else {
+      api.fitWindow!();
+    }
   });
   ro.observe(target);
   return () => {
     ro.disconnect();
     document.documentElement.classList.remove('b24-in-frame');
   };
+}
+
+/** Прокрутить страницу портала (y — абсолютная координата страницы портала; 0 — к началу). */
+export function scrollParent(y: number): void {
+  bx()?.scrollParentWindow?.(y);
 }
 
 export function setTitle(title: string): void {

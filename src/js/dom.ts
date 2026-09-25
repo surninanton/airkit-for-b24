@@ -97,3 +97,34 @@ if (typeof document !== 'undefined') {
     }
   });
 }
+
+/* ── Позиционирование во фрейме портала ──────────────────
+ * Фрейм растянут на всю высоту контента и своего скролла не имеет, поэтому fixed-элементы
+ * (модалки, тосты) по центру/низу фрейма оказываются далеко от места, где пользователь кликнул.
+ * Во фрейме (класс b24-in-frame на <html>) такие элементы привязываются к Y последнего клика.
+ */
+let lastPointerY: number | null = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', (e) => { lastPointerY = e.pageY; }, true);
+}
+
+export const isInFrame = (): boolean =>
+  typeof document !== 'undefined' && document.documentElement.classList.contains('b24-in-frame');
+
+/** Y (в координатах документа), рядом с которым показывать всплывающие элементы во фрейме. */
+export function frameAnchorY(): number {
+  if (lastPointerY != null) return lastPointerY;
+  const active = document.activeElement;
+  if (active && active !== document.body) return active.getBoundingClientRect().top + window.scrollY;
+  return window.scrollY + 120;
+}
+
+/** Во фрейме: прижимает overlay к верху и сдвигает диалог к месту клика (с запасом сверху и снизу). */
+export function anchorOverlayInFrame(overlay: HTMLElement, dialog: HTMLElement): void {
+  if (!isInFrame()) return;
+  overlay.classList.add('b24-overlay--anchored');
+  const frameH = document.documentElement.clientHeight;
+  const y = frameAnchorY() - 120;
+  const top = Math.max(16, Math.min(y, frameH - dialog.offsetHeight - 16));
+  overlay.style.setProperty('--b24-anchor-y', `${Math.round(top)}px`);
+}

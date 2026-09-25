@@ -1,5 +1,5 @@
 import { icon, type IconName } from '../icons';
-import { animateOut, h, html } from './dom';
+import { animateOut, frameAnchorY, h, html, isInFrame } from './dom';
 
 export type ToastType = 'default' | 'success' | 'danger' | 'warning' | 'primary';
 
@@ -73,7 +73,13 @@ export function toast(message: string, options: ToastOptions = {}): ToastHandle 
   el.addEventListener('mouseenter', () => clearTimeout(timer));
   el.addEventListener('mouseleave', start);
 
-  getStack(position).append(el);
+  const stack = getStack(position);
+  if (isInFrame()) {
+    // во фрейме нет своего скролла: fixed-низ = низ всего контента; показываем у места клика
+    stack.classList.add('b24-toast-stack--anchored');
+    stack.style.top = `${Math.max(16, Math.round(frameAnchorY() + 24))}px`;
+  }
+  stack.append(el);
   start();
   return { close };
 }

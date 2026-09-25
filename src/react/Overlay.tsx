@@ -3,7 +3,7 @@ import {
   type CSSProperties, type ReactElement, type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { focusFirst, lockScroll, pushLayer, trapFocus } from '../js/dom';
+import { anchorOverlayInFrame, focusFirst, lockScroll, pushLayer, trapFocus } from '../js/dom';
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx, usePresence } from './utils';
@@ -43,6 +43,9 @@ export function Modal({ open, onClose, title, footer, size = 'md', width, closeO
   const { mounted, closing } = usePresence(open, 180);
   const ref = useRef<HTMLDivElement>(null);
   useLayer(mounted && !closing, ref, onClose);
+  useLayoutEffect(() => {
+    if (mounted && ref.current?.parentElement) anchorOverlayInFrame(ref.current.parentElement, ref.current);
+  }, [mounted]);
   if (!mounted) return null;
   return createPortal(
     <div

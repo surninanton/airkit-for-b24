@@ -70,7 +70,8 @@ const m = B24UI.modal({ title: 'Настройки', content: node, buttons: [{ 
 const panel = B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true, footer });
 B24UI.setTheme('dark');            // light | dark | auto
 B24UI.setAirPreset('violet');      // blue | violet | teal | graphite
-B24UI.bx24.autoFitFrame();         // высота фрейма = высота контента (растёт и уменьшается); ширина остаётся 100%
+B24UI.bx24.autoFitFrame();         // высота фрейма = высота контента (растёт и уменьшается); во фрейме модалки и тосты — у места клика
+B24UI.bx24.scrollParent(0);        // прокрутить страницу портала к началу приложения
 
 B24UI.datepicker(input, { mode: 'range', min: new Date() });
 B24UI.enableKanbanDnd(board, { onMove: async (m) => (await save(m)) !== false }); // false → карточка вернётся

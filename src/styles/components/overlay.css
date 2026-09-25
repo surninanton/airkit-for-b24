@@ -237,3 +237,8 @@
 @keyframes b24-toast-in { from { opacity: 0; transform: translateY(12px); } }
 
 body.b24-scroll-lock { overflow: hidden; }
+
+/* Во фрейме портала: окно у места клика, а не по центру фрейма высотой в тысячи px */
+.b24-overlay--anchored { place-items: start center; }
+.b24-overlay--anchored > .b24-modal { margin-top: var(--b24-anchor-y, 16px); max-height: none; }
+.b24-toast-stack--anchored { position: absolute; bottom: auto; }
