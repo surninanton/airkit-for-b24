@@ -22,6 +22,7 @@ export { Combobox, EntitySelector, type ComboOption, type ComboboxProps, type En
 export { Uploader, type UploaderProps, type UploaderFile, type UploaderHandle } from './Uploader';
 export { EntityEditor, type EntityEditorProps, type EditorField, type EditorSection, type EditorValues, type EntityEditorHandle } from './EntityEditor';
 export { Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer, formatTimelineTime, type TimelineItemProps, type TimelineActivityProps, type TimelineComposerProps, type ComposerTab } from './Timeline';
+export { Credit } from './Credit';
 export { B24Provider, App, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, type ToolbarProps, type ShellProps, type NavItemProps } from './Layout';
 
 // Императивные API общие с vanilla-версией

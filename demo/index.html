@@ -618,11 +618,14 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
         <button class="b24-btn b24-btn--success">Создать сделку</button>
       </div>
     </section>
+    <footer class="b24-credit-footer" id="demo-credit"></footer>
   </div>
 </div>
 
 <script type="module">
   import * as B24UI from '../src/js/global.ts';
+
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
 
   // Тема
   document.querySelectorAll('#theme-tabs [data-theme]').forEach((btn) => btn.addEventListener('click', () => {

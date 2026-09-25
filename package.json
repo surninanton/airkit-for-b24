@@ -1,11 +1,21 @@
 {
-  "name": "sdk-ui-bitrix24",
+  "name": "airkit-for-b24",
   "version": "0.1.0",
-  "description": "UI-кит в стиле Bitrix24 (Air): CSS-токены, vanilla JS и React-компоненты для приложений Битрикс24",
+  "description": "Неофициальный UI-кит в стиле Битрикс24 (Air): CSS-токены, vanilla JS и React-компоненты для приложений Битрикс24",
+  "author": "Anton Surnin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/surninanton/airkit-for-b24.git"
+  },
+  "homepage": "https://github.com/surninanton/airkit-for-b24#readme",
   "license": "MIT",
   "type": "module",
-  "sideEffects": ["*.css"],
-  "files": ["dist"],
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/js/index.js",
   "module": "./dist/js/index.js",
   "types": "./dist/js/index.d.ts",
@@ -39,8 +49,12 @@
     "react-dom": ">=18"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19.2.0",

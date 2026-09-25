@@ -65,6 +65,7 @@ const paths = {
   circle: '<circle cx="12" cy="12" r="8.5"/>',
   arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   question: '<circle cx="12" cy="12" r="8.5"/><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.6" r="0.6" fill="currentColor"/>',
+  heart: '<path d="M12 20s-7.5-4.6-7.5-10.1A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" fill="currentColor"/>',
   apps: '<circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="7" r="2.5"/><circle cx="7" cy="17" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
 } as const;
 

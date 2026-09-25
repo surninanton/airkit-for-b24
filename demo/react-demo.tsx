@@ -9,7 +9,7 @@ import {
   Filter, emptyFilterState, Kanban, KanbanCard, applyKanbanMove, DatePicker, DateRangePicker, resolvePeriod, parseDate,
   type FilterField, type FilterPreset, type FilterState, type DateRange,
   Combobox, EntitySelector, Uploader, EntityEditor, Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer,
-  formatTimelineTime, Icon, type DialogItem, type EditorField, type EditorSection, type EditorValues,
+  formatTimelineTime, Icon, Credit, type DialogItem, type EditorField, type EditorSection, type EditorValues,
 } from '../src/react';
 
 const STAGES: Stage[] = [
@@ -524,6 +524,7 @@ function Demo() {
         {section === 'crm' ? <DealsPage /> : (
           <Card><Alert title="Демо">Раздел «{section}» — заглушка. Откройте CRM.</Alert></Card>
         )}
+        <Credit />
       </AppShell>
     </B24Provider>
   );

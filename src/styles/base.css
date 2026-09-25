@@ -64,3 +64,23 @@ body.b24-root { margin: 0; }
     transition-duration: 1ms !important;
   }
 }
+
+/* Ссылка на кит в подвале приложения: «Сделано на airkit-for-b24 ♥» */
+.b24-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--b24-font-size-xs);
+  color: var(--b24-text-subtle);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity var(--b24-duration-fast), color var(--b24-duration-fast);
+}
+.b24-credit:hover { opacity: 1; color: var(--b24-text-secondary); }
+.b24-credit svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.b24-credit__heart { color: var(--b24-color-danger); }
+.b24-app--air .b24-credit,
+.b24-shell .b24-credit { color: var(--b24-glass-text-secondary); }
+.b24-app--air .b24-credit:hover,
+.b24-shell .b24-credit:hover { color: var(--b24-glass-text); }
+.b24-credit-footer { display: flex; justify-content: center; padding: var(--b24-space-lg) 0 var(--b24-space-xs); }

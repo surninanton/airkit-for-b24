@@ -16,6 +16,7 @@ export { createUploader, formatSize, type UploaderOptions, type UploaderHandle, 
 export { createEntityEditor, formatMoney, type EntityEditorOptions, type EntityEditorHandle, type EditorField, type EditorSection, type EditorValues, type EditorFieldType } from './editor';
 export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
 export { initials, avatarColor, avatarHtml } from './avatar';
+export { creditHtml, REPO_URL } from './credit';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';
