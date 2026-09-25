@@ -1,0 +1,75 @@
+/* ── Tabs ────────────────────────────────────────────────
+ * .b24-tabs [--pills|--glass] > .b24-tabs__item[aria-selected="true"] (+ .b24-counter)
+ * Панели: [data-b24-tab-panel] (переключаются JS)
+ */
+.b24-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: var(--b24-space-lg);
+  border-bottom: 1px solid var(--b24-divider);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.b24-tabs::-webkit-scrollbar { display: none; }
+.b24-tabs__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 2px;
+  margin: 0;
+  font: inherit;
+  font-size: var(--b24-font-size-md);
+  color: var(--b24-text-secondary);
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--b24-duration-fast);
+}
+.b24-tabs__item:hover { color: var(--b24-text-primary); }
+.b24-tabs__item::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: transparent;
+  transition: background-color var(--b24-duration-fast);
+}
+.b24-tabs__item[aria-selected="true"],
+.b24-tabs__item.is-active { color: var(--b24-text-primary); font-weight: var(--b24-font-weight-medium); }
+.b24-tabs__item[aria-selected="true"]::after,
+.b24-tabs__item.is-active::after { background: var(--b24-color-primary); }
+
+/* Pills — как переключатель «Канбан / Список / Дела / Календарь» */
+.b24-tabs--pills {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--b24-radius-sm);
+  background: var(--b24-btn-neutral-bg);
+}
+.b24-tabs--pills .b24-tabs__item {
+  height: 26px; padding: 0 10px;
+  font-size: var(--b24-font-size-sm);
+  border-radius: 6px;
+}
+.b24-tabs--pills .b24-tabs__item::after { display: none; }
+.b24-tabs--pills .b24-tabs__item[aria-selected="true"],
+.b24-tabs--pills .b24-tabs__item.is-active {
+  background: var(--b24-bg-surface);
+  box-shadow: var(--b24-shadow-2xs);
+}
+
+/* Glass — те же pills поверх Air-подложки */
+.b24-tabs--glass { background: var(--b24-glass-bg); }
+.b24-tabs--glass .b24-tabs__item { color: var(--b24-glass-text-secondary); }
+.b24-tabs--glass .b24-tabs__item:hover { color: var(--b24-glass-text); }
+.b24-tabs--glass .b24-tabs__item[aria-selected="true"],
+.b24-tabs--glass .b24-tabs__item.is-active { background: rgba(255, 255, 255, 0.92); color: #333; }
+
+[data-b24-tab-panel][hidden] { display: none !important; }

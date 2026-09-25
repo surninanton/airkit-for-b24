@@ -1,0 +1,56 @@
+{
+  "name": "sdk-ui-bitrix24",
+  "version": "0.1.0",
+  "description": "UI-кит в стиле Bitrix24 (Air): CSS-токены, vanilla JS и React-компоненты для приложений Битрикс24",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": ["*.css"],
+  "files": ["dist"],
+  "main": "./dist/js/index.js",
+  "module": "./dist/js/index.js",
+  "types": "./dist/js/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/js/index.d.ts",
+      "import": "./dist/js/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./icons": {
+      "types": "./dist/icons/index.d.ts",
+      "import": "./dist/icons/index.js"
+    },
+    "./css": "./dist/b24ui.css",
+    "./b24ui.css": "./dist/b24ui.css",
+    "./tokens.css": "./dist/tokens.css"
+  },
+  "scripts": {
+    "dev": "vite demo --open",
+    "build": "rm -rf dist && npm run build:css && npm run build:js",
+    "build:css": "lightningcss --bundle --targets '>= 0.5%' src/styles/index.css -o dist/b24ui.css && lightningcss --bundle --minify --targets '>= 0.5%' src/styles/index.css -o dist/b24ui.min.css && lightningcss --bundle --targets '>= 0.5%' src/styles/tokens.css -o dist/tokens.css",
+    "build:js": "tsup",
+    "typecheck": "tsc --noEmit",
+    "preview": "npm run build && vite demo"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "react-dom": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "lightningcss-cli": "^1.33.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.1"
+  }
+}

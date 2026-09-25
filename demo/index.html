@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>B24 UI — витрина компонентов</title>
+  <!-- В проде: <link rel="stylesheet" href="b24ui.css"> + <script src="b24ui.js"></script> -->
+  <script type="module">import '../src/styles/index.css';</script>
+  <style>
+    .demo-section { scroll-margin-top: 20px; }
+    .demo-swatch { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--b24-text-subtle); }
+    .demo-swatch i { display: block; height: 44px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+    .demo-code { font-family: var(--b24-font-family-mono); font-size: 12px; background: var(--b24-bg-surface-2); border-radius: 8px; padding: 10px 12px; overflow-x: auto; white-space: pre; color: var(--b24-text-secondary); margin: 12px 0 0; }
+  </style>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1200px">
+
+    <!-- Toolbar -->
+    <div class="b24-toolbar">
+      <div class="b24-toolbar__row">
+        <h1 class="b24-toolbar__title">B24 UI</h1>
+        <div class="b24-btn-split">
+          <button class="b24-btn b24-btn--success" id="create-btn"><span>Создать</span></button>
+          <button class="b24-btn b24-btn--success" data-b24-dropdown="#create-menu" aria-label="Ещё">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+        <div class="b24-toolbar__search">
+          <div class="b24-input-group b24-input-group--glass">
+            <span class="b24-input-group__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></span>
+            <input class="b24-input" placeholder="Фильтр и поиск" />
+          </div>
+        </div>
+        <div class="b24-toolbar__right">
+          <div class="b24-tabs b24-tabs--pills b24-tabs--glass" id="theme-tabs">
+            <button class="b24-tabs__item is-active" data-theme="light">Светлая</button>
+            <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
+          </div>
+          <select class="b24-select b24-select--sm" id="air-select" style="width:130px" aria-label="Фон">
+            <option value="blue">Air: синий</option>
+            <option value="violet">Air: фиолет</option>
+            <option value="teal">Air: бирюза</option>
+            <option value="graphite">Air: графит</option>
+          </select>
+        </div>
+      </div>
+      <div class="b24-toolbar__row">
+        <div class="b24-tabs b24-tabs--pills b24-tabs--glass">
+          <button class="b24-tabs__item">Канбан</button>
+          <button class="b24-tabs__item is-active">Список</button>
+          <button class="b24-tabs__item">Дела</button>
+          <button class="b24-tabs__item">Календарь</button>
+        </div>
+        <button class="b24-btn b24-btn--glass b24-btn--sm"><span class="b24-counter b24-counter--success">23</span> Входящие</button>
+        <button class="b24-btn b24-btn--glass b24-btn--sm"><span class="b24-counter">1</span> Запланированные</button>
+        <div class="b24-toolbar__right">
+          <button class="b24-btn b24-btn--glass b24-btn--sm">Роботы</button>
+          <button class="b24-btn b24-btn--glass b24-btn--sm b24-btn--icon" aria-label="Настройки" data-b24-tooltip="Настройки" data-b24-tooltip-pos="bottom">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="b24-popup" id="create-menu" hidden>
+      <div class="b24-menu">
+        <div class="b24-menu__title">Создать</div>
+        <button class="b24-menu__item">Сделку <span class="b24-menu__hint">Ctrl+N</span></button>
+        <button class="b24-menu__item">Контакт</button>
+        <button class="b24-menu__item">Компанию</button>
+        <div class="b24-menu__divider"></div>
+        <button class="b24-menu__item">Импорт из CSV</button>
+        <button class="b24-menu__item b24-menu__item--danger">Удалить всё</button>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <section class="b24-card demo-section">
+      <div class="b24-card__header"><h2 class="b24-card__title">Кнопки</h2></div>
+      <div class="b24-card__body b24-stack" style="--b24-gap:16px">
+        <div class="b24-row">
+          <button class="b24-btn b24-btn--primary">Основная</button>
+          <button class="b24-btn b24-btn--success">Создать</button>
+          <button class="b24-btn">Нейтральная</button>
+          <button class="b24-btn b24-btn--secondary">Вторичная</button>
+          <button class="b24-btn b24-btn--tinted">Тонированная</button>
+          <button class="b24-btn b24-btn--plain">Плоская</button>
+          <button class="b24-btn b24-btn--link">Ссылка</button>
+          <button class="b24-btn b24-btn--danger">Удалить</button>
+          <button class="b24-btn b24-btn--copilot">CoPilot</button>
+        </div>
+        <div class="b24-row">
+          <button class="b24-btn b24-btn--primary b24-btn--xs">XS</button>
+          <button class="b24-btn b24-btn--primary b24-btn--sm">Small</button>
+          <button class="b24-btn b24-btn--primary">Medium</button>
+          <button class="b24-btn b24-btn--primary b24-btn--lg">Large</button>
+          <button class="b24-btn b24-btn--primary b24-btn--loading" id="loading-btn">Сохранение</button>
+          <button class="b24-btn b24-btn--primary" disabled>Недоступна</button>
+          <button class="b24-btn b24-btn--secondary b24-btn--round">Круглая</button>
+          <div class="b24-btn-group">
+            <button class="b24-btn b24-btn--secondary b24-btn--sm" aria-pressed="true">День</button>
+            <button class="b24-btn b24-btn--secondary b24-btn--sm">Неделя</button>
+            <button class="b24-btn b24-btn--secondary b24-btn--sm">Месяц</button>
+          </div>
+        </div>
+        <pre class="demo-code">&lt;button class="b24-btn b24-btn--success"&gt;Создать&lt;/button&gt;
+&lt;button class="b24-btn b24-btn--primary b24-btn--sm b24-btn--loading"&gt;Сохранение&lt;/button&gt;</pre>
+      </div>
+    </section>
+
+    <!-- Overlays -->
+    <section class="b24-card demo-section">
+      <div class="b24-card__header"><h2 class="b24-card__title">Окна и уведомления</h2></div>
+      <div class="b24-card__body">
+        <div class="b24-row">
+          <button class="b24-btn b24-btn--primary" id="open-panel">Открыть слайдер</button>
+          <button class="b24-btn b24-btn--secondary" id="open-modal">Модальное окно</button>
+          <button class="b24-btn b24-btn--secondary" id="open-confirm">Подтверждение</button>
+          <button class="b24-btn b24-btn--tinted" id="toast-ok">Toast: успех</button>
+          <button class="b24-btn b24-btn--tinted-danger" id="toast-err">Toast: ошибка</button>
+          <button class="b24-btn b24-btn--plain" id="toast-undo">Toast с действием</button>
+        </div>
+        <pre class="demo-code">const ok = await B24UI.confirm('Удалить сделку?', { danger: true, okText: 'Удалить' });
+B24UI.toast('Сделка сохранена', { type: 'success' });
+B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</pre>
+      </div>
+    </section>
+
+    <!-- Forms -->
+    <section class="b24-card demo-section">
+      <div class="b24-card__header"><h2 class="b24-card__title">Формы</h2></div>
+      <div class="b24-card__body">
+        <form class="b24-form" onsubmit="return false">
+          <div class="b24-form-row">
+            <div class="b24-field">
+              <label class="b24-field__label b24-field__label--required" for="f-name">Название сделки</label>
+              <input class="b24-input" id="f-name" placeholder="Например, Поставка оборудования" />
+            </div>
+            <div class="b24-field">
+              <label class="b24-field__label" for="f-sum">Сумма</label>
+              <div class="b24-input-group">
+                <input class="b24-input" id="f-sum" inputmode="decimal" value="150 000" />
+                <span class="b24-input-group__addon">₽</span>
+              </div>
+            </div>
+            <div class="b24-field">
+              <label class="b24-field__label" for="f-funnel">Воронка</label>
+              <select class="b24-select" id="f-funnel">
+                <option>Общая</option><option>Оптовые продажи</option><option>Розница</option>
+              </select>
+            </div>
+          </div>
+          <div class="b24-form-row">
+            <div class="b24-field b24-field--error">
+              <label class="b24-field__label" for="f-mail">E-mail</label>
+              <input class="b24-input" id="f-mail" value="info@" aria-invalid="true" />
+              <div class="b24-field__error">Введите корректный адрес</div>
+            </div>
+            <div class="b24-field">
+              <label class="b24-field__label" for="f-dis">Ответственный</label>
+              <input class="b24-input" id="f-dis" value="Дмитрий Лесников" disabled />
+              <div class="b24-field__hint">Назначается роботом</div>
+            </div>
+            <div class="b24-field">
+              <span class="b24-field__label">Теги</span>
+              <div class="b24-row" style="min-height:34px">
+                <span class="b24-tag"><span class="b24-tag__text">Яндекс</span><button class="b24-tag__remove" data-b24-dismiss aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></span>
+                <span class="b24-tag"><span class="b24-tag__text">Повторная</span></span>
+              </div>
+            </div>
+          </div>
+          <div class="b24-field">
+            <label class="b24-field__label" for="f-comment">Комментарий</label>
+            <textarea class="b24-textarea" id="f-comment" placeholder="Напишите комментарий…"></textarea>
+          </div>
+          <div class="b24-row" style="--b24-gap:20px">
+            <label class="b24-check"><input type="checkbox" checked /><span>Повторная сделка</span></label>
+            <label class="b24-check"><input type="checkbox" /><span>Доступна всем<span class="b24-check__desc">Видят все сотрудники</span></span></label>
+            <label class="b24-check"><input type="radio" name="r" checked /><span>Физлицо</span></label>
+            <label class="b24-check"><input type="radio" name="r" /><span>Юрлицо</span></label>
+            <label class="b24-switch"><input type="checkbox" checked /><span>Уведомлять</span></label>
+            <label class="b24-switch b24-switch--success"><input type="checkbox" /><span>Автозапуск</span></label>
+          </div>
+          <div class="b24-form-actions">
+            <button class="b24-btn b24-btn--success">Сохранить</button>
+            <button class="b24-btn b24-btn--link" type="reset">Отменить</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="b24-demo-section">
+      <div class="b24-table-wrap">
+        <table class="b24-table" data-b24-sortable>
+          <thead>
+            <tr>
+              <th class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" data-b24-check-all aria-label="Выбрать все" /></label></th>
+              <th aria-sort="none">Сделка</th>
+              <th aria-sort="none">Стадия</th>
+              <th aria-sort="none" class="b24-table__num">Сумма</th>
+              <th>Ответственный</th>
+              <th aria-sort="descending">Создана</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" aria-label="Выбрать" /></label></td>
+              <td><a href="#">Поставка оборудования</a><div class="b24-table__muted">Первичная</div></td>
+              <td><span class="b24-stage-mini" style="--stage-color:#39a8ef"><span class="b24-stage-mini__bar"><i class="is-done"></i><i class="is-done"></i><i></i><i></i><i></i></span><span class="b24-stage-mini__label">Подготовка документов</span></span></td>
+              <td class="b24-table__num" data-sort-value="150000">150 000 ₽</td>
+              <td><span class="b24-user"><span class="b24-avatar b24-avatar--sm" style="--b24-avatar-bg:#1bce7b">ДЛ</span><a class="b24-user__name" href="#">Дмитрий Лесников</a></span></td>
+              <td data-sort-value="3">2 минуты назад</td>
+            </tr>
+            <tr>
+              <td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" aria-label="Выбрать" /></label></td>
+              <td><a href="#">Входящий звонок</a> <span class="b24-badge b24-badge--danger b24-badge--sm">Пропущен</span><div class="b24-table__muted">Повторное обращение</div></td>
+              <td><span class="b24-stage-mini" style="--stage-color:#ff5752"><span class="b24-stage-mini__bar"><i class="is-done"></i><i></i><i></i><i></i><i></i></span><span class="b24-stage-mini__label">Новая заявка</span></span></td>
+              <td class="b24-table__num" data-sort-value="0">0 ₽</td>
+              <td><span class="b24-user"><span class="b24-avatar b24-avatar--sm" style="--b24-avatar-bg:#f85e9e">ЕР</span><a class="b24-user__name" href="#">Елена Ракитина</a></span></td>
+              <td data-sort-value="2">1 минуту назад</td>
+            </tr>
+            <tr>
+              <td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" aria-label="Выбрать" /></label></td>
+              <td><a href="#">Годовая лицензия</a><div class="b24-table__muted">Продление</div></td>
+              <td><span class="b24-stage-mini" style="--stage-color:#1bce7b"><span class="b24-stage-mini__bar"><i class="is-done"></i><i class="is-done"></i><i class="is-done"></i><i class="is-done"></i><i class="is-done"></i></span><span class="b24-stage-mini__label">Сделка успешна</span></span></td>
+              <td class="b24-table__num" data-sort-value="1290000">1 290 000 ₽</td>
+              <td><span class="b24-user"><span class="b24-avatar b24-avatar--sm" style="--b24-avatar-bg:#853af5">ВБ</span><a class="b24-user__name" href="#">Вероника Белозёрова</a></span></td>
+              <td data-sort-value="1">вчера</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="b24-table-footer">
+          <span id="selected-info">Выбрано: 0</span>
+          <span class="b24-spacer"></span>
+          <nav class="b24-pagination"><button class="b24-pagination__item" aria-current="page">1</button><button class="b24-pagination__item">2</button><button class="b24-pagination__item">3</button></nav>
+        </div>
+      </div>
+    </section>
+
+    <div class="b24-grid" style="--b24-grid-min:340px">
+      <!-- Badges & alerts -->
+      <section class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Бейджи и счётчики</h2></div>
+        <div class="b24-card__body b24-stack">
+          <div class="b24-row">
+            <span class="b24-badge b24-badge--primary">В работе</span>
+            <span class="b24-badge b24-badge--success">Оплачено</span>
+            <span class="b24-badge b24-badge--warning">Ждёт</span>
+            <span class="b24-badge b24-badge--danger">Просрочено</span>
+            <span class="b24-badge b24-badge--violet">AI</span>
+            <span class="b24-badge">Черновик</span>
+          </div>
+          <div class="b24-row">
+            <span class="b24-badge b24-badge--filled b24-badge--primary b24-badge--round">new</span>
+            <span class="b24-badge b24-badge--filled b24-badge--success b24-badge--caps">успех</span>
+            <span class="b24-badge b24-badge--filled b24-badge--danger b24-badge--sm">-5%</span>
+            <span class="b24-counter">3</span>
+            <span class="b24-counter b24-counter--lg">37</span>
+            <span class="b24-counter b24-counter--success">99+</span>
+            <span class="b24-counter b24-counter--gray">8</span>
+            <span class="b24-row" style="--b24-gap:6px"><i class="b24-dot b24-dot--success"></i>Онлайн</span>
+          </div>
+          <div class="b24-row">
+            <span class="b24-avatar-stack">
+              <span class="b24-avatar" style="--b24-avatar-bg:#2fc6f6">ГВ</span>
+              <span class="b24-avatar" style="--b24-avatar-bg:#faa72c">ВП</span>
+              <span class="b24-avatar" style="--b24-avatar-bg:#37c5d8">РЕ</span>
+              <span class="b24-avatar b24-avatar--empty"></span>
+            </span>
+            <span class="b24-user">
+              <span class="b24-avatar b24-avatar--lg" style="--b24-avatar-bg:#0075ff">ГВ<span class="b24-avatar__status"></span></span>
+              <span class="b24-user__info"><a class="b24-user__name" href="#">Григорий Воронцов</a><span class="b24-user__meta">Администратор</span></span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Алерты</h2></div>
+        <div class="b24-card__body b24-stack">
+          <div class="b24-alert"><span class="b24-alert__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/></svg></span><div class="b24-alert__content">Приложение подключено к порталу.</div></div>
+          <div class="b24-alert b24-alert--success"><div class="b24-alert__content"><p class="b24-alert__title">Готово</p>Синхронизировано 128 сделок.</div><button class="b24-alert__close" data-b24-dismiss aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+          <div class="b24-alert b24-alert--warning"><div class="b24-alert__content">Токен истекает через 3 дня.</div></div>
+          <div class="b24-alert b24-alert--danger b24-alert--outline"><div class="b24-alert__content">Нет прав на crm.deal.update</div></div>
+        </div>
+      </section>
+
+      <section class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Индикаторы</h2></div>
+        <div class="b24-card__body b24-stack" style="--b24-gap:16px">
+          <div class="b24-progress" style="--_value:64%"></div>
+          <div class="b24-progress b24-progress--success b24-progress--lg" style="--_value:90%"></div>
+          <div class="b24-progress b24-progress--indeterminate"></div>
+          <div class="b24-row"><span class="b24-spinner b24-spinner--sm"></span><span class="b24-spinner"></span><span class="b24-spinner b24-spinner--lg"></span></div>
+          <div class="b24-stack" style="--b24-gap:8px"><span class="b24-skeleton" style="width:60%"></span><span class="b24-skeleton"></span><span class="b24-skeleton" style="width:80%"></span></div>
+        </div>
+      </section>
+
+      <section class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Вкладки</h2></div>
+        <div class="b24-card__body" data-b24-tabs-scope>
+          <div class="b24-tabs" data-b24-tabs>
+            <button class="b24-tabs__item" data-b24-tab="general">Общие</button>
+            <button class="b24-tabs__item" data-b24-tab="products">Товары <span class="b24-counter b24-counter--gray">3</span></button>
+            <button class="b24-tabs__item" data-b24-tab="history">История</button>
+          </div>
+          <div data-b24-tab-panel="general" style="padding-top:16px">
+            <div class="b24-props">
+              <div class="b24-prop"><span class="b24-prop__label">Клиент</span><span class="b24-prop__value"><a class="b24-link" href="#">ООО «Ромашка»</a></span></div>
+              <div class="b24-prop"><span class="b24-prop__label">Источник</span><span class="b24-prop__value">Звонок</span></div>
+              <div class="b24-prop"><span class="b24-prop__label">Комментарий</span><span class="b24-prop__value"></span></div>
+            </div>
+          </div>
+          <div data-b24-tab-panel="products" style="padding-top:16px">Список товаров…</div>
+          <div data-b24-tab-panel="history" style="padding-top:16px">История изменений…</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Filter (vanilla, конфиг в JSON — так удобно отдавать из PHP) -->
+    <section class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Фильтр</h2><span class="b24-card__subtitle">&nbsp;data-b24-filter + JSON-конфиг</span></div>
+      <div class="b24-card__body b24-stack">
+        <div id="demo-filter" data-b24-filter>
+          <script type="application/json">
+          {
+            "placeholder": "Фильтр и поиск",
+            "fields": [
+              { "id": "TITLE", "label": "Название", "type": "text" },
+              { "id": "STAGE_ID", "label": "Стадия", "type": "select", "options": [
+                { "value": "NEW", "label": "Новая" }, { "value": "PREPARATION", "label": "Подготовка" }, { "value": "WON", "label": "Успешна" } ] },
+              { "id": "OPPORTUNITY", "label": "Сумма", "type": "number" },
+              { "id": "DATE_CREATE", "label": "Дата создания", "type": "date" },
+              { "id": "SOURCE_ID", "label": "Источник", "type": "multiselect", "default": false, "options": [
+                { "value": "CALL", "label": "Звонок" }, { "value": "WEB", "label": "Сайт" }, { "value": "EMAIL", "label": "E-mail" } ] }
+            ],
+            "presets": [
+              { "id": "work", "name": "Сделки в работе", "system": true, "values": { "STAGE_ID": "NEW" } },
+              { "id": "month", "name": "Созданы в этом месяце", "system": true, "values": { "DATE_CREATE": { "type": "month" } } }
+            ],
+            "state": { "presetId": "work", "values": { "STAGE_ID": "NEW" }, "search": "" }
+          }
+          </script>
+        </div>
+        <pre class="demo-code" id="filter-output">Нажмите «Найти» — здесь появится filter для REST (crm.deal.list)</pre>
+      </div>
+    </section>
+
+    <!-- DatePicker -->
+    <section class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Выбор даты</h2></div>
+      <div class="b24-card__body">
+        <div class="b24-form-row">
+          <div class="b24-field">
+            <label class="b24-field__label" for="dp-1">Дата</label>
+            <div class="b24-input-group b24-datepicker">
+              <input class="b24-input" id="dp-1" name="date" data-b24-datepicker value="24.09.2026" />
+              <span class="b24-input-group__icon" data-b24-datepicker-toggle><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>
+            </div>
+          </div>
+          <div class="b24-field">
+            <label class="b24-field__label" for="dp-2">Дата и время</label>
+            <input class="b24-input" id="dp-2" data-b24-datepicker data-time />
+          </div>
+          <div class="b24-field">
+            <label class="b24-field__label" for="dp-3">Период (одно поле)</label>
+            <input class="b24-input" id="dp-3" data-b24-datepicker="range" />
+          </div>
+          <div class="b24-field">
+            <label class="b24-field__label" for="dp-4">С … по (два поля, не раньше сегодня)</label>
+            <div class="b24-filter-popup__field-row">
+              <input class="b24-input" id="dp-4" data-b24-datepicker data-b24-to="#dp-5" data-min="today" />
+              <span class="b24-filter-popup__sep">—</span>
+              <input class="b24-input" id="dp-5" aria-label="по" />
+            </div>
+          </div>
+        </div>
+        <pre class="demo-code">&lt;input class="b24-input" name="date" data-b24-datepicker&gt;
+&lt;input class="b24-input" data-b24-datepicker="range"&gt;
+&lt;input class="b24-input" data-b24-datepicker data-time data-min="01.09.2026"&gt;</pre>
+      </div>
+    </section>
+
+    <!-- Kanban -->
+    <section class="b24-stack">
+      <h2 class="b24-h3" style="color:#fff">Канбан <span class="b24-text-sm" style="opacity:.7;font-weight:400">— перетаскивайте карточки; Alt+стрелки с клавиатуры</span></h2>
+      <div class="b24-kanban" data-b24-kanban id="demo-kanban" style="height:460px">
+        <section class="b24-kanban__column" data-column="new" data-color="#2fc6f6">
+          <header class="b24-kanban__header"><span class="b24-kanban__title">Новая заявка</span><span class="b24-kanban__count">2</span></header>
+          <div class="b24-kanban__total"><span>150 000 ₽</span></div>
+          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <div class="b24-kanban__items">
+            <div class="b24-kanban-card" data-id="1" tabindex="0">
+              <a class="b24-kanban-card__title" href="#">Поставка оборудования</a>
+              <span class="b24-kanban-card__price">150 000 ₽</span>
+              <span class="b24-kanban-card__field"><span class="b24-kanban-card__label">Клиент</span><span class="b24-kanban-card__value"><a class="b24-link" href="#">ООО «Ромашка»</a></span></span>
+              <span class="b24-kanban-card__footer"><span>+ Дело</span><span>5 минут</span></span>
+            </div>
+            <div class="b24-kanban-card" data-id="2" tabindex="0" style="--card-accent:#ff5752">
+              <span class="b24-kanban-card__title">Входящий звонок</span>
+              <span class="b24-kanban-card__price">0 ₽</span>
+              <span><span class="b24-badge b24-badge--danger b24-badge--sm">Пропущен</span></span>
+              <span class="b24-kanban-card__footer"><span>+ Дело</span><span>вчера</span></span>
+            </div>
+          </div>
+        </section>
+        <section class="b24-kanban__column" data-column="work" data-color="#faa72c">
+          <header class="b24-kanban__header"><span class="b24-kanban__title">В работе</span><span class="b24-kanban__count">1</span></header>
+          <div class="b24-kanban__total"><span>1 290 000 ₽</span></div>
+          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <div class="b24-kanban__items">
+            <div class="b24-kanban-card" data-id="3" tabindex="0">
+              <span class="b24-kanban-card__title">Годовая лицензия</span>
+              <span class="b24-kanban-card__price">1 290 000 ₽</span>
+              <span class="b24-kanban-card__field"><span class="b24-kanban-card__label">Ответственный</span><span class="b24-kanban-card__value">Вероника Белозёрова</span></span>
+              <span class="b24-kanban-card__footer"><span>+ Дело</span><span>12 сен</span></span>
+            </div>
+          </div>
+        </section>
+        <section class="b24-kanban__column" data-column="won" data-color="#1bce7b">
+          <header class="b24-kanban__header"><span class="b24-kanban__title">Сделка успешна</span><span class="b24-kanban__count">0</span></header>
+          <div class="b24-kanban__total"><span>0 ₽</span></div>
+          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <div class="b24-kanban__items"></div>
+        </section>
+        <section class="b24-kanban__column" data-column="lost" data-color="#ff5752">
+          <header class="b24-kanban__header"><span class="b24-kanban__title">Провалена</span><span class="b24-kanban__count">0</span></header>
+          <div class="b24-kanban__total"><span>0 ₽</span></div>
+          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <div class="b24-kanban__items"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Selectors & uploader: всё внутри обычной <form> -->
+    <section class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Выбор и файлы</h2><span class="b24-card__subtitle">&nbsp;обычная &lt;form&gt; — значения уходят в PHP как есть</span></div>
+      <div class="b24-card__body">
+        <form class="b24-form" id="demo-form" onsubmit="return false">
+          <div class="b24-form-row">
+            <div class="b24-field">
+              <label class="b24-field__label" for="cb-source">Источник (select с поиском)</label>
+              <select class="b24-select" id="cb-source" name="SOURCE_ID" data-b24-combobox>
+                <option value="">Не выбрано</option>
+                <option value="CALL">Звонок</option>
+                <option value="WEB" data-subtitle="Форма на лендинге">Сайт</option>
+                <option value="EMAIL">E-mail</option>
+                <optgroup label="Реклама"><option value="YANDEX">Яндекс.Директ</option><option value="VK">VK Реклама</option></optgroup>
+                <optgroup label="Мессенджеры"><option value="TG">Telegram</option><option value="WA">WhatsApp</option><option value="MAX">MAX</option></optgroup>
+              </select>
+            </div>
+            <div class="b24-field">
+              <label class="b24-field__label" for="cb-tags">Теги (multiple)</label>
+              <select class="b24-select" id="cb-tags" name="TAGS[]" multiple data-b24-combobox data-placeholder="Добавьте теги">
+                <option value="vip" selected>VIP</option><option value="repeat">Повторная</option><option value="yandex" selected>Яндекс</option><option value="partner">Партнёр</option>
+              </select>
+            </div>
+          </div>
+          <div class="b24-form-row">
+            <div class="b24-field">
+              <span class="b24-field__label">Ответственный</span>
+              <div data-b24-entity-selector>
+                <script type="application/json">
+                { "name": "ASSIGNED_BY_ID", "selected": [{ "id": 1, "entityId": "user", "title": "Дмитрий Лесников", "subtitle": "Руководитель отдела продаж" }],
+                  "items": [
+                    { "id": 1, "entityId": "user", "title": "Дмитрий Лесников", "subtitle": "Руководитель отдела продаж" },
+                    { "id": 2, "entityId": "user", "title": "Елена Ракитина", "subtitle": "Менеджер" },
+                    { "id": 3, "entityId": "user", "title": "Вероника Белозёрова", "subtitle": "Старший менеджер" },
+                    { "id": 4, "entityId": "user", "title": "Олег Тихомиров", "subtitle": "Менеджер" }
+                  ] }
+                </script>
+              </div>
+            </div>
+            <div class="b24-field">
+              <span class="b24-field__label">Наблюдатели (сотрудники и отделы)</span>
+              <div data-b24-entity-selector>
+                <script type="application/json">
+                { "name": "OBSERVERS", "multiple": true, "valueFormat": "key",
+                  "tabs": [{ "id": "users", "title": "Сотрудники", "icon": "users" }, { "id": "departments", "title": "Отделы", "icon": "department" }],
+                  "items": [
+                    { "id": 2, "entityId": "user", "title": "Елена Ракитина", "subtitle": "Менеджер", "tab": "users" },
+                    { "id": 3, "entityId": "user", "title": "Вероника Белозёрова", "subtitle": "Старший менеджер", "tab": "users" },
+                    { "id": 5, "entityId": "user", "title": "Вера Полянская", "subtitle": "Маркетолог", "tab": "users" },
+                    { "id": 10, "entityId": "department", "title": "Отдел продаж", "subtitle": "7 сотрудников", "tab": "departments" },
+                    { "id": 11, "entityId": "department", "title": "Маркетинг", "subtitle": "3 сотрудника", "tab": "departments" }
+                  ] }
+                </script>
+              </div>
+            </div>
+          </div>
+          <div class="b24-form-row">
+            <div class="b24-field">
+              <span class="b24-field__label">Документы (уходят с формой)</span>
+              <div data-b24-uploader data-name="DOCS" data-accept=".pdf,.doc,.docx,.xlsx,image/*" data-max-size="10"></div>
+            </div>
+            <div class="b24-field">
+              <span class="b24-field__label">Фото (плитки, одно)</span>
+              <div data-b24-uploader data-name="PHOTO" data-accept="image/*" data-single data-view="grid"></div>
+            </div>
+          </div>
+          <div class="b24-form-actions"><button class="b24-btn b24-btn--success" type="submit" id="demo-form-submit">Отправить</button></div>
+          <pre class="demo-code" id="form-output">Нажмите «Отправить» — здесь будет FormData, как её получит PHP ($_POST / $_FILES)</pre>
+        </form>
+      </div>
+    </section>
+
+    <!-- Entity editor + timeline -->
+    <section class="b24-grid" style="--b24-grid-min:360px;align-items:start">
+      <div data-b24-editor id="demo-editor">
+        <script type="application/json">
+        {
+          "fields": [
+            { "id": "TITLE", "label": "Название", "type": "text", "required": true },
+            { "id": "OPPORTUNITY", "label": "Сумма", "type": "money", "currency": "₽" },
+            { "id": "CLOSEDATE", "label": "Дата закрытия", "type": "date", "hint": "Планируемая дата завершения" },
+            { "id": "SOURCE_ID", "label": "Источник", "type": "select", "options": [{ "value": "CALL", "label": "Звонок" }, { "value": "WEB", "label": "Сайт" }, { "value": "EMAIL", "label": "E-mail" }] },
+            { "id": "ASSIGNED", "label": "Ответственный", "type": "user", "required": true, "dialog": { "items": [
+              { "id": 1, "entityId": "user", "title": "Дмитрий Лесников", "subtitle": "Руководитель отдела продаж" },
+              { "id": 2, "entityId": "user", "title": "Елена Ракитина", "subtitle": "Менеджер" } ] } },
+            { "id": "PHONE", "label": "Телефон", "type": "phone" },
+            { "id": "EMAIL", "label": "E-mail", "type": "email" },
+            { "id": "COMMENTS", "label": "Комментарий", "type": "textarea" }
+          ],
+          "sections": [
+            { "id": "main", "title": "О сделке", "fields": ["TITLE", "OPPORTUNITY", "CLOSEDATE", "SOURCE_ID", "ASSIGNED"] },
+            { "id": "client", "title": "Клиент", "fields": ["PHONE", "EMAIL", "COMMENTS"] }
+          ],
+          "values": {
+            "TITLE": "Поставка оборудования", "OPPORTUNITY": "150000", "CLOSEDATE": "30.09.2026", "SOURCE_ID": "CALL",
+            "ASSIGNED": { "id": 1, "entityId": "user", "title": "Дмитрий Лесников", "subtitle": "Руководитель отдела продаж" },
+            "PHONE": "+7 900 123-45-67", "EMAIL": "", "COMMENTS": ""
+          }
+        }
+        </script>
+      </div>
+
+      <div class="b24-stack" style="--b24-gap:12px">
+        <div class="b24-composer" data-b24-composer id="demo-composer">
+          <div class="b24-tabs" role="tablist">
+            <button class="b24-tabs__item is-active" aria-selected="true" data-b24-composer-tab="comment" data-placeholder="Оставьте комментарий">Комментарий</button>
+            <button class="b24-tabs__item" data-b24-composer-tab="activity" data-placeholder="Что нужно сделать">Дело</button>
+            <button class="b24-tabs__item" data-b24-composer-tab="sms" data-placeholder="Текст SMS клиенту">SMS</button>
+          </div>
+          <div class="b24-composer__body">
+            <textarea class="b24-composer__input" rows="1" placeholder="Оставьте комментарий" aria-label="Сообщение"></textarea>
+            <div class="b24-composer__footer">
+              <button class="b24-btn b24-btn--primary b24-btn--sm" data-b24-composer-submit>Отправить</button>
+              <button class="b24-btn b24-btn--link b24-btn--sm" data-b24-composer-cancel>Отменить</button>
+              <span class="b24-composer__hint">Ctrl+Enter — отправить</span>
+            </div>
+          </div>
+        </div>
+        <div class="b24-timeline" id="demo-timeline">
+          <div class="b24-timeline__divider b24-timeline__divider--success"><span>Что нужно сделать</span></div>
+          <article class="b24-timeline__item b24-timeline__item--activity b24-timeline__item--overdue">
+            <span class="b24-timeline__icon b24-timeline__icon--danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z"/></svg></span>
+            <div class="b24-timeline__card">
+              <header class="b24-timeline__header">
+                <button class="b24-timeline__complete" role="checkbox" aria-checked="false" aria-label="Выполнить" onclick="this.closest('.b24-timeline__item').classList.toggle('b24-timeline__item--done');this.setAttribute('aria-checked', this.getAttribute('aria-checked')!=='true')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/></svg></button>
+                <span class="b24-timeline__title">Перезвонить клиенту</span><span class="b24-timeline__time">вчера, 12:00</span>
+              </header>
+              <div class="b24-timeline__meta">Срок: <span class="b24-badge b24-badge--danger b24-badge--sm">вчера, 18:00</span></div>
+            </div>
+          </article>
+          <div class="b24-timeline__divider"><span>Сегодня</span></div>
+          <article class="b24-timeline__item">
+            <span class="b24-timeline__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M8.5 9.5h7M8.5 13h4.5"/></svg></span>
+            <div class="b24-timeline__card">
+              <header class="b24-timeline__header"><span class="b24-timeline__title">Отправлено SMS-сообщение</span><span class="b24-timeline__time">07:58</span></header>
+              <div class="b24-timeline__body"><div class="b24-timeline__quote">Спасибо за регистрацию! Для быстрой связи: t.me/example</div><div class="b24-timeline__meta">Клиент <a href="#">Степан Громов</a></div></div>
+            </div>
+          </article>
+          <article class="b24-timeline__item">
+            <span class="b24-timeline__icon b24-timeline__icon--outline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            <div class="b24-timeline__card">
+              <header class="b24-timeline__header"><span class="b24-timeline__title">Стадия изменена</span><span class="b24-timeline__time">07:56</span></header>
+              <span class="b24-timeline__change"><span class="b24-badge">Неразобранные</span>→<span class="b24-badge b24-badge--primary">Новая заявка</span></span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Стадии</h2></div>
+      <div class="b24-card__body b24-stack" style="--b24-gap:14px">
+        <div class="b24-stages" id="stages">
+          <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6">Новая</button>
+          <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6">Подготовка</button>
+          <button class="b24-stages__item is-current" style="--stage-color:#2fc6f6">Счёт на оплату</button>
+          <button class="b24-stages__item" style="--stage-color:#2fc6f6">В работе</button>
+          <button class="b24-stages__item" style="--stage-color:#2fc6f6">Финальный счёт</button>
+          <button class="b24-stages__item" style="--stage-color:#2fc6f6">Завершить</button>
+        </div>
+        <div class="b24-stages b24-stages--sm">
+          <button class="b24-stages__item is-done" style="--stage-color:#1bce7b">Лид</button>
+          <button class="b24-stages__item is-done" style="--stage-color:#1bce7b">Квалификация</button>
+          <button class="b24-stages__item is-current" style="--stage-color:#1bce7b">Успех</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Токены</h2><span class="b24-card__actions"><a class="b24-link" href="react.html">React-пример →</a></span></div>
+      <div class="b24-card__body">
+        <div class="b24-grid" style="--b24-grid-min:110px;--b24-gap:12px" id="swatches"></div>
+      </div>
+    </section>
+
+    <section class="b24-card">
+      <div class="b24-empty">
+        <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></div>
+        <h3 class="b24-empty__title">Ничего не найдено</h3>
+        <p class="b24-empty__text">Попробуйте изменить параметры фильтра или создайте первую запись</p>
+        <button class="b24-btn b24-btn--success">Создать сделку</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+
+  // Тема
+  document.querySelectorAll('#theme-tabs [data-theme]').forEach((btn) => btn.addEventListener('click', () => {
+    document.querySelectorAll('#theme-tabs .b24-tabs__item').forEach((b) => b.classList.toggle('is-active', b === btn));
+    B24UI.setTheme(btn.dataset.theme);
+  }));
+  document.getElementById('air-select').addEventListener('change', (e) => B24UI.setAirPreset(e.target.value));
+
+  // Свотчи токенов
+  const tokens = ['--b24-color-primary', '--b24-color-create', '--b24-color-success', '--b24-color-warning', '--b24-color-danger', '--b24-color-copilot', '--b24-color-link',
+    '--b24-color-soft-blue-2', '--b24-color-soft-green-2', '--b24-color-soft-orange-2', '--b24-color-soft-red-2', '--b24-color-soft-violet-2',
+    '--b24-text-primary', '--b24-text-secondary', '--b24-text-subtle', '--b24-border', '--b24-bg-page', '--b24-air-bg-color'];
+  document.getElementById('swatches').append(...tokens.map((t) => B24UI.h('div', { class: 'demo-swatch' }, B24UI.h('i', { style: `background:var(${t})` }), t.replace('--b24-', ''))));
+
+  // Слайдер
+  document.getElementById('open-panel').addEventListener('click', () => {
+    const content = B24UI.html(`
+      <div class="b24-stack" style="--b24-gap:16px">
+        <div class="b24-stages">
+          <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6">Новая</button>
+          <button class="b24-stages__item is-current" style="--stage-color:#2fc6f6">В работе</button>
+          <button class="b24-stages__item">Счёт</button>
+          <button class="b24-stages__item">Завершить</button>
+        </div>
+        <div class="b24-grid" style="--b24-grid-min:280px">
+          <div class="b24-card"><div class="b24-card__body">
+            <h4 class="b24-section-title">О сделке</h4>
+            <div class="b24-props">
+              <div class="b24-prop"><span class="b24-prop__label">Сумма</span><span class="b24-prop__value">150 000 ₽</span></div>
+              <div class="b24-prop"><span class="b24-prop__label">Клиент</span><span class="b24-prop__value"><a class="b24-link" href="#">ООО «Ромашка»</a></span></div>
+              <div class="b24-prop"><span class="b24-prop__label">Дата закрытия</span><span class="b24-prop__value">30.09.2026</span></div>
+            </div>
+          </div></div>
+          <div class="b24-card"><div class="b24-card__body">
+            <h4 class="b24-section-title">Таймлайн</h4>
+            <div class="b24-alert b24-alert--copilot"><div class="b24-alert__content">CoPilot подготовил резюме звонка.</div></div>
+          </div></div>
+        </div>
+        <button class="b24-btn b24-btn--secondary" id="nested">Открыть вложенный слайдер</button>
+      </div>`);
+    const footer = B24UI.html('<button class="b24-btn b24-btn--success">Сохранить</button><button class="b24-btn b24-btn--link" data-close>Отменить</button>');
+    const panel = B24UI.openSidePanel({ title: 'Поставка оборудования', content, footer, air: true });
+    panel.element.querySelector('[data-close]').addEventListener('click', () => panel.close());
+    panel.element.querySelector('#nested').addEventListener('click', () => B24UI.openSidePanel({ title: 'Контакт', content: 'Вложенная панель', width: 700 }));
+  });
+
+  document.getElementById('open-modal').addEventListener('click', () => {
+    B24UI.modal({
+      title: 'Настройки интеграции',
+      content: B24UI.html('<div class="b24-form"><div class="b24-field"><label class="b24-field__label">Webhook URL</label><input class="b24-input" value="https://example.bitrix24.ru/rest/1/xxx/" /></div><label class="b24-switch"><input type="checkbox" checked><span>Активна</span></label></div>'),
+      buttons: [
+        { text: 'Сохранить', variant: 'success', onClick: () => new Promise((r) => setTimeout(r, 800)) },
+        { text: 'Отмена', variant: 'link' },
+      ],
+    }).result.then(() => B24UI.toast('Окно закрыто'));
+  });
+  document.getElementById('open-confirm').addEventListener('click', async () => {
+    const ok = await B24UI.confirm('Сделка будет удалена без возможности восстановления.', { title: 'Удалить сделку?', okText: 'Удалить', danger: true });
+    B24UI.toast(ok ? 'Сделка удалена' : 'Отменено', { type: ok ? 'danger' : 'default' });
+  });
+  document.getElementById('toast-ok').addEventListener('click', () => B24UI.toast('Изменения сохранены', { type: 'success' }));
+  document.getElementById('toast-err').addEventListener('click', () => B24UI.toast('Не удалось связаться с порталом', { type: 'danger' }));
+  document.getElementById('toast-undo').addEventListener('click', () => B24UI.toast('Сделка перемещена в корзину', { action: { label: 'Отменить', onClick: () => B24UI.toast('Восстановлено', { type: 'success' }) } }));
+  document.getElementById('create-btn').addEventListener('click', () => document.getElementById('open-panel').click());
+
+
+  // Фильтр → REST
+  document.getElementById('demo-filter').addEventListener('b24:filter-apply', (e) => {
+    document.getElementById('filter-output').textContent = 'crm.deal.list filter = ' + JSON.stringify(e.detail.filter, null, 2);
+  });
+  // Канбан: пересчёт счётчиков, отмена переноса в «Провалена» через confirm
+  const board = document.getElementById('demo-kanban');
+  board.addEventListener('b24:kanban-move', (e) => {
+    board.querySelectorAll('.b24-kanban__column').forEach((col) => {
+      col.querySelector('.b24-kanban__count').textContent = col.querySelectorAll('.b24-kanban-card').length;
+    });
+  });
+
+
+  // Форма → что получит PHP
+  document.getElementById('demo-form').addEventListener('submit', () => {
+    const fd = new FormData(document.getElementById('demo-form'));
+    const lines = [];
+    for (const [k, v] of fd.entries()) lines.push(`${k} = ${v instanceof File ? `[файл ${v.name}, ${v.size} байт]` : v}`);
+    document.getElementById('form-output').textContent = lines.join('\n') || '(пусто)';
+  });
+  // Карточка: сохранение «на сервер»
+  document.getElementById('demo-editor').addEventListener('b24:editor-save', (e) => {
+    e.preventDefault();
+    setTimeout(() => { e.detail.resolve(); B24UI.toast('Карточка сохранена: ' + (e.detail.changed.join(', ') || 'без изменений'), { type: 'success' }); }, 500);
+  });
+  // Композер → новая запись в таймлайне
+  document.getElementById('demo-composer').addEventListener('b24:composer-submit', (e) => {
+    const { text, tab } = e.detail;
+    const titles = { comment: 'Комментарий', activity: 'Новое дело', sms: 'Отправлено SMS-сообщение' };
+    const item = B24UI.h('article', { class: 'b24-timeline__item' },
+      B24UI.h('span', { class: 'b24-timeline__icon b24-timeline__icon--gray' }, B24UI.html(B24UI.icon(tab === 'sms' ? 'sms' : 'comment'))),
+      B24UI.h('div', { class: 'b24-timeline__card' },
+        B24UI.h('header', { class: 'b24-timeline__header' }, B24UI.h('span', { class: 'b24-timeline__title' }, titles[tab] ?? 'Запись'), B24UI.h('span', { class: 'b24-timeline__time' }, B24UI.formatTimelineTime(new Date()))),
+        B24UI.h('div', { class: 'b24-timeline__body' }, text)));
+    const today = [...document.querySelectorAll('#demo-timeline .b24-timeline__divider')].find((d) => d.textContent === 'Сегодня');
+    today.after(item);
+  });
+
+  document.addEventListener('b24:selection', (e) => { document.getElementById('selected-info').textContent = `Выбрано: ${e.detail.count}`; });
+  document.getElementById('stages').addEventListener('click', (e) => {
+    const item = e.target.closest('.b24-stages__item'); if (!item) return;
+    const items = [...e.currentTarget.children]; const idx = items.indexOf(item);
+    items.forEach((el, i) => { el.classList.toggle('is-done', i < idx); el.classList.toggle('is-current', i === idx); });
+  });
+</script>
+</body>
+</html>

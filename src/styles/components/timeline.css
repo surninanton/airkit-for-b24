@@ -1,0 +1,147 @@
+/* ── Timeline (лента событий CRM) ────────────────────────
+ * .b24-timeline > .b24-timeline__item (.b24-timeline__icon + .b24-timeline__card) | .b24-timeline__divider
+ */
+.b24-timeline {
+  --_rail: 18px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: calc(var(--_rail) * 2 + 8px);
+}
+.b24-timeline::before {
+  content: "";
+  position: absolute;
+  top: 8px; bottom: 8px;
+  left: var(--_rail);
+  width: 2px;
+  margin-left: -1px;
+  background: var(--b24-timeline-rail, rgba(255, 255, 255, 0.35));
+  border-radius: 1px;
+}
+.b24-timeline--light::before { background: var(--b24-divider-accent); }
+
+.b24-timeline__item { position: relative; }
+.b24-timeline__icon {
+  --_c: var(--b24-color-primary);
+  position: absolute;
+  top: 8px;
+  left: calc(-1 * (var(--_rail) + 8px) - 15px);
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  color: #fff;
+  background: var(--_c);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--b24-timeline-ring, rgba(255, 255, 255, 0.35));
+}
+.b24-timeline--light .b24-timeline__icon { --b24-timeline-ring: var(--b24-bg-page); }
+.b24-timeline__icon svg { width: 16px; height: 16px; }
+.b24-timeline__icon--success { --_c: var(--b24-color-success); }
+.b24-timeline__icon--warning { --_c: var(--b24-color-warning); }
+.b24-timeline__icon--danger { --_c: var(--b24-color-danger); }
+.b24-timeline__icon--violet { --_c: var(--b24-color-copilot); }
+.b24-timeline__icon--gray { --_c: var(--b24-text-disabled); }
+.b24-timeline__icon--outline { color: var(--b24-text-subtle); background: var(--b24-bg-surface); }
+
+.b24-timeline__card {
+  padding: 10px 14px 12px;
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-lg);
+  box-shadow: var(--b24-shadow-2xs);
+  font-size: var(--b24-font-size-sm);
+  color: var(--b24-text-primary);
+}
+.b24-timeline__header { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+.b24-timeline__title { font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-semibold); color: var(--b24-text-primary); }
+.b24-timeline__time { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); white-space: nowrap; }
+.b24-timeline__actions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.b24-timeline__actions .b24-btn { color: var(--b24-text-subtle); }
+.b24-timeline__body { margin-top: 6px; line-height: var(--b24-line-height-lg); color: var(--b24-text-secondary); word-break: break-word; }
+.b24-timeline__body > p { margin: 0 0 6px; }
+.b24-timeline__body > :last-child { margin-bottom: 0; }
+.b24-timeline__quote {
+  margin: 6px 0 0; padding: 8px 12px;
+  color: var(--b24-text-primary);
+  background: var(--b24-bg-surface-2);
+  border-left: 3px solid var(--b24-color-primary-light);
+  border-radius: 0 var(--b24-radius-sm) var(--b24-radius-sm) 0;
+  white-space: pre-line;
+}
+.b24-timeline__meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-timeline__meta a { color: var(--b24-color-link); text-decoration: none; }
+.b24-timeline__footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--b24-divider); }
+
+/* Смена стадии: «Новая → В работе» */
+.b24-timeline__change { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.b24-timeline__change svg { width: 14px; height: 14px; color: var(--b24-text-subtle); }
+
+/* Дело (activity): чекбокс-кружок, дедлайн */
+.b24-timeline__item--activity .b24-timeline__card { box-shadow: inset 3px 0 0 var(--b24-color-warning), var(--b24-shadow-2xs); }
+.b24-timeline__item--overdue .b24-timeline__card { box-shadow: inset 3px 0 0 var(--b24-color-danger), var(--b24-shadow-2xs); }
+.b24-timeline__item--done { opacity: 0.7; }
+.b24-timeline__item--done .b24-timeline__title { text-decoration: line-through; color: var(--b24-text-subtle); }
+.b24-timeline__complete {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 22px; height: 22px; padding: 0;
+  color: var(--b24-text-disabled);
+  background: transparent; border: 0; border-radius: 50%; cursor: pointer;
+}
+.b24-timeline__complete:hover { color: var(--b24-color-success); }
+.b24-timeline__complete svg { width: 20px; height: 20px; }
+.b24-timeline__complete[aria-checked="true"] { color: var(--b24-color-success); }
+.b24-timeline__deadline { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Закреплённые */
+.b24-timeline__item--pinned .b24-timeline__card { box-shadow: 0 0 0 1px var(--b24-color-soft-orange-1), var(--b24-shadow-2xs); }
+
+/* Разделитель-«пилюля»: «Сегодня», «Что нужно сделать» */
+.b24-timeline__divider {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 4px calc(-1 * (var(--_rail) * 2 + 8px));
+}
+.b24-timeline__divider > span {
+  position: relative;
+  z-index: 1;
+  display: inline-flex; align-items: center;
+  height: 20px; padding: 0 10px;
+  font-size: var(--b24-font-size-2xs);
+  font-weight: var(--b24-font-weight-semibold);
+  color: #fff;
+  background: var(--_c, var(--b24-color-primary-light));
+  border-radius: var(--b24-radius-pill);
+}
+.b24-timeline__divider--success > span { --_c: var(--b24-color-success); }
+.b24-timeline__divider--gray > span { --_c: var(--b24-text-disabled); }
+
+/* Композер сверху ленты */
+.b24-composer {
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-lg);
+  box-shadow: var(--b24-shadow-2xs);
+  overflow: hidden;
+}
+.b24-composer .b24-tabs { padding: 0 14px; gap: 16px; }
+.b24-composer .b24-tabs__item { height: 38px; font-size: var(--b24-font-size-sm); }
+.b24-composer__body { padding: 10px 14px 12px; }
+.b24-composer__input {
+  width: 100%;
+  min-height: 22px;
+  max-height: 240px;
+  padding: 0;
+  font: inherit;
+  font-size: var(--b24-font-size-md);
+  line-height: var(--b24-line-height-lg);
+  color: var(--b24-text-primary);
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+}
+.b24-composer__input::placeholder { color: var(--b24-text-disabled); }
+.b24-composer__footer { display: none; align-items: center; gap: 8px; margin-top: 10px; }
+.b24-composer.is-expanded .b24-composer__footer { display: flex; }
+.b24-composer__footer-right { margin-left: auto; display: flex; gap: 2px; color: var(--b24-text-subtle); }
+.b24-composer__hint { font-size: var(--b24-font-size-2xs); color: var(--b24-text-disabled); }

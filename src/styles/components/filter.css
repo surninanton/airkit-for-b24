@@ -1,0 +1,126 @@
+/* ── Filter (main.ui.filter-подобный) ────────────────────
+ * .b24-filter                  — строка поиска с чипами (кликабельна → открывает попап)
+ *   .b24-filter__chip            — применённый пресет / «ещё N полей»
+ *   .b24-filter__input           — поле поиска
+ * .b24-filter-popup            — попап: пресеты слева, поля справа, футер
+ */
+.b24-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: var(--b24-size-md);
+  padding: 0 4px 0 4px;
+  background: var(--b24-bg-surface);
+  border: 1px solid var(--b24-border-field);
+  border-radius: var(--b24-radius-sm);
+  cursor: text;
+  transition: border-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast), background-color var(--b24-duration-fast);
+}
+.b24-filter:hover { border-color: var(--b24-text-disabled); }
+.b24-filter.is-open,
+.b24-filter:focus-within { border-color: var(--b24-color-primary-light); box-shadow: 0 0 0 3px rgba(88, 177, 255, 0.22); }
+.b24-filter__chips { display: flex; gap: 4px; min-width: 0; flex: 0 1 auto; overflow: hidden; }
+.b24-filter__chip {
+  display: inline-flex; align-items: center; gap: 2px;
+  flex: 0 0 auto;
+  height: 24px; padding: 0 2px 0 8px;
+  font-size: var(--b24-font-size-sm);
+  white-space: nowrap;
+  color: var(--b24-color-soft-text-blue);
+  background: var(--b24-color-soft-blue-2);
+  border-radius: var(--b24-radius-xs);
+  cursor: pointer;
+  max-width: 220px;
+}
+.b24-filter__chip > span { overflow: hidden; text-overflow: ellipsis; }
+.b24-filter__chip--more { padding-right: 8px; color: var(--b24-text-secondary); background: var(--b24-btn-neutral-bg); }
+.b24-filter__chip-remove {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 18px; height: 18px; padding: 0;
+  color: inherit; background: transparent; border: 0; border-radius: 4px; opacity: 0.6; cursor: pointer;
+}
+.b24-filter__chip-remove:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+.b24-filter__chip-remove svg { width: 12px; height: 12px; }
+.b24-filter__input {
+  flex: 1 1 80px; min-width: 60px; height: 100%;
+  padding: 0 6px;
+  font: inherit; font-size: var(--b24-font-size-md);
+  color: var(--b24-text-primary);
+  background: transparent; border: 0; outline: none;
+}
+.b24-filter__input::placeholder { color: var(--b24-text-disabled); }
+.b24-filter__icon {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 26px; height: 26px; padding: 0;
+  color: var(--b24-text-subtle); background: transparent; border: 0; border-radius: 6px; cursor: pointer;
+}
+.b24-filter__icon:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-filter__icon svg { width: 18px; height: 18px; }
+
+/* Стеклянный вариант для Air-тулбара */
+.b24-filter--glass { background: rgba(255, 255, 255, 0.12); border-color: var(--b24-glass-border-soft); backdrop-filter: blur(12px); }
+.b24-filter--glass:hover { border-color: var(--b24-glass-border); }
+.b24-filter--glass.is-open,
+.b24-filter--glass:focus-within { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.55); box-shadow: none; }
+.b24-filter--glass .b24-filter__input { color: #fff; }
+.b24-filter--glass .b24-filter__input::placeholder { color: var(--b24-glass-text-secondary); }
+.b24-filter--glass .b24-filter__icon { color: var(--b24-glass-text-secondary); }
+.b24-filter--glass .b24-filter__icon:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.b24-filter--glass .b24-filter__chip { color: #fff; background: rgba(255, 255, 255, 0.22); }
+.b24-filter--glass .b24-filter__chip--more { background: rgba(255, 255, 255, 0.12); }
+
+/* Popup */
+.b24-filter-popup {
+  display: flex;
+  width: min(720px, calc(100vw - 16px));
+  max-width: none;
+  max-height: min(640px, calc(100vh - 120px));
+  padding: 0;
+  overflow: hidden;
+}
+.b24-filter-popup__presets {
+  display: flex; flex-direction: column; gap: 1px;
+  flex: 0 0 200px;
+  padding: 12px 8px;
+  background: var(--b24-bg-surface-2);
+  border-right: 1px solid var(--b24-divider);
+  overflow-y: auto;
+}
+.b24-filter-popup__preset {
+  display: flex; align-items: center; gap: 6px;
+  min-height: 32px; padding: 6px 10px;
+  font: inherit; font-size: var(--b24-font-size-md);
+  text-align: left; color: var(--b24-text-primary);
+  background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-filter-popup__preset:hover { background: var(--b24-bg-hover); }
+.b24-filter-popup__preset.is-active { color: var(--b24-color-link); font-weight: var(--b24-font-weight-medium); background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-2xs); }
+.b24-filter-popup__preset > span { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.b24-filter-popup__preset-remove { display: none; }
+.b24-filter-popup__preset:hover .b24-filter-popup__preset-remove { display: inline-grid; }
+.b24-filter-popup__save { margin-top: auto; padding-top: 8px; }
+
+.b24-filter-popup__main { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.b24-filter-popup__fields {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+.b24-filter-popup__field { display: flex; flex-direction: column; gap: 4px; }
+.b24-filter-popup__field-row { display: flex; gap: 8px; align-items: center; }
+.b24-filter-popup__field-row > * { flex: 1 1 0; min-width: 0; }
+.b24-filter-popup__field-row > .b24-filter-popup__sep { flex: 0 0 auto; color: var(--b24-text-subtle); }
+.b24-filter-popup__links { display: flex; gap: 16px; font-size: var(--b24-font-size-sm); }
+.b24-filter-popup__footer {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--b24-divider);
+  background: var(--b24-bg-surface);
+}
+
+@media (max-width: 640px) {
+  .b24-filter-popup { flex-direction: column; }
+  .b24-filter-popup__presets { flex: 0 0 auto; flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--b24-divider); }
+  .b24-filter-popup__save { display: none; }
+}

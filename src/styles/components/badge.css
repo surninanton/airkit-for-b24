@@ -1,0 +1,95 @@
+/* ── Badge (ui-label) / Counter / Tag ────────────────────
+ * .b24-badge [--primary|--success|--warning|--danger|--violet|--gray] [--filled] [--sm|--lg] [--round]
+ * .b24-counter [--danger|--success|--gray|--warning|--light]
+ * .b24-tag (удаляемый чип) > .b24-tag__remove
+ */
+.b24-badge {
+  --_bg: var(--b24-color-soft-grey-1);
+  --_color: var(--b24-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: var(--b24-font-size-xs);
+  font-weight: var(--b24-font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--_color);
+  background: var(--_bg);
+  border-radius: var(--b24-radius-xs);
+  vertical-align: middle;
+}
+.b24-badge > svg { width: 12px; height: 12px; }
+.b24-badge--primary { --_bg: var(--b24-color-soft-blue-2); --_color: var(--b24-color-soft-text-blue); }
+.b24-badge--success { --_bg: var(--b24-color-soft-green-2); --_color: var(--b24-color-soft-text-green); }
+.b24-badge--warning { --_bg: var(--b24-color-soft-orange-2); --_color: var(--b24-color-soft-text-orange); }
+.b24-badge--danger { --_bg: var(--b24-color-soft-red-2); --_color: var(--b24-color-soft-text-red); }
+.b24-badge--violet { --_bg: var(--b24-color-soft-violet-2); --_color: var(--b24-color-soft-text-violet); }
+.b24-badge--gray { --_bg: var(--b24-color-soft-grey-1); --_color: var(--b24-text-subtle); }
+
+.b24-badge--filled { --_color: #fff; }
+.b24-badge--filled.b24-badge--primary { --_bg: var(--b24-color-primary); }
+.b24-badge--filled.b24-badge--success { --_bg: var(--b24-color-success); }
+.b24-badge--filled.b24-badge--warning { --_bg: var(--b24-color-warning); }
+.b24-badge--filled.b24-badge--danger { --_bg: var(--b24-color-danger); }
+.b24-badge--filled.b24-badge--violet { --_bg: var(--b24-color-copilot); }
+.b24-badge--filled.b24-badge--gray { --_bg: var(--b24-text-disabled); }
+
+.b24-badge--sm { height: 18px; padding: 0 6px; font-size: var(--b24-font-size-3xs); border-radius: var(--b24-radius-2xs); }
+.b24-badge--lg { height: 26px; padding: 0 10px; font-size: var(--b24-font-size-sm); border-radius: var(--b24-radius-sm); }
+.b24-badge--round { border-radius: var(--b24-radius-pill); }
+.b24-badge--caps { text-transform: uppercase; letter-spacing: 0.04em; font-size: var(--b24-font-size-3xs); font-weight: var(--b24-font-weight-bold); }
+
+/* Точка статуса */
+.b24-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--b24-text-disabled); flex: 0 0 auto; }
+.b24-dot--primary { background: var(--b24-color-primary); }
+.b24-dot--success { background: var(--b24-color-success); }
+.b24-dot--warning { background: var(--b24-color-warning); }
+.b24-dot--danger { background: var(--b24-color-danger); }
+
+/* Counter — красный кружок с числом (меню, вкладки, кнопки) */
+.b24-counter {
+  --_bg: var(--b24-color-danger);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4.5px;
+  font-size: 10px;
+  font-weight: var(--b24-font-weight-semibold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: var(--_bg);
+  border-radius: var(--b24-radius-pill);
+  vertical-align: middle;
+}
+.b24-counter--lg { min-width: 20px; height: 20px; font-size: var(--b24-font-size-2xs); padding: 0 6px; }
+.b24-counter--primary { --_bg: var(--b24-color-primary); }
+.b24-counter--success { --_bg: var(--b24-color-success); }
+.b24-counter--warning { --_bg: var(--b24-color-warning); }
+.b24-counter--gray { --_bg: var(--b24-text-disabled); }
+.b24-counter--light { --_bg: rgba(255, 255, 255, 0.3); }
+.b24-counter--outline { --_bg: var(--b24-bg-surface); color: var(--b24-text-secondary); box-shadow: inset 0 0 0 1px var(--b24-border); }
+
+/* Tag / chip */
+.b24-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 4px 0 10px;
+  font-size: var(--b24-font-size-sm);
+  color: var(--b24-color-soft-text-blue);
+  background: var(--b24-color-soft-blue-2);
+  border-radius: var(--b24-radius-xs);
+  max-width: 100%;
+}
+.b24-tag:not(:has(.b24-tag__remove)) { padding-right: 10px; }
+.b24-tag__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-tag__remove {
+  display: inline-grid; place-items: center;
+  width: 18px; height: 18px; padding: 0; margin: 0;
+  border: 0; border-radius: 4px; background: transparent; color: inherit; opacity: 0.6; cursor: pointer;
+}
+.b24-tag__remove:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+.b24-tag__remove svg { width: 12px; height: 12px; }

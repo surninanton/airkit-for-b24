@@ -1,0 +1,45 @@
+/* ── Avatar / User ───────────────────────────────────────
+ * .b24-avatar [--xs|--sm|--lg|--xl] > img | инициалы
+ * .b24-user > .b24-avatar + .b24-user__name (+ .b24-user__meta)
+ */
+.b24-avatar {
+  --_s: 32px;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: var(--_s);
+  height: var(--_s);
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: calc(var(--_s) * 0.38);
+  font-weight: var(--b24-font-weight-semibold);
+  color: #fff;
+  background: var(--b24-avatar-bg, #7fa3c8);
+  user-select: none;
+  vertical-align: middle;
+}
+.b24-avatar > img { width: 100%; height: 100%; object-fit: cover; }
+.b24-avatar--xs { --_s: 20px; }
+.b24-avatar--sm { --_s: 24px; }
+.b24-avatar--lg { --_s: 42px; }
+.b24-avatar--xl { --_s: 64px; }
+.b24-avatar--square { border-radius: var(--b24-radius-sm); }
+.b24-avatar--empty {
+  background: var(--b24-bg-surface-3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a8adb4'%3E%3Ccircle cx='12' cy='9' r='4'/%3E%3Cpath d='M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z'/%3E%3C/svg%3E") center 70% / 70% no-repeat;
+}
+.b24-avatar__status {
+  position: absolute; right: 0; bottom: 0;
+  width: 28%; height: 28%; min-width: 7px; min-height: 7px;
+  border-radius: 50%; background: var(--b24-color-success);
+  box-shadow: 0 0 0 2px var(--b24-bg-surface);
+}
+.b24-avatar-stack { display: inline-flex; }
+.b24-avatar-stack > .b24-avatar { box-shadow: 0 0 0 2px var(--b24-bg-surface); }
+.b24-avatar-stack > .b24-avatar + .b24-avatar { margin-left: -8px; }
+
+.b24-user { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.b24-user__info { display: flex; flex-direction: column; min-width: 0; }
+.b24-user__name { font-size: var(--b24-font-size-md); color: var(--b24-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+a.b24-user__name { color: var(--b24-color-link); text-decoration: none; }
+.b24-user__meta { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

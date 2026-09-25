@@ -1,0 +1,145 @@
+/*
+ * Темы.
+ *   data-b24-theme="light" | "dark" | "auto"  — на <html> или любом контейнере
+ *   data-b24-air="blue" | "violet" | "teal" | "graphite" — пресет фона Air-подложки
+ */
+[data-b24-theme="dark"] {
+  --b24-text-primary: #eef0f3;
+  --b24-text-secondary: #b7bec8;
+  --b24-text-subtle: #8a929c;
+  --b24-text-disabled: #5f6670;
+
+  --b24-bg-page: #16181c;
+  --b24-bg-surface: #212429;
+  --b24-bg-surface-2: #1b1e22;
+  --b24-bg-surface-3: #2a2e34;
+  --b24-bg-hover: #ffffff0d;
+  --b24-bg-active: #ffffff17;
+  --b24-bg-selected: rgba(0, 117, 255, 0.16);
+  --b24-bg-overlay: rgba(0, 0, 0, 0.6);
+  --b24-bg-tooltip: #3a3f47;
+
+  --b24-border: #353a41;
+  --b24-border-strong: #454b53;
+  --b24-border-field: #454b53;
+  --b24-divider: #2c3036;
+  --b24-divider-accent: #353a41;
+
+  --b24-btn-neutral-bg: rgba(255, 255, 255, 0.07);
+  --b24-btn-neutral-bg-hover: rgba(255, 255, 255, 0.11);
+  --b24-btn-neutral-bg-active: rgba(255, 255, 255, 0.16);
+  --b24-btn-neutral-border: rgba(255, 255, 255, 0.08);
+  --b24-btn-neutral-color: #eef0f3;
+
+  --b24-color-link: #58b1ff;
+  --b24-color-link-underline: #58b1ff55;
+
+  --b24-color-soft-blue-1: #1c4a80;
+  --b24-color-soft-blue-2: #173a63;
+  --b24-color-soft-blue-3: #142f4f;
+  --b24-color-soft-green-1: #16603f;
+  --b24-color-soft-green-2: #134a33;
+  --b24-color-soft-green-3: #103a29;
+  --b24-color-soft-orange-1: #6b4d12;
+  --b24-color-soft-orange-2: #4e3a12;
+  --b24-color-soft-orange-3: #3d2e10;
+  --b24-color-soft-red-1: #74292a;
+  --b24-color-soft-red-2: #552325;
+  --b24-color-soft-red-3: #431d1f;
+  --b24-color-soft-violet-1: #4f2d78;
+  --b24-color-soft-violet-2: #3c2560;
+  --b24-color-soft-grey-1: #2c3036;
+  --b24-color-soft-text-blue: #8fcaff;
+  --b24-color-soft-text-green: #6fe6ae;
+  --b24-color-soft-text-orange: #ffc766;
+  --b24-color-soft-text-red: #ff9a97;
+  --b24-color-soft-text-violet: #cfa4ff;
+
+  --b24-shadow-popup: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --b24-air-bg-color: #0d1117;
+  --b24-air-bg-image:
+    radial-gradient(60% 70% at 88% 8%, rgba(31, 134, 255, 0.25) 0%, rgba(31, 134, 255, 0) 60%),
+    radial-gradient(45% 55% at 12% 100%, rgba(133, 58, 245, 0.18) 0%, rgba(133, 58, 245, 0) 70%),
+    linear-gradient(160deg, #131a26 0%, #0d1117 100%);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-b24-theme="auto"] {
+    --b24-text-primary: #eef0f3;
+    --b24-text-secondary: #b7bec8;
+    --b24-text-subtle: #8a929c;
+    --b24-text-disabled: #5f6670;
+    --b24-bg-page: #16181c;
+    --b24-bg-surface: #212429;
+    --b24-bg-surface-2: #1b1e22;
+    --b24-bg-surface-3: #2a2e34;
+    --b24-bg-hover: #ffffff0d;
+    --b24-bg-active: #ffffff17;
+    --b24-bg-selected: rgba(0, 117, 255, 0.16);
+    --b24-bg-overlay: rgba(0, 0, 0, 0.6);
+    --b24-bg-tooltip: #3a3f47;
+    --b24-border: #353a41;
+    --b24-border-strong: #454b53;
+    --b24-border-field: #454b53;
+    --b24-divider: #2c3036;
+    --b24-divider-accent: #353a41;
+    --b24-btn-neutral-bg: rgba(255, 255, 255, 0.07);
+    --b24-btn-neutral-bg-hover: rgba(255, 255, 255, 0.11);
+    --b24-btn-neutral-bg-active: rgba(255, 255, 255, 0.16);
+    --b24-btn-neutral-border: rgba(255, 255, 255, 0.08);
+    --b24-btn-neutral-color: #eef0f3;
+    --b24-color-link: #58b1ff;
+    --b24-color-link-underline: #58b1ff55;
+    --b24-color-soft-blue-1: #1c4a80;
+    --b24-color-soft-blue-2: #173a63;
+    --b24-color-soft-blue-3: #142f4f;
+    --b24-color-soft-green-1: #16603f;
+    --b24-color-soft-green-2: #134a33;
+    --b24-color-soft-green-3: #103a29;
+    --b24-color-soft-orange-1: #6b4d12;
+    --b24-color-soft-orange-2: #4e3a12;
+    --b24-color-soft-orange-3: #3d2e10;
+    --b24-color-soft-red-1: #74292a;
+    --b24-color-soft-red-2: #552325;
+    --b24-color-soft-red-3: #431d1f;
+    --b24-color-soft-violet-1: #4f2d78;
+    --b24-color-soft-violet-2: #3c2560;
+    --b24-color-soft-grey-1: #2c3036;
+    --b24-color-soft-text-blue: #8fcaff;
+    --b24-color-soft-text-green: #6fe6ae;
+    --b24-color-soft-text-orange: #ffc766;
+    --b24-color-soft-text-red: #ff9a97;
+    --b24-color-soft-text-violet: #cfa4ff;
+    --b24-shadow-popup: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --b24-air-bg-color: #0d1117;
+    --b24-air-bg-image:
+      radial-gradient(60% 70% at 88% 8%, rgba(31, 134, 255, 0.25) 0%, rgba(31, 134, 255, 0) 60%),
+      radial-gradient(45% 55% at 12% 100%, rgba(133, 58, 245, 0.18) 0%, rgba(133, 58, 245, 0) 70%),
+      linear-gradient(160deg, #131a26 0%, #0d1117 100%);
+    color-scheme: dark;
+  }
+}
+
+/* Пресеты Air-подложки */
+[data-b24-air="violet"] {
+  --b24-air-bg-color: #3a1c7a;
+  --b24-air-bg-image:
+    radial-gradient(60% 70% at 88% 8%, rgba(207, 164, 255, 0.5) 0%, rgba(207, 164, 255, 0) 60%),
+    radial-gradient(45% 55% at 12% 100%, rgba(133, 58, 245, 0.6) 0%, rgba(133, 58, 245, 0) 70%),
+    linear-gradient(160deg, #4b2496 0%, #3a1c7a 45%, #25104f 100%);
+}
+[data-b24-air="teal"] {
+  --b24-air-bg-color: #0b4f5c;
+  --b24-air-bg-image:
+    radial-gradient(60% 70% at 88% 8%, rgba(55, 197, 216, 0.5) 0%, rgba(55, 197, 216, 0) 60%),
+    radial-gradient(45% 55% at 12% 100%, rgba(27, 206, 123, 0.4) 0%, rgba(27, 206, 123, 0) 70%),
+    linear-gradient(160deg, #0f6272 0%, #0b4f5c 45%, #073540 100%);
+}
+[data-b24-air="graphite"] {
+  --b24-air-bg-color: #23272e;
+  --b24-air-bg-image:
+    radial-gradient(60% 70% at 88% 8%, rgba(130, 139, 149, 0.35) 0%, rgba(130, 139, 149, 0) 60%),
+    linear-gradient(160deg, #2e333b 0%, #23272e 50%, #17191d 100%);
+}

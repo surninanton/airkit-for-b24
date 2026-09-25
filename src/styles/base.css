@@ -1,0 +1,66 @@
+/* Базовые стили. Применяются только внутри .b24-root (или body.b24-root),
+   чтобы кит можно было безопасно встроить в чужую страницу. */
+.b24-root {
+  font-family: var(--b24-font-family);
+  font-size: var(--b24-font-size-md);
+  line-height: var(--b24-line-height-md);
+  color: var(--b24-text-primary);
+  background: var(--b24-bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+/* Браузерный margin у body (8px) ломает подгонку высоты фрейма: scrollHeight = 100vh + 16 → бесконечный рост */
+body.b24-root { margin: 0; }
+.b24-root *,
+.b24-root *::before,
+.b24-root *::after {
+  box-sizing: border-box;
+}
+.b24-root :focus-visible {
+  outline: 2px solid var(--b24-focus-color);
+  outline-offset: 2px;
+}
+
+/* Typography helpers */
+.b24-h1 { font-size: var(--b24-font-size-4xl); font-weight: var(--b24-font-weight-medium); line-height: 34px; margin: 0; }
+.b24-h2 { font-size: var(--b24-font-size-3xl); font-weight: var(--b24-font-weight-medium); line-height: 1.3; margin: 0; }
+.b24-h3 { font-size: var(--b24-font-size-2xl); font-weight: var(--b24-font-weight-semibold); line-height: 1.35; margin: 0; }
+.b24-h4 { font-size: var(--b24-font-size-xl); font-weight: var(--b24-font-weight-semibold); line-height: 1.4; margin: 0; }
+.b24-text { font-size: var(--b24-font-size-md); }
+.b24-text-sm { font-size: var(--b24-font-size-sm); }
+.b24-text-xs { font-size: var(--b24-font-size-xs); }
+.b24-text-secondary { color: var(--b24-text-secondary); }
+.b24-text-subtle { color: var(--b24-text-subtle); }
+.b24-text-danger { color: var(--b24-color-danger); }
+.b24-text-success { color: var(--b24-color-success-active); }
+.b24-mono { font-family: var(--b24-font-family-mono); }
+
+.b24-link {
+  color: var(--b24-color-link);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--b24-duration-fast);
+}
+.b24-link:hover { text-decoration: underline; text-decoration-color: var(--b24-color-link-underline); text-underline-offset: 3px; }
+/* «Пунктирная» ссылка-действие, как в карточках CRM */
+.b24-link--dashed {
+  border-bottom: 1px dashed var(--b24-color-link-underline);
+}
+.b24-link--dashed:hover { text-decoration: none; border-bottom-color: var(--b24-color-link); }
+
+.b24-divider { height: 1px; border: 0; background: var(--b24-divider); margin: var(--b24-space-md) 0; }
+
+/* Layout helpers */
+.b24-stack { display: flex; flex-direction: column; gap: var(--b24-gap, var(--b24-space-sm)); }
+.b24-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--b24-gap, var(--b24-space-xs)); }
+.b24-grid { display: grid; gap: var(--b24-gap, var(--b24-space-md)); grid-template-columns: repeat(auto-fill, minmax(var(--b24-grid-min, 260px), 1fr)); }
+.b24-spacer { flex: 1 1 auto; }
+.b24-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .b24-root *, .b24-root *::before, .b24-root *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -1,0 +1,129 @@
+/* ── Entity dialog (выбор из списка с поиском и вкладками) ─
+ * .b24-dialog > .b24-dialog__search + .b24-dialog__tabs + .b24-dialog__list > .b24-dialog__item + .b24-dialog__footer
+ */
+.b24-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(var(--b24-dialog-width, 380px), calc(100vw - 16px));
+  max-width: none;
+  max-height: min(440px, calc(100vh - 80px));
+  padding: 0;
+  overflow: hidden;
+}
+.b24-dialog__search { padding: 10px 10px 6px; }
+.b24-dialog__search .b24-input-group { height: 32px; }
+.b24-dialog__tabs {
+  display: flex; gap: 2px;
+  padding: 0 10px 6px;
+  overflow-x: auto; scrollbar-width: none;
+  border-bottom: 1px solid var(--b24-divider);
+}
+.b24-dialog__tab {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  height: 28px; padding: 0 10px;
+  font: inherit; font-size: var(--b24-font-size-sm);
+  color: var(--b24-text-secondary);
+  background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-dialog__tab:hover { background: var(--b24-bg-hover); color: var(--b24-text-primary); }
+.b24-dialog__tab[aria-selected="true"] { color: var(--b24-color-soft-text-blue); background: var(--b24-color-soft-blue-2); font-weight: var(--b24-font-weight-medium); }
+.b24-dialog__tab svg { width: 16px; height: 16px; }
+.b24-dialog__list { flex: 1 1 auto; overflow-y: auto; padding: 6px; min-height: 60px; }
+.b24-dialog__group { padding: 8px 10px 4px; font-size: var(--b24-font-size-2xs); font-weight: var(--b24-font-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--b24-text-subtle); }
+.b24-dialog__item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 40px; padding: 5px 10px;
+  font: inherit; text-align: left;
+  color: var(--b24-text-primary);
+  background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-dialog__item:hover,
+.b24-dialog__item.is-active { background: var(--b24-bg-hover); }
+.b24-dialog__item[aria-selected="true"] { background: var(--b24-color-soft-blue-3); }
+.b24-dialog__item[aria-selected="true"].is-active { background: var(--b24-color-soft-blue-2); }
+.b24-dialog__item[aria-disabled="true"] { opacity: 0.5; cursor: default; }
+.b24-dialog__item-icon {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 50%;
+  color: var(--b24-color-primary); background: var(--b24-color-soft-blue-2);
+}
+.b24-dialog__item-icon svg { width: 16px; height: 16px; }
+.b24-dialog__item-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.b24-dialog__item-title { font-size: var(--b24-font-size-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-dialog__item-title mark { background: none; color: var(--b24-color-link); font-weight: var(--b24-font-weight-semibold); }
+.b24-dialog__item-subtitle { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-dialog__check { flex: 0 0 auto; width: 18px; height: 18px; color: var(--b24-color-primary); visibility: hidden; }
+.b24-dialog__item[aria-selected="true"] .b24-dialog__check { visibility: visible; }
+.b24-dialog__empty, .b24-dialog__loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px 12px; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); text-align: center; }
+.b24-dialog__footer { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--b24-divider); font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-dialog__footer > :last-child { margin-left: auto; }
+.b24-dialog--compact .b24-dialog__item { min-height: 32px; }
+
+/* ── Combobox (поле-триггер для select с поиском) ───────── */
+.b24-combobox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  min-height: var(--b24-size-md);
+  padding: 4px 32px 4px 8px;
+  font: inherit;
+  font-size: var(--b24-font-size-md);
+  text-align: left;
+  color: var(--b24-text-primary);
+  background: var(--b24-bg-surface);
+  border: 1px solid var(--b24-border-field);
+  border-radius: var(--b24-radius-sm);
+  cursor: pointer;
+  transition: border-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast);
+}
+.b24-combobox:hover { border-color: var(--b24-text-disabled); }
+.b24-combobox:focus-visible,
+.b24-combobox.is-open { outline: none; border-color: var(--b24-color-primary-light); box-shadow: 0 0 0 3px rgba(88, 177, 255, 0.22); }
+.b24-combobox::after {
+  content: "";
+  position: absolute; right: 12px; top: 50%;
+  width: 7px; height: 7px; margin-top: -6px;
+  border-right: 1.6px solid var(--b24-text-subtle); border-bottom: 1.6px solid var(--b24-text-subtle);
+  transform: rotate(45deg);
+  transition: transform var(--b24-duration-fast);
+}
+.b24-combobox.is-open::after { transform: translateY(3px) rotate(-135deg); }
+.b24-combobox__value { padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 auto; }
+.b24-combobox__placeholder { padding: 0 4px; color: var(--b24-text-disabled); }
+.b24-combobox .b24-tag { height: 24px; }
+.b24-combobox[aria-disabled="true"] { background: var(--b24-bg-surface-2); color: var(--b24-text-subtle); cursor: not-allowed; }
+.b24-combobox--sm { min-height: var(--b24-size-sm); font-size: var(--b24-font-size-sm); padding-top: 2px; padding-bottom: 2px; }
+.b24-field--error .b24-combobox, .b24-combobox[aria-invalid="true"] { border-color: var(--b24-color-danger); background-color: var(--b24-color-soft-red-3); }
+
+/* ── Tag selector (поле «Ответственный», «Наблюдатели») ─── */
+.b24-tag-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: var(--b24-size-md);
+  padding: 4px 6px;
+  background: var(--b24-bg-surface);
+  border: 1px solid var(--b24-border-field);
+  border-radius: var(--b24-radius-sm);
+  transition: border-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast);
+}
+.b24-tag-selector:hover { border-color: var(--b24-text-disabled); }
+.b24-tag-selector.is-open { border-color: var(--b24-color-primary-light); box-shadow: 0 0 0 3px rgba(88, 177, 255, 0.22); }
+.b24-tag-selector--plain { padding: 0; min-height: 0; border: 0; background: transparent; box-shadow: none !important; }
+.b24-tag-selector .b24-tag { height: 28px; padding-left: 4px; gap: 6px; }
+.b24-tag-selector .b24-tag .b24-avatar { --_s: 20px; }
+.b24-tag-selector .b24-tag:not(:has(.b24-avatar)) { padding-left: 10px; }
+.b24-tag-selector__add {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 28px; padding: 0 6px;
+  font: inherit; font-size: var(--b24-font-size-sm);
+  color: var(--b24-color-link);
+  background: transparent; border: 0; border-bottom: 1px dashed transparent; border-radius: 0; cursor: pointer;
+}
+.b24-tag-selector__add > span { border-bottom: 1px dashed var(--b24-color-link-underline); line-height: 1.2; }
+.b24-tag-selector__add:hover > span { border-bottom-color: var(--b24-color-link); }
+.b24-field--error .b24-tag-selector { border-color: var(--b24-color-danger); }

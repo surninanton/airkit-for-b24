@@ -1,0 +1,81 @@
+/* ── Entity editor (карточка с полями, как «О сделке») ────
+ * .b24-editor > .b24-editor-section > header (.b24-editor-section__title + .b24-editor-section__edit) + .b24-editor-field*
+ * Режим редактирования: .b24-editor-section.is-editing
+ */
+.b24-editor { display: flex; flex-direction: column; gap: 12px; }
+.b24-editor-section {
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-lg);
+  box-shadow: var(--b24-shadow-2xs);
+  padding: 12px 16px 16px;
+  transition: box-shadow var(--b24-duration);
+}
+.b24-editor-section.is-editing { box-shadow: 0 0 0 1.5px var(--b24-color-primary-light), var(--b24-shadow-md); }
+.b24-editor-section__header { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; }
+.b24-editor-section__title {
+  margin: 0;
+  font-size: var(--b24-font-size-xs);
+  font-weight: var(--b24-font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--b24-text-subtle);
+}
+.b24-editor-section__edit {
+  margin-left: auto; padding: 0;
+  font: inherit; font-size: var(--b24-font-size-xs);
+  color: var(--b24-text-subtle);
+  background: none; border: 0; cursor: pointer;
+  border-bottom: 1px dashed transparent;
+}
+.b24-editor-section__edit:hover { color: var(--b24-color-link); border-bottom-color: var(--b24-color-link-underline); }
+.b24-editor-section__fields { display: grid; gap: 12px; }
+.b24-editor-section--2col .b24-editor-section__fields { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+.b24-editor-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.b24-editor-field__label {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: var(--b24-font-size-xs);
+  color: var(--b24-text-subtle);
+}
+.b24-editor-field__label--required::after { content: "*"; color: var(--b24-color-danger); }
+.b24-editor-field__hint { display: inline-flex; color: var(--b24-text-disabled); cursor: help; }
+.b24-editor-field__hint svg { width: 14px; height: 14px; }
+.b24-editor-field__value {
+  margin: 0 -6px;
+  padding: 3px 6px;
+  font-size: var(--b24-font-size-md);
+  line-height: var(--b24-line-height-md);
+  color: var(--b24-text-primary);
+  word-break: break-word;
+  white-space: pre-line;
+  border-radius: var(--b24-radius-xs);
+  cursor: text;
+  transition: background-color var(--b24-duration-fast);
+}
+.b24-editor-field__value:hover { background: var(--b24-bg-hover); }
+.b24-editor-field__value.is-empty { color: var(--b24-text-disabled); }
+.b24-editor-field__value a { color: var(--b24-color-link); text-decoration: none; }
+.b24-editor-field__value a:hover { text-decoration: underline; }
+.b24-editor-field.is-readonly .b24-editor-field__value { cursor: default; }
+.b24-editor-field.is-readonly .b24-editor-field__value:hover { background: none; }
+.b24-editor-field__error { font-size: var(--b24-font-size-xs); color: var(--b24-color-danger); }
+.b24-editor-field.is-invalid .b24-input,
+.b24-editor-field.is-invalid .b24-textarea,
+.b24-editor-field.is-invalid .b24-select,
+.b24-editor-field.is-invalid .b24-combobox,
+.b24-editor-field.is-invalid .b24-tag-selector { border-color: var(--b24-color-danger); background-color: var(--b24-color-soft-red-3); }
+
+/* Панель сохранения (прилипает к низу контейнера) */
+.b24-editor-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 16px;
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-lg) var(--b24-radius-lg) 0 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  animation: b24-toast-in var(--b24-duration) var(--b24-ease);
+}
+.b24-editor-bar[hidden] { display: none; }
+.b24-editor-bar__error { color: var(--b24-color-danger); font-size: var(--b24-font-size-sm); }

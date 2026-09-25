@@ -1,0 +1,95 @@
+/* ── Calendar / DatePicker ───────────────────────────────
+ * .b24-calendar > .b24-calendar__head + .b24-calendar__grid + .b24-calendar__footer
+ * Ячейки: .b24-calendar__day [.is-today|.is-selected|.is-in-range|.is-range-start|.is-range-end|.is-outside|.is-weekend]
+ */
+.b24-calendar {
+  width: 268px;
+  font-size: var(--b24-font-size-sm);
+  color: var(--b24-text-primary);
+  user-select: none;
+}
+.b24-calendar__head { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.b24-calendar__title {
+  flex: 1 1 auto;
+  height: 30px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: var(--b24-font-size-md);
+  font-weight: var(--b24-font-weight-semibold);
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--b24-radius-sm);
+  cursor: pointer;
+}
+.b24-calendar__title:hover { background: var(--b24-bg-hover); }
+.b24-calendar__nav {
+  display: inline-grid; place-items: center;
+  width: 30px; height: 30px; padding: 0;
+  color: var(--b24-text-secondary);
+  background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-calendar__nav:hover { background: var(--b24-bg-hover); color: var(--b24-text-primary); }
+.b24-calendar__nav svg { width: 18px; height: 18px; }
+
+.b24-calendar__grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; }
+.b24-calendar__weekday {
+  height: 26px; display: grid; place-items: center;
+  font-size: var(--b24-font-size-2xs); font-weight: var(--b24-font-weight-medium);
+  color: var(--b24-text-subtle); text-transform: uppercase;
+}
+.b24-calendar__weekday:nth-child(n+6) { color: var(--b24-color-soft-text-red); }
+.b24-calendar__day {
+  position: relative;
+  height: 34px;
+  padding: 0;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--b24-text-primary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--b24-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--b24-duration-fast);
+}
+.b24-calendar__day:hover { background: var(--b24-bg-hover); }
+.b24-calendar__day:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-calendar__day.is-weekend { color: var(--b24-color-soft-text-red); }
+.b24-calendar__day.is-outside { color: var(--b24-text-disabled); }
+.b24-calendar__day.is-today { box-shadow: inset 0 0 0 1.5px var(--b24-color-primary); font-weight: var(--b24-font-weight-semibold); }
+.b24-calendar__day.is-in-range { background: var(--b24-color-soft-blue-2); border-radius: 0; }
+.b24-calendar__day.is-range-start { border-radius: var(--b24-radius-sm) 0 0 var(--b24-radius-sm); }
+.b24-calendar__day.is-range-end { border-radius: 0 var(--b24-radius-sm) var(--b24-radius-sm) 0; }
+.b24-calendar__day.is-range-start.is-range-end { border-radius: var(--b24-radius-sm); }
+.b24-calendar__day.is-selected,
+.b24-calendar__day.is-range-start,
+.b24-calendar__day.is-range-end { background: var(--b24-color-primary); color: #fff; box-shadow: none; }
+.b24-calendar__day:disabled { color: var(--b24-text-disabled); opacity: 0.45; cursor: default; background: transparent; text-decoration: line-through; }
+
+/* Выбор месяца / года */
+.b24-calendar__months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.b24-calendar__month {
+  height: 44px; padding: 0;
+  font: inherit; color: var(--b24-text-primary);
+  background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-calendar__month:hover { background: var(--b24-bg-hover); }
+.b24-calendar__month.is-selected { background: var(--b24-color-soft-blue-2); color: var(--b24-color-soft-text-blue); font-weight: var(--b24-font-weight-semibold); }
+
+.b24-calendar__time { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--b24-divider); color: var(--b24-text-subtle); }
+.b24-calendar__time .b24-input { width: 96px; }
+.b24-calendar__footer { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--b24-divider); }
+.b24-calendar__footer > :last-child { margin-left: auto; }
+
+/* Попап с календарём и пресетами слева */
+.b24-datepicker-popup { padding: 12px; max-width: none; }
+.b24-datepicker-popup--with-presets { display: flex; gap: 12px; }
+.b24-datepicker-presets { display: flex; flex-direction: column; gap: 1px; min-width: 150px; padding-right: 12px; border-right: 1px solid var(--b24-divider); }
+.b24-datepicker-presets .b24-menu__item { min-height: 30px; font-size: var(--b24-font-size-sm); }
+.b24-datepicker-range { display: flex; gap: 16px; }
+
+/* Поле-триггер */
+.b24-datepicker { position: relative; }
+.b24-datepicker .b24-input-group__icon { cursor: pointer; }
+.b24-datepicker .b24-input-group__icon:hover { color: var(--b24-color-primary); }

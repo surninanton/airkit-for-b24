@@ -1,0 +1,83 @@
+/* ── Table (main.ui.grid-подобная) ───────────────────────
+ * <div class="b24-table-wrap"><table class="b24-table [--compact|--striped]">…</table></div>
+ */
+.b24-table-wrap {
+  overflow: auto;
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-md);
+  box-shadow: var(--b24-shadow-2xs);
+}
+.b24-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--b24-font-size-md);
+  color: var(--b24-text-primary);
+}
+.b24-table th,
+.b24-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--b24-divider);
+}
+.b24-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 47px;
+  vertical-align: middle;
+  font-weight: var(--b24-font-weight-semibold);
+  font-size: var(--b24-font-size-sm);
+  color: var(--b24-text-secondary);
+  background: var(--b24-bg-surface);
+  border-bottom-color: var(--b24-divider-accent);
+  white-space: nowrap;
+}
+.b24-table thead th[aria-sort] { cursor: pointer; user-select: none; }
+.b24-table thead th[aria-sort]:hover { color: var(--b24-text-primary); }
+.b24-table thead th[aria-sort]::after {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 6px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: translateY(-3px) rotate(45deg); opacity: 0;
+}
+.b24-table thead th[aria-sort="descending"]::after { opacity: 0.7; }
+.b24-table thead th[aria-sort="ascending"]::after { opacity: 0.7; transform: translateY(1px) rotate(-135deg); }
+
+.b24-table tbody tr { transition: background-color var(--b24-duration-fast); }
+.b24-table tbody tr:hover > td { background: var(--b24-bg-surface-2); }
+.b24-table tbody tr[aria-selected="true"] > td,
+.b24-table tbody tr.is-selected > td { background: var(--b24-bg-selected); }
+.b24-table tbody tr:last-child > td { border-bottom: 0; }
+.b24-table a { color: var(--b24-color-link); text-decoration: none; }
+.b24-table a:hover { text-decoration: underline; text-decoration-color: var(--b24-color-link-underline); }
+
+.b24-table__cell-check { width: 40px; padding-right: 0 !important; }
+.b24-table__cell-actions { width: 40px; text-align: right !important; white-space: nowrap; }
+.b24-table__num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.b24-table__muted { color: var(--b24-text-subtle); font-size: var(--b24-font-size-sm); }
+
+.b24-table--compact th, .b24-table--compact td { padding: 8px 12px; }
+.b24-table--compact thead th { height: 38px; }
+.b24-table--striped tbody tr:nth-child(even) > td { background: var(--b24-bg-surface-2); }
+
+/* Панель под таблицей: пагинация, «Выбрано: N» */
+.b24-table-footer {
+  display: flex; align-items: center; gap: var(--b24-space-sm); flex-wrap: wrap;
+  padding: 10px 14px;
+  font-size: var(--b24-font-size-sm);
+  color: var(--b24-text-subtle);
+  border-top: 1px solid var(--b24-divider-accent);
+  background: var(--b24-bg-surface);
+}
+.b24-pagination { display: inline-flex; gap: 2px; align-items: center; }
+.b24-pagination__item {
+  display: inline-grid; place-items: center;
+  min-width: 28px; height: 28px; padding: 0 6px;
+  font: inherit; font-size: var(--b24-font-size-sm);
+  color: var(--b24-text-secondary); background: transparent;
+  border: 0; border-radius: var(--b24-radius-xs); cursor: pointer; text-decoration: none;
+}
+.b24-pagination__item:hover { background: var(--b24-bg-hover); }
+.b24-pagination__item[aria-current="page"] { background: var(--b24-color-soft-blue-2); color: var(--b24-color-soft-text-blue); font-weight: var(--b24-font-weight-semibold); }
+.b24-pagination__item:disabled { opacity: 0.4; pointer-events: none; }

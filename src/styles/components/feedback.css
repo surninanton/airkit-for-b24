@@ -1,0 +1,117 @@
+/* ── Spinner / Skeleton / Progress / Stages ─────────────── */
+.b24-spinner {
+  --_s: 24px;
+  display: inline-block;
+  width: var(--_s);
+  height: var(--_s);
+  border: 2.5px solid var(--b24-color-soft-blue-1);
+  border-top-color: var(--b24-color-primary);
+  border-radius: 50%;
+  animation: b24-spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+.b24-spinner--sm { --_s: 16px; border-width: 2px; }
+.b24-spinner--lg { --_s: 40px; border-width: 3px; }
+.b24-loader {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: var(--b24-space-3xl); color: var(--b24-text-subtle);
+}
+.b24-loader-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--b24-bg-surface) 70%, transparent);
+  border-radius: inherit;
+}
+
+.b24-skeleton {
+  display: block;
+  height: 14px;
+  border-radius: var(--b24-radius-2xs);
+  background: linear-gradient(90deg, var(--b24-bg-surface-3) 0%, var(--b24-bg-surface-2) 50%, var(--b24-bg-surface-3) 100%) 0 0 / 200% 100%;
+  animation: b24-shimmer 1.4s ease-in-out infinite;
+}
+.b24-skeleton--circle { border-radius: 50%; width: 32px; height: 32px; }
+.b24-skeleton--block { height: 80px; border-radius: var(--b24-radius-md); }
+@keyframes b24-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+/* Progress bar */
+.b24-progress {
+  --_value: 0%;
+  --_color: var(--b24-color-primary);
+  position: relative;
+  height: 6px;
+  border-radius: var(--b24-radius-pill);
+  background: var(--b24-bg-surface-3);
+  overflow: hidden;
+}
+.b24-progress::before {
+  content: "";
+  position: absolute; inset: 0 auto 0 0;
+  width: var(--_value);
+  background: var(--_color);
+  border-radius: inherit;
+  transition: width var(--b24-duration-slow) var(--b24-ease);
+}
+.b24-progress--success { --_color: var(--b24-color-success); }
+.b24-progress--warning { --_color: var(--b24-color-warning); }
+.b24-progress--danger { --_color: var(--b24-color-danger); }
+.b24-progress--lg { height: 10px; }
+.b24-progress--indeterminate::before { width: 35%; animation: b24-indeterminate 1.2s var(--b24-ease) infinite; }
+@keyframes b24-indeterminate { from { left: -35%; } to { left: 100%; } }
+
+/* Стадии сделки (стрелки-шевроны) — фирменный элемент CRM
+ * <div class="b24-stages">
+ *   <button class="b24-stages__item is-done" style="--stage-color:#39a8ef">Новая</button>
+ *   <button class="b24-stages__item is-current" style="--stage-color:#2fc6f6">В работе</button>
+ *   <button class="b24-stages__item">Счёт</button>
+ * </div>
+ */
+.b24-stages {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+.b24-stages__item {
+  --stage-color: var(--b24-color-primary);
+  --_notch: 10px;
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 32px;
+  padding: 0 calc(var(--_notch) + 6px);
+  margin: 0;
+  font: inherit;
+  font-size: var(--b24-font-size-sm);
+  font-weight: var(--b24-font-weight-medium);
+  color: var(--b24-text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--b24-bg-surface-3);
+  border: 0;
+  cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - var(--_notch)) 0, 100% 50%, calc(100% - var(--_notch)) 100%, 0 100%, var(--_notch) 50%);
+  transition: filter var(--b24-duration-fast), background-color var(--b24-duration-fast);
+}
+.b24-stages__item:first-child {
+  clip-path: polygon(0 0, calc(100% - var(--_notch)) 0, 100% 50%, calc(100% - var(--_notch)) 100%, 0 100%);
+  border-radius: var(--b24-radius-sm) 0 0 var(--b24-radius-sm);
+  padding-left: 12px;
+}
+.b24-stages__item:last-child {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, var(--_notch) 50%);
+  border-radius: 0 var(--b24-radius-sm) var(--b24-radius-sm) 0;
+}
+.b24-stages__item:hover { filter: brightness(0.96); }
+.b24-stages__item.is-done,
+.b24-stages__item.is-current { background: var(--stage-color); color: #fff; }
+.b24-stages__item.is-current { font-weight: var(--b24-font-weight-semibold); }
+.b24-stages__item.is-fail { background: var(--b24-color-danger); color: #fff; }
+.b24-stages--sm .b24-stages__item { height: 24px; font-size: var(--b24-font-size-xs); --_notch: 7px; }
+
+/* Мини-индикатор стадии (как в колонке «Стадия» грида) */
+.b24-stage-mini { display: inline-flex; flex-direction: column; gap: 4px; min-width: 80px; }
+.b24-stage-mini__bar { display: flex; gap: 2px; height: 6px; }
+.b24-stage-mini__bar > i { flex: 1 1 0; background: var(--b24-bg-surface-3); border-radius: 1px; }
+.b24-stage-mini__bar > i.is-done { background: var(--stage-color, var(--b24-color-primary)); }
+.b24-stage-mini__label { font-size: var(--b24-font-size-2xs); color: var(--b24-text-subtle); }

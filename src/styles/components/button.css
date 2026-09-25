@@ -1,0 +1,158 @@
+/* ── Button ──────────────────────────────────────────────
+ * .b24-btn [--primary|--success|--danger|--secondary|--tinted|--plain|--link|--copilot|--glass]
+ *          [--xs|--sm|--lg] [--wide] [--round] [--icon] [--loading]
+ */
+.b24-btn {
+  --_h: var(--b24-size-md);
+  --_px: 16px;
+  --_fs: var(--b24-font-size-md);
+  --_bg: var(--b24-btn-neutral-bg);
+  --_bg-hover: var(--b24-btn-neutral-bg-hover);
+  --_bg-active: var(--b24-btn-neutral-bg-active);
+  --_border: var(--b24-btn-neutral-border);
+  --_color: var(--b24-btn-neutral-color);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--_h);
+  min-width: var(--_h);
+  padding: 0 var(--_px);
+  margin: 0;
+  font: inherit;
+  font-family: var(--b24-font-family);
+  font-size: var(--_fs);
+  font-weight: var(--b24-font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  vertical-align: middle;
+  color: var(--_color);
+  background: var(--_bg);
+  border: 1px solid var(--_border);
+  border-radius: var(--b24-radius-md);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--b24-duration-fast) var(--b24-ease),
+              border-color var(--b24-duration-fast) var(--b24-ease),
+              color var(--b24-duration-fast) var(--b24-ease),
+              box-shadow var(--b24-duration-fast) var(--b24-ease);
+}
+.b24-btn:hover { background: var(--_bg-hover); text-decoration: none; }
+.b24-btn:active { background: var(--_bg-active); }
+.b24-btn:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; }
+.b24-btn > svg, .b24-btn > .b24-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+
+/* Variants */
+.b24-btn--primary {
+  --_bg: var(--b24-color-primary); --_bg-hover: var(--b24-color-primary-hover); --_bg-active: var(--b24-color-primary-active);
+  --_border: transparent; --_color: var(--b24-text-on-accent);
+}
+.b24-btn--success {
+  --_bg: var(--b24-color-create); --_bg-hover: var(--b24-color-success-hover); --_bg-active: var(--b24-color-success-active);
+  --_border: transparent; --_color: var(--b24-text-on-accent);
+  font-weight: var(--b24-font-weight-semibold);
+}
+.b24-btn--danger {
+  --_bg: var(--b24-color-danger); --_bg-hover: var(--b24-color-danger-hover); --_bg-active: var(--b24-color-danger-active);
+  --_border: transparent; --_color: var(--b24-text-on-accent);
+}
+.b24-btn--copilot {
+  --_bg: var(--b24-color-copilot); --_bg-hover: #9150f7; --_bg-active: #7429e0;
+  --_border: transparent; --_color: var(--b24-text-on-accent);
+}
+.b24-btn--secondary {
+  --_bg: var(--b24-bg-surface); --_bg-hover: var(--b24-bg-surface-2); --_bg-active: var(--b24-bg-surface-3);
+  --_border: var(--b24-border); --_color: var(--b24-text-secondary);
+}
+.b24-btn--secondary:hover { --_border: var(--b24-border-strong); }
+.b24-btn--tinted {
+  --_bg: var(--b24-color-soft-blue-2); --_bg-hover: var(--b24-color-soft-blue-1); --_bg-active: var(--b24-color-soft-blue-1);
+  --_border: transparent; --_color: var(--b24-color-soft-text-blue);
+}
+.b24-btn--tinted-danger {
+  --_bg: var(--b24-color-soft-red-2); --_bg-hover: var(--b24-color-soft-red-1); --_bg-active: var(--b24-color-soft-red-1);
+  --_border: transparent; --_color: var(--b24-color-soft-text-red);
+}
+.b24-btn--plain {
+  --_bg: transparent; --_bg-hover: var(--b24-bg-hover); --_bg-active: var(--b24-bg-active);
+  --_border: transparent; --_color: var(--b24-text-secondary);
+}
+.b24-btn--link {
+  --_bg: transparent; --_bg-hover: transparent; --_bg-active: transparent;
+  --_border: transparent; --_color: var(--b24-color-link);
+  --_px: 4px;
+  font-weight: var(--b24-font-weight-regular);
+}
+.b24-btn--link:hover { text-decoration: underline; text-decoration-color: var(--b24-color-link-underline); text-underline-offset: 3px; }
+
+/* Стеклянная кнопка поверх Air-подложки */
+.b24-btn--glass {
+  --_bg: var(--b24-glass-bg); --_bg-hover: var(--b24-glass-bg-hover); --_bg-active: var(--b24-glass-bg-active);
+  --_border: var(--b24-glass-border); --_color: var(--b24-glass-text);
+  backdrop-filter: blur(12px);
+}
+
+/* Sizes */
+.b24-btn--xs { --_h: var(--b24-size-xs); --_px: 10px; --_fs: var(--b24-font-size-xs); border-radius: var(--b24-radius-xs); gap: 4px; }
+.b24-btn--xs > svg { width: 14px; height: 14px; }
+.b24-btn--sm { --_h: var(--b24-size-sm); --_px: 12px; --_fs: var(--b24-font-size-sm); border-radius: var(--b24-radius-sm); }
+.b24-btn--sm > svg { width: 16px; height: 16px; }
+.b24-btn--lg { --_h: var(--b24-size-lg); --_px: 24px; --_fs: var(--b24-font-size-xl); border-radius: var(--b24-radius-lg); }
+.b24-btn--lg > svg { width: 20px; height: 20px; }
+
+/* Modifiers */
+.b24-btn--wide { width: 100%; }
+.b24-btn--round { border-radius: var(--b24-radius-pill); }
+.b24-btn--icon { padding: 0; width: var(--_h); }
+
+.b24-btn:disabled,
+.b24-btn[aria-disabled="true"],
+.b24-btn--disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+.b24-btn--loading {
+  color: transparent !important;
+  pointer-events: none;
+}
+.b24-btn--loading > * { visibility: hidden; }
+.b24-btn--loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--_color);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: b24-spin 0.7s linear infinite;
+}
+
+/* Split-кнопка: «Создать ▾» */
+.b24-btn-split { display: inline-flex; align-items: stretch; vertical-align: middle; }
+.b24-btn-split > .b24-btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.b24-btn-split > .b24-btn:last-child {
+  border-top-left-radius: 0; border-bottom-left-radius: 0;
+  padding: 0; width: calc(var(--_h) - 6px); min-width: 0;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.28);
+}
+.b24-btn-split > .b24-btn--secondary:last-child,
+.b24-btn-split > .b24-btn:not([class*="--primary"]):not([class*="--success"]):not([class*="--danger"]):not([class*="--copilot"]):last-child {
+  box-shadow: none; border-left-color: transparent;
+}
+
+/* Группа кнопок (сегменты) */
+.b24-btn-group { display: inline-flex; vertical-align: middle; }
+.b24-btn-group > .b24-btn { border-radius: 0; }
+.b24-btn-group > .b24-btn + .b24-btn { margin-left: -1px; }
+.b24-btn-group > .b24-btn:first-child { border-top-left-radius: var(--b24-radius-md); border-bottom-left-radius: var(--b24-radius-md); }
+.b24-btn-group > .b24-btn:last-child { border-top-right-radius: var(--b24-radius-md); border-bottom-right-radius: var(--b24-radius-md); }
+.b24-btn-group > .b24-btn[aria-pressed="true"],
+.b24-btn-group > .b24-btn.is-active { --_bg: var(--b24-color-soft-blue-2); --_color: var(--b24-color-soft-text-blue); --_border: var(--b24-color-soft-blue-1); z-index: 1; }
+
+@keyframes b24-spin { to { transform: rotate(360deg); } }

@@ -1,0 +1,149 @@
+/* ── Layout ──────────────────────────────────────────────
+ * 1) .b24-app            — приложение внутри iframe портала (контент-зона)
+ *    .b24-app--air        — с Air-подложкой, как разделы портала
+ * 2) .b24-shell          — самостоятельное приложение: сайдбар + шапка + контент
+ * 3) .b24-toolbar        — строка заголовка страницы с действиями
+ */
+.b24-air-bg {
+  background-color: var(--b24-air-bg-color);
+  background-image: var(--b24-air-bg-image);
+  background-attachment: fixed;
+  background-size: cover;
+}
+
+.b24-app {
+  min-height: 100vh;
+  padding: var(--b24-space-lg) var(--b24-space-lg) var(--b24-space-3xl);
+  background: var(--b24-bg-page);
+}
+.b24-app--air {
+  background-color: var(--b24-air-bg-color);
+  background-image: var(--b24-air-bg-image);
+  background-attachment: fixed;
+  background-size: cover;
+}
+.b24-app--flush { padding: 0; }
+/* Внутри фрейма портала (ставит bx24.autoFitFrame) высоту задаёт контент, а не 100vh:
+   иначе высота фрейма и контента подпитывают друг друга */
+.b24-in-frame .b24-app,
+.b24-in-frame .b24-shell { min-height: 0; }
+.b24-app--white { background: var(--b24-bg-surface); }
+
+.b24-page { display: flex; flex-direction: column; gap: var(--b24-space-md); max-width: var(--b24-page-max, none); margin: 0 auto; }
+
+/* Toolbar */
+.b24-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.b24-toolbar__row { display: flex; align-items: center; gap: var(--b24-space-xs); flex-wrap: wrap; min-height: var(--b24-size-md); }
+.b24-toolbar__title {
+  margin: 0 var(--b24-space-xs) 0 0;
+  font-size: var(--b24-font-size-4xl);
+  font-weight: var(--b24-font-weight-medium);
+  line-height: 34px;
+  color: var(--b24-text-primary);
+  white-space: nowrap;
+}
+.b24-toolbar__search { flex: 1 1 240px; max-width: 560px; }
+.b24-toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--b24-space-xs); }
+.b24-app--air .b24-toolbar__title,
+.b24-shell .b24-toolbar__title,
+.b24-toolbar--glass .b24-toolbar__title { color: var(--b24-glass-text); }
+
+/* Shell */
+.b24-shell {
+  display: grid;
+  grid-template-columns: var(--b24-sidebar-width) minmax(0, 1fr);
+  grid-template-rows: var(--b24-header-height) minmax(0, 1fr);
+  grid-template-areas: "sidebar header" "sidebar main";
+  min-height: 100vh;
+  background-color: var(--b24-air-bg-color);
+  background-image: var(--b24-air-bg-image);
+  background-attachment: fixed;
+  background-size: cover;
+  color: var(--b24-text-primary);
+}
+.b24-shell.is-collapsed { grid-template-columns: var(--b24-sidebar-width-collapsed) minmax(0, 1fr); }
+.b24-shell__sidebar { grid-area: sidebar; position: sticky; top: 0; height: 100vh; overflow: hidden auto; scrollbar-width: none; }
+.b24-shell__header { grid-area: header; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: var(--b24-space-sm); padding: 0 var(--b24-space-lg) 0 var(--b24-space-xs); }
+.b24-shell__main { grid-area: main; min-width: 0; padding: var(--b24-space-xs) var(--b24-space-lg) var(--b24-space-3xl) var(--b24-space-xs); }
+
+/* Sidebar */
+.b24-sidebar { display: flex; flex-direction: column; gap: 2px; padding: 10px 8px 16px; color: var(--b24-glass-text); }
+.b24-sidebar__brand {
+  display: flex; align-items: center; gap: 10px;
+  height: 38px; padding: 0 10px; margin-bottom: 10px;
+  font-size: var(--b24-font-size-2xl); font-weight: var(--b24-font-weight-semibold); color: #fff; text-decoration: none; white-space: nowrap;
+}
+.b24-sidebar__brand-mark {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 700;
+}
+.b24-sidebar__group { display: flex; flex-direction: column; gap: 2px; padding: 4px; margin: 4px 0; border-radius: var(--b24-radius-lg); background: rgba(255, 255, 255, 0.08); }
+.b24-sidebar__group-title { padding: 6px 10px 4px; font-size: var(--b24-font-size-xs); color: var(--b24-glass-text-secondary); }
+.b24-sidebar__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 10px;
+  font-size: var(--b24-font-size-lg);
+  color: var(--b24-glass-text);
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: var(--b24-radius-md);
+  cursor: pointer;
+  transition: background-color var(--b24-duration-fast);
+}
+.b24-sidebar__item:hover { background: rgba(255, 255, 255, 0.12); }
+.b24-sidebar__item[aria-current="page"],
+.b24-sidebar__item.is-active { background: rgba(255, 255, 255, 0.3); }
+.b24-sidebar__item > svg { width: 20px; height: 20px; flex: 0 0 auto; opacity: 0.9; }
+.b24-sidebar__item > .b24-counter { margin-left: auto; }
+.b24-sidebar__label { overflow: hidden; text-overflow: ellipsis; }
+.b24-shell.is-collapsed .b24-sidebar__label,
+.b24-shell.is-collapsed .b24-sidebar__group-title,
+.b24-shell.is-collapsed .b24-sidebar__brand-text { display: none; }
+.b24-shell.is-collapsed .b24-sidebar__item > .b24-counter { position: absolute; top: 2px; right: 2px; margin: 0; }
+
+/* Top navigation (горизонтальное меню раздела) */
+.b24-topnav { display: flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden; }
+.b24-topnav__item {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 8px;
+  font-size: var(--b24-font-size-md);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: var(--b24-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--b24-duration-fast), color var(--b24-duration-fast);
+}
+.b24-topnav__item:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.b24-topnav__item[aria-current="page"],
+.b24-topnav__item.is-active { color: #fff; background: rgba(255, 255, 255, 0.22); }
+.b24-topnav__item > .b24-counter { position: absolute; top: -7px; right: -4px; }
+
+/* Мобильная адаптация shell */
+@media (max-width: 768px) {
+  .b24-shell { grid-template-columns: minmax(0, 1fr); grid-template-areas: "header" "main"; }
+  .b24-shell__sidebar {
+    position: fixed; z-index: var(--b24-z-panel); left: 0; top: 0; width: 260px;
+    background-color: var(--b24-air-bg-color); background-image: var(--b24-air-bg-image);
+    transform: translateX(-100%); transition: transform var(--b24-duration) var(--b24-ease-panel);
+  }
+  .b24-shell.is-menu-open .b24-shell__sidebar { transform: none; box-shadow: var(--b24-shadow-3xl); }
+  .b24-shell__main { padding: var(--b24-space-xs) var(--b24-space-md) var(--b24-space-3xl); }
+  .b24-shell__header { padding: 0 var(--b24-space-md); }
+  .b24-app { padding: var(--b24-space-md) var(--b24-space-md) var(--b24-space-2xl); }
+}
+.b24-only-mobile { display: none !important; }
+@media (max-width: 768px) {
+  .b24-only-mobile { display: inline-flex !important; }
+  .b24-hide-mobile { display: none !important; }
+}
