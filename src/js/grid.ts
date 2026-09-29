@@ -240,7 +240,10 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     const host = Array.from(headRow.cells).find((c) => !c.dataset.key && !c.classList.contains('b24-table__cell-menu'))!;
     host.classList.add('b24-datagrid__corner');
     const btn = h('button', { type: 'button', class: 'b24-table__settings', 'aria-label': 'Настройка столбцов', title: 'Настройка столбцов' }, html(icon('settings', { size: 16 })));
-    host.append(btn);
+    // чекбокс «выбрать все» и ⚙ — в общем флекс-контейнере, оба ровно по центру ячейки
+    const inner = h('span', { class: 'b24-datagrid__corner-inner' });
+    inner.append(...Array.from(host.childNodes), btn);
+    host.append(inner);
     const popup = h('div', { class: 'b24-popup b24-grid-settings', hidden: true });
     const renderSettings = () => {
       popup.textContent = '';

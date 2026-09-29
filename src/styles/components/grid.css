@@ -85,7 +85,8 @@ body.b24-col-resizing, body.b24-col-resizing * { cursor: col-resize !important; 
 .b24-table__settings svg,
 .b24-table__row-menu svg { width: 16px; height: 16px; }
 .b24-datagrid__corner { white-space: nowrap; }
-.b24-datagrid__corner .b24-check + .b24-table__settings { margin-left: 4px; }
+.b24-datagrid__corner-inner { display: flex; align-items: center; gap: 4px; }
+.b24-datagrid__corner-inner > .b24-check { align-items: center; }
 .b24-table__cell-menu { width: 36px; padding-left: 0 !important; padding-right: 0 !important; text-align: center !important; }
 .b24-table__row-menu { opacity: 0.55; }
 .b24-table tbody tr:hover .b24-table__row-menu,

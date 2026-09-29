@@ -240,8 +240,10 @@ export function DataTable<T>({
           <tr ref={headRowRef}>
             {cornerCol && (
               <th className="b24-table__cell-check b24-datagrid__corner" data-fixed="">
-                {selectable && <Checkbox aria-label="Выбрать все" checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />}
-                {settingsMenu}
+                <span className="b24-datagrid__corner-inner">
+                  {selectable && <Checkbox aria-label="Выбрать все" checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />}
+                  {settingsMenu}
+                </span>
               </th>
             )}
             {rowActions && <th className="b24-table__cell-menu" data-fixed="" />}
