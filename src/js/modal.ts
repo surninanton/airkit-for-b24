@@ -1,5 +1,5 @@
 import { icon } from '../icons';
-import { anchorOverlayInFrame, animateOut, append, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
+import { anchorOverlayInFrame, animateOut, bringToFront, append, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
 
 export interface ModalButton {
   text: string;
@@ -118,6 +118,7 @@ export function modal(options: ModalOptions): ModalHandle {
 
   overlay.append(dialog);
   document.body.append(overlay);
+  bringToFront(overlay);
   anchorOverlayInFrame(overlay, dialog);
   focusFirst(dialog);
   return handle;

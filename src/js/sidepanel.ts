@@ -1,5 +1,5 @@
 import { icon } from '../icons';
-import { animateOut, append, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
+import { animateOut, append, bringToFront, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
 
 export interface SidePanelOptions {
   title?: string;
@@ -87,6 +87,7 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) void handle.close(); });
 
   document.body.append(overlay);
+  bringToFront(overlay);
   openPanels.push(handle);
   focusFirst(panel);
   return handle;

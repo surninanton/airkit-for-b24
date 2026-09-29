@@ -1,4 +1,4 @@
-import { pushLayer } from './dom';
+import { bringToFront, viewportHeight, pushLayer } from './dom';
 
 export interface DropdownOptions {
   placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
@@ -40,7 +40,7 @@ export function dropdown(trigger: HTMLElement, popup: HTMLElement, options: Drop
     const ph = popup.offsetHeight;
     const [side, align] = placement.split('-') as ['bottom' | 'top', 'start' | 'end'];
     let top = side === 'bottom' ? r.bottom + offset : r.top - ph - offset;
-    if (side === 'bottom' && top + ph > window.innerHeight && r.top - ph - offset > 0) top = r.top - ph - offset;
+    if (side === 'bottom' && top + ph > viewportHeight() && r.top - ph - offset > 0) top = r.top - ph - offset;
     if (side === 'top' && top < 0) top = r.bottom + offset;
     let left = align === 'start' ? r.left : r.right - pw;
     left = Math.min(Math.max(8, left), window.innerWidth - pw - 8);
@@ -70,6 +70,7 @@ export function dropdown(trigger: HTMLElement, popup: HTMLElement, options: Drop
     opened = true;
     if (popup.parentElement !== document.body) document.body.append(popup);
     popup.hidden = false;
+    bringToFront(popup);
     position();
     trigger.setAttribute('aria-expanded', 'true');
     document.addEventListener('mousedown', onDocDown);

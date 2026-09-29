@@ -1,6 +1,6 @@
 import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
-import { escapeHtml, h, html, pushLayer, type Content } from './dom';
+import { bringToFront, viewportHeight, escapeHtml, h, html, pushLayer, type Content } from './dom';
 
 export interface DialogItem {
   id: string | number;
@@ -260,7 +260,7 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
     const r = anchor.getBoundingClientRect();
     const ph = root.offsetHeight;
     let top = r.bottom + 6;
-    if (top + ph > innerHeight && r.top - ph - 6 > 0) top = r.top - ph - 6;
+    if (top + ph > viewportHeight() && r.top - ph - 6 > 0) top = r.top - ph - 6;
     let left = placement === 'bottom-end' ? r.right - root.offsetWidth : r.left;
     left = Math.min(Math.max(8, left), innerWidth - root.offsetWidth - 8);
     root.style.top = `${top + scrollY}px`;
@@ -295,6 +295,7 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
   renderTabs();
   renderFooter();
   document.body.append(root);
+  bringToFront(root);
   reload();
   position();
   requestAnimationFrame(position);

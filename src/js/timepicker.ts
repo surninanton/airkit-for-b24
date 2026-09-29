@@ -1,4 +1,4 @@
-import { h, pushLayer } from './dom';
+import { bringToFront, viewportHeight, h, pushLayer } from './dom';
 
 /**
  * Выбор времени HH:MM: поле + попап с колонками часов и минут.
@@ -153,9 +153,9 @@ export function timepicker(input: HTMLInputElement, options: TimePickerOptions =
     const r = input.getBoundingClientRect();
     const ph = popup.offsetHeight;
     const pw = popup.offsetWidth;
-    // Во фрейме портала innerHeight — высота фрейма, поэтому переворот вверх не даёт обрезаться у низа фрейма
+    // Во фрейме портала viewportHeight() — высота фрейма, поэтому переворот вверх не даёт обрезаться у низа фрейма
     let top = r.bottom + 6;
-    if (top + ph > innerHeight - 4 && r.top - ph - 6 >= 0) top = r.top - ph - 6;
+    if (top + ph > viewportHeight() - 4 && r.top - ph - 6 >= 0) top = r.top - ph - 6;
     top = Math.max(4, top);
     const left = Math.min(Math.max(8, r.left), innerWidth - pw - 8);
     popup.style.top = `${top + scrollY}px`;
@@ -172,6 +172,7 @@ export function timepicker(input: HTMLInputElement, options: TimePickerOptions =
     opened = true;
     document.body.append(popup);
     popup.hidden = false;
+    bringToFront(popup);
     render();
     position();
     input.setAttribute('aria-expanded', 'true');

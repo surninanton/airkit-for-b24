@@ -3,7 +3,7 @@ import {
   type CSSProperties, type ReactElement, type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { anchorOverlayInFrame, focusFirst, lockScroll, pushLayer, trapFocus } from '../js/dom';
+import { anchorOverlayInFrame, bringToFront, viewportHeight, focusFirst, lockScroll, pushLayer, trapFocus } from '../js/dom';
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx, usePresence } from './utils';
@@ -14,6 +14,7 @@ function useLayer(active: boolean, containerRef: React.RefObject<HTMLElement | n
   useEffect(() => {
     if (!active || !containerRef.current) return;
     const el = containerRef.current;
+    bringToFront(el.parentElement);
     const prev = document.activeElement as HTMLElement | null;
     const releaseScroll = lockScroll();
     const releaseTrap = trapFocus(el);
@@ -135,12 +136,13 @@ export function Dropdown({ trigger, items, children, placement = 'bottom-start',
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current || !popupRef.current) return;
+    bringToFront(popupRef.current);
     const place = () => {
       const r = triggerRef.current!.getBoundingClientRect();
       const p = popupRef.current!;
       const [side, align] = placement.split('-');
       let top = side === 'bottom' ? r.bottom + 6 : r.top - p.offsetHeight - 6;
-      if (side === 'bottom' && top + p.offsetHeight > innerHeight && r.top - p.offsetHeight - 6 > 0) top = r.top - p.offsetHeight - 6;
+      if (side === 'bottom' && top + p.offsetHeight > viewportHeight() && r.top - p.offsetHeight - 6 > 0) top = r.top - p.offsetHeight - 6;
       let left = align === 'start' ? r.left : r.right - p.offsetWidth;
       left = Math.min(Math.max(8, left), innerWidth - p.offsetWidth - 8);
       setPos({ top: top + scrollY, left: left + scrollX });
@@ -255,6 +257,7 @@ export function Popover({ open, onClose, anchorRef, placement = 'bottom-start', 
 
   useLayoutEffect(() => {
     if (!open) { setPos(null); return; }
+    bringToFront(ref.current);
     const place = () => {
       const a = anchorRef.current;
       const p = ref.current;
@@ -262,7 +265,7 @@ export function Popover({ open, onClose, anchorRef, placement = 'bottom-start', 
       const r = a.getBoundingClientRect();
       const [side, align] = placement.split('-');
       let top = side === 'bottom' ? r.bottom + 6 : r.top - p.offsetHeight - 6;
-      if (side === 'bottom' && top + p.offsetHeight > innerHeight && r.top - p.offsetHeight - 6 > 0) top = r.top - p.offsetHeight - 6;
+      if (side === 'bottom' && top + p.offsetHeight > viewportHeight() && r.top - p.offsetHeight - 6 > 0) top = r.top - p.offsetHeight - 6;
       let left = align === 'start' ? r.left : r.right - p.offsetWidth;
       left = Math.min(Math.max(8, left), innerWidth - p.offsetWidth - 8);
       setPos({ top: top + scrollY, left: left + scrollX });

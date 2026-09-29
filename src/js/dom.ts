@@ -128,3 +128,22 @@ export function anchorOverlayInFrame(overlay: HTMLElement, dialog: HTMLElement):
   const top = Math.max(16, Math.min(y, frameH - dialog.offsetHeight - 16));
   overlay.style.setProperty('--b24-anchor-y', `${Math.round(top)}px`);
 }
+
+/* ── Слои: кто открыт позже — тот выше ────────────────────
+ * Попапы (календарь, время, меню), модалки и слайдеры получают z-index по порядку открытия,
+ * поэтому календарь внутри слайдера или модалка из попапа фильтра всегда видны поверх.
+ * Тосты и тултипы — выше всех (--b24-z-toast / --b24-z-tooltip).
+ */
+let zCounter = 1000;
+export function bringToFront(el: HTMLElement | null | undefined): void {
+  if (!el) return;
+  zCounter += 1;
+  el.style.zIndex = String(zCounter);
+}
+
+/** Высота видимой области: минимум из innerHeight, visualViewport и clientHeight (масштаб, экранная клавиатура). */
+export function viewportHeight(): number {
+  const vv = typeof window !== 'undefined' ? window.visualViewport?.height : undefined;
+  const ch = typeof document !== 'undefined' ? document.documentElement.clientHeight : 0;
+  return Math.min(...[window.innerHeight, vv, ch].filter((v): v is number => typeof v === 'number' && v > 0));
+}

@@ -3,7 +3,7 @@ import {
   MONTHS, WEEKDAYS, addMonths, formatDate, inRange, isDisabled, isSameDay, isWeekend, monthGrid, parseDate,
   startOfDay, toISODate, type DateRange,
 } from './date';
-import { h, html, pushLayer } from './dom';
+import { bringToFront, viewportHeight, h, html, pushLayer } from './dom';
 import { timepicker, type TimePickerHandle } from './timepicker';
 
 export interface CalendarOptions {
@@ -232,7 +232,7 @@ export function datepicker(input: HTMLInputElement, options: DatePickerOptions =
     const r = anchor.getBoundingClientRect();
     const ph = popup.offsetHeight;
     let top = r.bottom + 6;
-    if (top + ph > innerHeight && r.top - ph - 6 > 0) top = r.top - ph - 6;
+    if (top + ph > viewportHeight() && r.top - ph - 6 > 0) top = r.top - ph - 6;
     const left = Math.min(Math.max(8, r.left), innerWidth - popup.offsetWidth - 8);
     popup.style.top = `${top + scrollY}px`;
     popup.style.left = `${left + scrollX}px`;
@@ -265,6 +265,7 @@ export function datepicker(input: HTMLInputElement, options: DatePickerOptions =
     });
     document.body.append(popup);
     popup.hidden = false;
+    bringToFront(popup);
     position();
     document.addEventListener('mousedown', onDocDown);
     addEventListener('resize', position);

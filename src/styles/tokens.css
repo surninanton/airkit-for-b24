@@ -171,8 +171,8 @@
   --b24-z-dropdown: 1000;
   --b24-z-panel: 1100;
   --b24-z-modal: 1200;
-  --b24-z-toast: 1300;
-  --b24-z-tooltip: 1400;
+  --b24-z-toast: 100000;
+  --b24-z-tooltip: 100100;
 
   /* ── Layout (Air shell) ─────────────────────────────────── */
   --b24-header-height: 58px;

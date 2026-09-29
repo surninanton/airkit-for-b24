@@ -1,7 +1,7 @@
 import { icon } from '../icons';
 import { datepicker, type DatePickerHandle } from './calendar';
 import { PERIOD_OPTIONS, type PeriodType, type PeriodValue } from './date';
-import { h, html, pushLayer } from './dom';
+import { bringToFront, h, html, pushLayer } from './dom';
 import { modal } from './modal';
 import {
   chips, cleanValues, countActive, toBitrixFilter, toQuery,
@@ -259,6 +259,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     renderFields();
     document.body.append(popup);
     popup.hidden = false;
+    bringToFront(popup);
     bar.classList.add('is-open');
     filterBtn.setAttribute('aria-expanded', 'true');
     position();
