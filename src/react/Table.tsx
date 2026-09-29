@@ -8,7 +8,7 @@ import { cx } from './utils';
 import type { IconName } from '../icons';
 import {
   clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
-  SERVICE_WIDTH, startColumnResize, type GridState,
+  round1, SERVICE_WIDTH, startColumnResize, type GridState,
 } from '../js/grid-core';
 import { confirm } from '../js/modal';
 
@@ -122,11 +122,16 @@ export function DataTable<T>({
     });
   }, [reorderable]);
 
-  /** перед первым изменением ширины «замораживаем» текущие ширины */
+  /** фактические ширины служебных столбцов, снятые при «заморозке» */
+  const [serviceW, setServiceW] = useState<{ corner?: number; menu?: number }>({});
+  /** перед первым изменением ширины «замораживаем» точные текущие ширины (до 0.1px), включая служебные */
   const freeze = (): Record<string, number> => {
     if (hasWidths || !headRowRef.current) return grid.widths;
     const w: Record<string, number> = {};
-    headRowRef.current.querySelectorAll<HTMLElement>('th[data-key]').forEach((th) => { w[th.dataset.key!] = Math.round(th.getBoundingClientRect().width); });
+    headRowRef.current.querySelectorAll<HTMLElement>('th[data-key]').forEach((th) => { w[th.dataset.key!] = round1(th.getBoundingClientRect().width); });
+    const corner = headRowRef.current.querySelector<HTMLElement>('.b24-datagrid__corner');
+    const menu = headRowRef.current.querySelector<HTMLElement>('.b24-table__cell-menu');
+    setServiceW({ corner: corner ? round1(corner.getBoundingClientRect().width) : undefined, menu: menu ? round1(menu.getBoundingClientRect().width) : undefined });
     return w;
   };
   const onResizeStart = (e: React.PointerEvent, key: string) => {
@@ -144,8 +149,9 @@ export function DataTable<T>({
     const w = measureColumn(tableRef.current, key);
     setGrid((g) => ({ ...g, widths: { ...base, ...g.widths, [key]: w } }));
   };
-  const cornerW = columnSettings ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check;
-  const serviceTotal = (selectable || columnSettings ? cornerW : 0) + (rowActions ? SERVICE_WIDTH.menu : 0);
+  const cornerW = serviceW.corner ?? (columnSettings ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check);
+  const menuW = serviceW.menu ?? SERVICE_WIDTH.menu;
+  const serviceTotal = (selectable || columnSettings ? cornerW : 0) + (rowActions ? menuW : 0);
   const layout = hasWidths ? layoutWidths(visible.map((c) => c.key), grid.widths, serviceTotal, wrapWidth) : null;
   const tableWidth = layout?.total;
 
@@ -206,7 +212,7 @@ export function DataTable<T>({
           })}
         </div>
         <div className="b24-grid-settings__footer">
-          <Button variant="link" size="sm" onClick={() => { clearGridState(stateKey); setGrid(normalizeGridState(colKeys, null, defaultHidden)); }}>Сбросить настройки</Button>
+          <Button variant="link" size="sm" onClick={() => { clearGridState(stateKey); setServiceW({}); setGrid(normalizeGridState(colKeys, null, defaultHidden)); }}>Сбросить настройки</Button>
         </div>
       </div>
     </Dropdown>
@@ -227,7 +233,7 @@ export function DataTable<T>({
       >
         <colgroup>
           {cornerCol && <col style={{ width: hasWidths ? cornerW : undefined }} />}
-          {rowActions && <col style={{ width: hasWidths ? SERVICE_WIDTH.menu : undefined }} />}
+          {rowActions && <col style={{ width: hasWidths ? menuW : undefined }} />}
           {visible.map((c) => <col key={c.key} data-col={c.key} style={{ width: layout ? layout.widths[c.key] : c.width }} />)}
         </colgroup>
         <thead>

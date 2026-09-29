@@ -3,7 +3,7 @@ import { h, html } from './dom';
 import { dropdown, type DropdownHandle } from './dropdown';
 import {
   clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
-  SERVICE_WIDTH, startColumnResize, type GridState,
+  round1, SERVICE_WIDTH, startColumnResize, type GridState,
 } from './grid-core';
 import { confirm } from './modal';
 
@@ -167,7 +167,8 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
       for (const col of cols) {
         const svc = col.dataset.service as keyof typeof SERVICE_WIDTH | 'other' | undefined;
         if (!svc) continue;
-        const w = svc === 'other' ? Number(col.dataset.w) || 44 : SERVICE_WIDTH[svc];
+        // фактическая ширина, снятая при «заморозке», иначе — стандартная
+        const w = Number(col.dataset.w) || (svc === 'other' ? 44 : SERVICE_WIDTH[svc]);
         col.style.width = `${w}px`;
         serviceTotal += w;
       }
@@ -188,13 +189,14 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   /** Перед первым изменением ширины «замораживаем» текущие ширины всех видимых столбцов. */
   function freezeWidths() {
     if (Object.keys(state.widths).length) return;
+    // точные текущие ширины (до 0.1px), включая служебные столбцы: переход на фиксированную раскладку
+    // не должен сдвигать ни одну границу
     keyedTh().forEach((th) => {
-      if (!th.classList.contains('b24-col-hidden')) state.widths[th.dataset.key!] = Math.round(th.getBoundingClientRect().width);
+      if (!th.classList.contains('b24-col-hidden')) state.widths[th.dataset.key!] = round1(th.getBoundingClientRect().width);
     });
-    // прочие служебные столбцы (например, свой столбец действий в конце) — по текущей ширине
     Array.from(headRow.cells).forEach((c, i) => {
       const col = colgroup?.children[i] as HTMLElement | undefined;
-      if (col?.dataset.service === 'other') col.dataset.w = String(Math.round(c.getBoundingClientRect().width));
+      if (col?.dataset.service) col.dataset.w = String(round1(c.getBoundingClientRect().width));
     });
   }
 
@@ -399,7 +401,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     reset() {
       clearGridState(storageKey);
       state = normalizeGridState(keys, null, defaultHidden);
-      colgroup?.querySelectorAll<HTMLElement>('col').forEach((c) => { c.style.width = ''; });
+      colgroup?.querySelectorAll<HTMLElement>('col').forEach((c) => { c.style.width = ''; delete c.dataset.w; });
       commit();
       clearGridState(storageKey);
     },

@@ -17,6 +17,8 @@ export const MIN_COL_WIDTH = 60;
 /** служебные столбцы: угол (чекбокс + ⚙), только чекбокс, меню ☰ */
 export const SERVICE_WIDTH = { corner: 64, check: 44, menu: 36 } as const;
 export const DEFAULT_COL_WIDTH = 150;
+/** ширина с точностью до 0.1px — чтобы при переходе на фиксированную раскладку ничего не сдвигалось */
+export const round1 = (v: number): number => Math.round(v * 10) / 10;
 
 /**
  * Итоговые ширины для отрисовки: сохранённые ширины как есть, а если сумма меньше контейнера,
@@ -26,9 +28,10 @@ export const DEFAULT_COL_WIDTH = 150;
 export function layoutWidths(visibleKeys: string[], widths: Record<string, number>, serviceTotal: number, containerWidth: number): { widths: Record<string, number>; total: number } {
   const out: Record<string, number> = {};
   let total = serviceTotal;
+  // остаток меньше полупикселя не раздаём: это погрешность округления, а не свободное место
   for (const k of visibleKeys) { out[k] = widths[k] ?? DEFAULT_COL_WIDTH; total += out[k]; }
   const last = visibleKeys[visibleKeys.length - 1];
-  if (last && containerWidth > 0 && total < containerWidth) {
+  if (last && containerWidth > 0 && containerWidth - total > 0.5) {
     out[last] += containerWidth - total;
     total = containerWidth;
   }
@@ -62,7 +65,7 @@ export function normalizeGridState(keys: string[], saved?: Partial<GridState> | 
   const order = (saved?.order ?? []).filter((k) => known.has(k));
   for (const k of keys) if (!order.includes(k)) order.push(k);
   const widths: Record<string, number> = {};
-  for (const [k, w] of Object.entries(saved?.widths ?? {})) if (known.has(k) && w > 0) widths[k] = Math.round(w);
+  for (const [k, w] of Object.entries(saved?.widths ?? {})) if (known.has(k) && w > 0) widths[k] = round1(w);
   let hidden = (saved?.hidden ?? defaultHidden).filter((k) => known.has(k));
   if (hidden.length >= keys.length) hidden = hidden.slice(0, keys.length - 1); // хотя бы один столбец виден
   return { order, widths, hidden };
@@ -94,7 +97,7 @@ export function startColumnResize(e: PointerEvent, th: HTMLElement, opts: Resize
   let width = startW;
   document.body.classList.add('b24-col-resizing');
   const move = (ev: PointerEvent) => {
-    width = Math.max(min, Math.round(startW + ev.clientX - startX));
+    width = Math.max(min, round1(startW + ev.clientX - startX));
     opts.onMove(width);
   };
   const up = () => {
