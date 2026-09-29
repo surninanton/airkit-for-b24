@@ -138,7 +138,7 @@ npm run build    # dist/: b24ui.css, b24ui.min.css, tokens.css, b24ui.js (IIFE),
 | `[data-b24-editor]` | карточка с полями (как «О сделке»); JSON `EntityEditorOptions`; событие `b24:editor-save` (`preventDefault()` + `detail.resolve()` / `reject(err)`) |
 | `input[data-b24-timepicker]` | выбор времени `HH:MM`: попап часы/минуты, `data-step` (1/5/10/15/30, по умолчанию 15), `data-min`, `data-max`, `data-strict="false"` — разрешить некратные минуты; ввод «9», «930», «9:30», «09.30»; ↑/↓ — ±шаг |
 | `[data-b24-multi]` | несколько значений тегами: `data-type="time"` (редактор — timepicker) или `"select"` (варианты — `<option>` внутри); `data-name` → скрытые поля `name[]`, `data-max` — сколько значений, `data-values="09:00,14:30"`, `data-unique`, `data-sort`, `data-min-time`/`data-max-time`; событие `b24:multi-change` |
-| `table[data-b24-grid="ключ"]` | грид как в Б24: ширина столбцов (двойной клик по границе — по содержимому), перетаскивание столбцов, ⚙ — видимость; всё сохраняется в `localStorage` под ключом. Столбцы — `th[data-key]`, строки — `tr[data-id]`. JSON-конфиг внутри `.b24-table-wrap`: `rowActions` (меню ☰, `tr[data-actions]` ограничивает пункты), `groupActions` (панель «Отмечено: N»). События `b24:row-action`, `b24:group-action`, `b24:grid-change` |
+| `table[data-b24-grid="ключ"]` | грид как в Б24: ширина столбцов (двойной клик по границе — по содержимому), перетаскивание столбцов, ⚙ — видимость; всё сохраняется в `localStorage` под ключом. Столбцы — `th[data-key]`, строки — `tr[data-id]`. JSON-конфиг внутри `.b24-table-wrap`: `rowActions` (меню ☰, `tr[data-actions]` ограничивает пункты), `groupActions` (панель «Отмечено: N»). Закрепление слева — `th[data-pinned]` или 📌 в ⚙. Редактирование в ячейке — `th[data-edit="text|number|select|date"]` (+ `data-edit-options` для select, сырое значение — `td[data-value]`). События `b24:row-action`, `b24:group-action`, `b24:grid-change`, `b24:cell-edit` |
 | `[data-b24-composer]` | композер таймлайна; событие `b24:composer-submit` `{ text, tab }` |
 | `[data-b24-filter]` | фильтр; конфиг `FilterOptions` в `<script type="application/json">` внутри; событие `b24:filter-apply` с готовым REST-фильтром |
 
@@ -180,9 +180,10 @@ JS: `B24UI.timepicker(input, { step, min, max, strict, onChange, onSelect })`, `
   <table class="b24-table" data-b24-grid="deals" data-b24-sortable>
     <thead><tr>
       <th class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" data-b24-check-all></label></th>
-      <th data-key="title" aria-sort="none">Сделка</th>
-      <th data-key="sum" aria-sort="none">Сумма</th>
+      <th data-key="title" aria-sort="none" data-pinned>Сделка</th>   <!-- закреплён слева -->
+      <th data-key="sum" aria-sort="none" data-edit="number">Сумма</th>
       <th data-key="comment" data-hidden>Комментарий</th>   <!-- скрыт по умолчанию -->
+      <th data-key="note" data-edit="text">Заметка</th>     <!-- двойной клик / Enter — изменить -->
     </tr></thead>
     <tbody><tr data-id="42">…</tr></tbody>
   </table>
@@ -193,8 +194,12 @@ JS: `B24UI.timepicker(input, { step, min, max, strict, onChange, onSelect })`, `
 </div>
 ```
 
+Сохранение ячейки на сервер (vanilla): слушайте `b24:cell-edit`, вызовите `e.preventDefault()`, затем `e.detail.resolve('что показать')` или `e.detail.reject('текст ошибки')`. Пока идёт запрос, в ячейке крутится индикатор. При ошибке поле остаётся открытым, текст ошибки виден под ним. Enter сохраняет, Esc отменяет, Tab переходит к следующей редактируемой ячейке строки. Можно и через опцию `onCellEdit` в `initGrid`.
+
 ```tsx
+// столбцы: { key: 'title', pinned: true, … }, { key: 'sum', editable: { type: 'number', value: (r) => String(r.sum) } }
 <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} selectable selected={sel} onSelectionChange={setSel}
+  onCellEdit={async (row, key, value) => { await api.update(row.id, key, value); /* throw — ошибка под полем */ }}
   stateKey="deals" resizable reorderable columnSettings
   rowActions={(row) => [{ label: 'Открыть', icon: 'eye', onClick: () => open(row) }]}
   groupActions={[{ id: 'delete', label: 'Удалить', variant: 'tinted-danger', confirm: 'Удалить ({n})?', onClick: (ids) => remove(ids) }]} />

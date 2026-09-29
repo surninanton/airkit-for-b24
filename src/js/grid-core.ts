@@ -10,6 +10,8 @@ export interface GridState {
   widths: Record<string, number>;
   /** скрытые столбцы */
   hidden: string[];
+  /** закреплённые слева столбцы (всегда в начале order) */
+  pinned: string[];
 }
 
 const PREFIX = 'b24-grid:';
@@ -60,7 +62,7 @@ export function clearGridState(key: string | undefined): void {
 }
 
 /** Сводит сохранённое состояние с актуальным набором столбцов: новые — в конец, удалённые — выбрасываются. */
-export function normalizeGridState(keys: string[], saved?: Partial<GridState> | null, defaultHidden: string[] = []): GridState {
+export function normalizeGridState(keys: string[], saved?: Partial<GridState> | null, defaultHidden: string[] = [], defaultPinned: string[] = []): GridState {
   const known = new Set(keys);
   const order = (saved?.order ?? []).filter((k) => known.has(k));
   for (const k of keys) if (!order.includes(k)) order.push(k);
@@ -68,7 +70,82 @@ export function normalizeGridState(keys: string[], saved?: Partial<GridState> | 
   for (const [k, w] of Object.entries(saved?.widths ?? {})) if (known.has(k) && w > 0) widths[k] = round1(w);
   let hidden = (saved?.hidden ?? defaultHidden).filter((k) => known.has(k));
   if (hidden.length >= keys.length) hidden = hidden.slice(0, keys.length - 1); // хотя бы один столбец виден
-  return { order, widths, hidden };
+  const pinned = (saved?.pinned ?? defaultPinned).filter((k) => known.has(k));
+  return { order: pinFirst(order, pinned), widths, hidden, pinned };
+}
+
+/** Закреплённые столбцы — в начало, в их текущем порядке. */
+export function pinFirst(order: string[], pinned: string[]): string[] {
+  const set = new Set(pinned);
+  return [...order.filter((k) => set.has(k)), ...order.filter((k) => !set.has(k))];
+}
+
+/** Закрепить / открепить столбец: закреплённый встаёт в конец группы закреплённых, откреплённый — сразу после неё. */
+export function togglePinned(state: GridState, key: string): GridState {
+  const isPinned = state.pinned.includes(key);
+  const pinned = isPinned ? state.pinned.filter((k) => k !== key) : [...state.pinned, key];
+  const rest = state.order.filter((k) => k !== key);
+  const pinnedInOrder = rest.filter((k) => pinned.includes(k));
+  const others = rest.filter((k) => !pinned.includes(k));
+  const order = isPinned ? [...pinnedInOrder, key, ...others] : [...pinnedInOrder, key, ...others];
+  return { ...state, pinned: order.filter((k) => pinned.includes(k)), order };
+}
+
+/**
+ * Перестановка с учётом закрепления: брошенный перед закреплённым столбцом — закрепляется,
+ * закреплённый, брошенный в незакреплённую часть, — открепляется.
+ */
+export function reorderWithPins(state: GridState, key: string, beforeKey: string | null): GridState {
+  const order = moveColumn(state.order, key, beforeKey);
+  const idx = order.indexOf(key);
+  const next = order[idx + 1];
+  const prev = order[idx - 1];
+  let pinned = state.pinned.filter((k) => k !== key);
+  if ((next && pinned.includes(next)) || (prev && pinned.includes(prev) && (!next || !pinned.includes(next)) && state.pinned.includes(key))) pinned = [...pinned, key];
+  pinned = order.filter((k) => pinned.includes(k));
+  return { ...state, order: pinFirst(order, pinned), pinned };
+}
+
+/**
+ * Прилипание закреплённых столбцов при горизонтальной прокрутке (для vanilla и React).
+ * Служебные ячейки в начале строки (чекбокс, ☰) прилипают вместе с закреплёнными.
+ * Отступ left считается по фактическим ширинам заголовков.
+ */
+export function applyStickyColumns(table: HTMLTableElement, pinned: string[]): void {
+  const headRow = table.tHead?.rows[0];
+  if (!headRow) return;
+  const cells = Array.from(headRow.cells);
+  const set = new Set(pinned);
+  const lefts: number[] = [];
+  let left = 0;
+  let lastSticky = -1;
+  const anyPinned = pinned.length > 0;
+  let leading = true;
+  cells.forEach((c, i) => {
+    const key = c.dataset.col;
+    const service = !key;
+    const sticky = anyPinned && ((service && leading) || (!!key && set.has(key)));
+    if (key && !set.has(key)) leading = false;
+    if (sticky && getComputedStyle(c).display !== 'none') {
+      lefts[i] = left;
+      left += c.getBoundingClientRect().width;
+      lastSticky = i;
+    } else {
+      lefts[i] = -1;
+    }
+  });
+  const rows = [headRow, ...Array.from(table.tBodies).flatMap((b) => Array.from(b.rows))];
+  for (const row of rows) {
+    const rc = Array.from(row.cells);
+    if (rc.length === 1 && rc[0].colSpan > 1) continue;
+    rc.forEach((cell, i) => {
+      const l = lefts[i] ?? -1;
+      const on = l >= 0;
+      cell.classList.toggle('b24-col-pinned', on);
+      cell.classList.toggle('b24-col-pinned-last', on && i === lastSticky);
+      cell.style.left = on ? `${l}px` : '';
+    });
+  }
 }
 
 /** Перенос ключа key перед beforeKey (null — в конец). */

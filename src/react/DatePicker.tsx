@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   MONTHS, WEEKDAYS, PERIOD_OPTIONS, addMonths, formatDate, inRange, isDisabled, isSameDay, isWeekend, monthGrid,
   parseDate, resolvePeriod, startOfDay, toISODate, type DateRange, type PeriodType, type PeriodValue,
@@ -156,18 +156,25 @@ export interface DatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   size?: 'sm' | 'md';
+  /** сразу поставить фокус (и открыть календарь) */
+  autoFocus?: boolean;
   id?: string;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
   className?: string;
 }
 
-export function DatePicker({ value, onChange, min, max, withTime, placeholder = 'дд.мм.гггг', disabled, size = 'md', className, ...inputProps }: DatePickerProps) {
+export function DatePicker({ value, onChange, min, max, withTime, placeholder = 'дд.мм.гггг', disabled, size = 'md', autoFocus, className, ...inputProps }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const anchor = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const shown = text ?? formatDate(value, withTime);
+  useEffect(() => {
+    if (!autoFocus) return;
+    inputRef.current?.focus();
+    setOpen(true);
+  }, [autoFocus]);
 
   const commit = () => {
     if (text === null) return;

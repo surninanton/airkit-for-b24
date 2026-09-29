@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button } from './Button';
 import { Checkbox } from './Form';
 import { EmptyState, Loader } from './Display';
@@ -7,9 +7,11 @@ import { Dropdown, type MenuEntry } from './Overlay';
 import { cx } from './utils';
 import type { IconName } from '../icons';
 import {
-  clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
-  round1, SERVICE_WIDTH, startColumnResize, type GridState,
+  applyStickyColumns, clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, normalizeGridState,
+  reorderWithPins, round1, saveGridState, SERVICE_WIDTH, startColumnResize, togglePinned, type GridState,
 } from '../js/grid-core';
+import { formatDate, parseDate } from '../js/date';
+import { DatePicker } from './DatePicker';
 import { confirm } from '../js/modal';
 
 export type SortDir = 'ascending' | 'descending';
@@ -29,6 +31,15 @@ export interface Column<T> {
   numeric?: boolean;
   /** скрыт по умолчанию (можно включить в ⚙) */
   hidden?: boolean;
+  /** закреплён слева по умолчанию */
+  pinned?: boolean;
+  /** редактирование в ячейке (двойной клик / Enter); сохранение — onCellEdit у таблицы */
+  editable?: {
+    type: 'text' | 'number' | 'select' | 'date';
+    options?: Array<{ value: string; label: string }>;
+    /** исходное значение для редактора (по умолчанию String(row[key])); для date — «дд.мм.гггг» */
+    value?: (row: T) => string;
+  };
 }
 
 export interface GroupAction<K> {
@@ -73,12 +84,14 @@ export interface DataTableProps<T> {
   /** панель действий с отмеченными строками */
   groupActions?: Array<GroupAction<string | number>>;
   onGridStateChange?: (state: GridState) => void;
+  /** сохранение значения ячейки; бросить ошибку — текст покажется под полем, редактор останется открытым */
+  onCellEdit?: (row: T, key: string, value: string) => void | Promise<void>;
 }
 
 export function DataTable<T>({
   columns, rows, rowKey, selectable, selected = [], onSelectionChange,
   sort: sortProp, onSortChange, onRowClick, loading, empty, footer, compact, striped, maxHeight, className,
-  stateKey, resizable, reorderable, columnSettings, rowActions, groupActions, onGridStateChange,
+  stateKey, resizable, reorderable, columnSettings, rowActions, groupActions, onGridStateChange, onCellEdit,
 }: DataTableProps<T>) {
   const [innerSort, setInnerSort] = useState<SortState | null>(null);
   const sort = sortProp !== undefined ? sortProp : innerSort;
@@ -98,9 +111,10 @@ export function DataTable<T>({
   /* ── состояние столбцов ── */
   const colKeys = columns.map((c) => c.key);
   const defaultHidden = columns.filter((c) => c.hidden).map((c) => c.key);
-  const [grid, setGrid] = useState<GridState>(() => normalizeGridState(colKeys, loadGridState(stateKey), defaultHidden));
+  const defaultPinned = columns.filter((c) => c.pinned).map((c) => c.key);
+  const [grid, setGrid] = useState<GridState>(() => normalizeGridState(colKeys, loadGridState(stateKey), defaultHidden, defaultPinned));
   const keysSig = colKeys.join('|');
-  useEffect(() => { setGrid((g) => normalizeGridState(colKeys, g, defaultHidden)); }, [keysSig]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setGrid((g) => normalizeGridState(colKeys, g, defaultHidden, defaultPinned)); }, [keysSig]); // eslint-disable-line react-hooks/exhaustive-deps
   const gridCb = useRef(onGridStateChange);
   gridCb.current = onGridStateChange;
   const firstRender = useRef(true);
@@ -118,7 +132,7 @@ export function DataTable<T>({
   useEffect(() => {
     if (!reorderable || !headRowRef.current) return;
     return enableColumnReorder(headRowRef.current, {
-      onReorder: (key, beforeKey) => setGrid((g) => ({ ...g, order: moveColumn(g.order, key, beforeKey) })),
+      onReorder: (key, beforeKey) => setGrid((g) => reorderWithPins(g, key, beforeKey)),
     });
   }, [reorderable]);
 
@@ -154,6 +168,89 @@ export function DataTable<T>({
   const serviceTotal = (selectable || columnSettings ? cornerW : 0) + (rowActions ? menuW : 0);
   const layout = hasWidths ? layoutWidths(visible.map((c) => c.key), grid.widths, serviceTotal, wrapWidth) : null;
   const tableWidth = layout?.total;
+
+  /* ── закреплённые столбцы: отступы по фактическим ширинам после каждой отрисовки ── */
+  const pinnedVisible = grid.pinned.filter((k) => !grid.hidden.includes(k));
+  useLayoutEffect(() => {
+    if (tableRef.current) applyStickyColumns(tableRef.current, pinnedVisible);
+  });
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onScroll = () => el.classList.toggle('is-scrolled-x', el.scrollLeft > 0);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  /* ── редактирование в ячейке ── */
+  type EditState = { rowKey: string | number; colKey: string; draft: string; original: string; saving: boolean; error?: string };
+  const [edit, setEdit] = useState<EditState | null>(null);
+  const editCb = useRef(onCellEdit);
+  editCb.current = onCellEdit;
+  const originalOf = (row: T, c: Column<T>) => c.editable?.value?.(row) ?? String((row as Record<string, unknown>)[c.key] ?? '');
+  const canEdit = (c: Column<T>) => !!c.editable && !!onCellEdit;
+  const startEdit = (row: T, c: Column<T>) => {
+    if (!canEdit(c)) return;
+    const original = originalOf(row, c);
+    setEdit({ rowKey: rowKey(row), colKey: c.key, draft: original, original, saving: false });
+  };
+  const commitEdit = async (row: T, c: Column<T>, value: string, moveNext = false) => {
+    if (!edit || edit.saving) return;
+    const v = value.trim();
+    const goNext = () => {
+      if (!moveNext) return;
+      const editableCols = visible.filter(canEdit);
+      const next = editableCols[editableCols.indexOf(c) + 1];
+      if (next) startEdit(row, next);
+    };
+    if (v === edit.original) { setEdit(null); goNext(); return; }
+    if (c.editable!.type === 'number' && v !== '' && !Number.isFinite(Number(v.replace(/\s/g, '').replace(',', '.')))) {
+      setEdit({ ...edit, draft: value, error: 'Введите число' });
+      return;
+    }
+    setEdit({ ...edit, draft: value, saving: true, error: undefined });
+    try {
+      await editCb.current?.(row, c.key, v);
+      setEdit(null);
+      goNext();
+    } catch (err) {
+      setEdit((e) => (e ? { ...e, saving: false, error: typeof err === 'string' ? err : (err as Error)?.message ?? 'Не удалось сохранить' } : e));
+    }
+  };
+  const renderEditor = (row: T, c: Column<T>) => {
+    const e = edit!;
+    const cfg = c.editable!;
+    const onKey = (ev: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); void commitEdit(row, c, (ev.target as HTMLInputElement).value); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); setEdit(null); }
+      else if (ev.key === 'Tab') { ev.preventDefault(); void commitEdit(row, c, (ev.target as HTMLInputElement).value, true); }
+    };
+    let control: ReactNode;
+    if (cfg.type === 'select') {
+      control = (
+        <select autoFocus className="b24-select b24-select--sm b24-cell-editor" value={e.draft} onKeyDown={onKey}
+          onChange={(ev) => void commitEdit(row, c, ev.target.value)} onBlur={() => { if (!e.saving) setEdit(null); }}>
+          {cfg.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      );
+    } else if (cfg.type === 'date') {
+      control = <DatePicker size="sm" autoFocus className="b24-cell-editor" value={parseDate(e.draft)} onChange={(d) => void commitEdit(row, c, formatDate(d))} />;
+    } else {
+      control = (
+        <input autoFocus className="b24-input b24-input--sm b24-cell-editor" value={e.draft} inputMode={cfg.type === 'number' ? 'decimal' : undefined}
+          onChange={(ev) => setEdit({ ...e, draft: ev.target.value, error: undefined })}
+          onKeyDown={onKey}
+          onFocus={(ev) => ev.target.select()}
+          onBlur={(ev) => { if (!e.saving) void commitEdit(row, c, ev.target.value); }} />
+      );
+    }
+    return (
+      <>
+        {control}
+        {e.error && <div className="b24-cell-error" role="alert">{e.error}</div>}
+      </>
+    );
+  };
 
   /* ── сортировка ── */
   const sorted = useMemo(() => {
@@ -200,19 +297,32 @@ export function DataTable<T>({
             if (!c) return null;
             const on = !grid.hidden.includes(k);
             const onlyOne = on && grid.order.length - grid.hidden.length === 1;
+            const label = c.label ?? (typeof c.title === 'string' ? c.title : k);
+            const isPinned = grid.pinned.includes(k);
             return (
-              <Checkbox
-                key={k}
-                label={c.label ?? (typeof c.title === 'string' ? c.title : k)}
-                checked={on}
-                disabled={onlyOne}
-                onChange={(e) => setGrid((g) => ({ ...g, hidden: e.target.checked ? g.hidden.filter((x) => x !== k) : [...g.hidden, k] }))}
-              />
+              <div key={k} className="b24-grid-settings__item">
+                <Checkbox
+                  label={label}
+                  checked={on}
+                  disabled={onlyOne}
+                  onChange={(e) => setGrid((g) => ({ ...g, hidden: e.target.checked ? g.hidden.filter((x) => x !== k) : [...g.hidden, k] }))}
+                />
+                <button
+                  type="button"
+                  className={cx('b24-grid-settings__pin', isPinned && 'is-pinned')}
+                  aria-pressed={isPinned}
+                  aria-label={`${isPinned ? 'Открепить' : 'Закрепить'} столбец «${label}»`}
+                  title={isPinned ? 'Открепить' : 'Закрепить слева'}
+                  onClick={() => setGrid((g) => togglePinned(g, k))}
+                >
+                  <Icon name="pin" size={14} />
+                </button>
+              </div>
             );
           })}
         </div>
         <div className="b24-grid-settings__footer">
-          <Button variant="link" size="sm" onClick={() => { clearGridState(stateKey); setServiceW({}); setGrid(normalizeGridState(colKeys, null, defaultHidden)); }}>Сбросить настройки</Button>
+          <Button variant="link" size="sm" onClick={() => { clearGridState(stateKey); setServiceW({}); setGrid(normalizeGridState(colKeys, null, defaultHidden, defaultPinned)); }}>Сбросить настройки</Button>
         </div>
       </div>
     </Dropdown>
@@ -288,7 +398,7 @@ export function DataTable<T>({
                 <tr
                   key={k}
                   aria-selected={selectable ? isSel : undefined}
-                  onClick={onRowClick ? (e) => { if (!(e.target as HTMLElement).closest('a,button,input,label')) onRowClick(row); } : undefined}
+                  onClick={onRowClick ? (e) => { if (!(e.target as HTMLElement).closest('a,button,input,select,label,.is-editing')) onRowClick(row); } : undefined}
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
                 >
                   {cornerCol && (
@@ -307,11 +417,24 @@ export function DataTable<T>({
                       )}
                     </td>
                   )}
-                  {visible.map((c) => (
-                    <td key={c.key} data-col={c.key} style={alignStyle(c)} className={cx(c.numeric && 'b24-table__num')}>
-                      {c.render ? c.render(row, i) : String((row as Record<string, unknown>)[c.key] ?? '')}
-                    </td>
-                  ))}
+                  {visible.map((c) => {
+                    const isEditing = edit?.rowKey === k && edit.colKey === c.key;
+                    const editableCell = canEdit(c);
+                    return (
+                      <td
+                        key={c.key}
+                        data-col={c.key}
+                        style={alignStyle(c)}
+                        className={cx(c.numeric && 'b24-table__num', editableCell && 'b24-cell-editable', isEditing && 'is-editing', isEditing && edit!.saving && 'is-saving', isEditing && edit!.error && 'is-error')}
+                        tabIndex={editableCell && !isEditing ? 0 : undefined}
+                        title={editableCell && !isEditing ? 'Двойной клик или Enter — изменить' : undefined}
+                        onDoubleClick={editableCell && !isEditing ? (ev) => { if ((ev.target as HTMLElement).closest('a,button,input,select,label')) return; ev.preventDefault(); startEdit(row, c); } : undefined}
+                        onKeyDown={editableCell && !isEditing ? (ev) => { if ((ev.key === 'Enter' || ev.key === 'F2') && ev.target === ev.currentTarget) { ev.preventDefault(); startEdit(row, c); } } : undefined}
+                      >
+                        {isEditing ? renderEditor(row, c) : c.render ? c.render(row, i) : String((row as Record<string, unknown>)[c.key] ?? '')}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })

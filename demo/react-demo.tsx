@@ -132,7 +132,7 @@ function DealsPage() {
 
   const columns: Column<Deal>[] = [
     {
-      key: 'title', title: 'Сделка', sortable: true,
+      key: 'title', title: 'Сделка', sortable: true, pinned: true,
       render: (d) => (
         <>
           <a href="#" onClick={(e) => { e.preventDefault(); setOpenDeal(d); }}>{d.title}</a>
@@ -148,8 +148,8 @@ function DealsPage() {
         return <StageMini total={5} done={i + 1} color={STAGES[i].color} label={STAGES[i].name} />;
       },
     },
-    { key: 'sum', title: 'Сумма', sortable: true, numeric: true, render: (d) => money(d.sum) },
-    { key: 'owner', title: 'Ответственный', render: (d) => <User name={d.owner} href="#" /> },
+    { key: 'sum', title: 'Сумма', sortable: true, numeric: true, render: (d) => money(d.sum), editable: { type: 'number', value: (d) => String(d.sum) } },
+    { key: 'owner', title: 'Ответственный', render: (d) => <User name={d.owner} href="#" />, editable: { type: 'select', options: OWNERS.map((o) => ({ value: o, label: o })) } },
     { key: 'created', title: 'Создана', sortable: true, sortValue: (d) => d.id },
   ];
 
@@ -221,6 +221,16 @@ function DealsPage() {
             selected={selected}
             onSelectionChange={setSelected}
             stateKey="demo-react-deals"
+            onCellEdit={async (d, key, value) => {
+              await new Promise((r) => setTimeout(r, 400));
+              if (key === 'sum') {
+                const n = Number(value.replace(/\s/g, '').replace(',', '.'));
+                if (n > 10_000_000) throw new Error('Сервер: сумма больше 10 000 000 ₽ требует согласования');
+                setDeals((l) => l.map((x) => (x.id === d.id ? { ...x, sum: n } : x)));
+              }
+              if (key === 'owner') setDeals((l) => l.map((x) => (x.id === d.id ? { ...x, owner: value } : x)));
+              toast('Сохранено', { type: 'success' });
+            }}
             resizable
             reorderable
             columnSettings

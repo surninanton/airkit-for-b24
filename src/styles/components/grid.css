@@ -113,3 +113,54 @@ body.b24-col-resizing, body.b24-col-resizing * { cursor: col-resize !important; 
 }
 .b24-grid-actions__count { margin-right: 8px; font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-semibold); color: var(--b24-text-secondary); }
 .b24-grid-actions__clear { margin-left: auto; }
+
+/* ── Закреплённые столбцы (прилипают слева при горизонтальной прокрутке) ── */
+.b24-datagrid .b24-col-pinned { position: sticky; z-index: 1; background: var(--b24-bg-surface); }
+.b24-datagrid thead th.b24-col-pinned { z-index: 3; }
+.b24-datagrid tbody tr:hover > td.b24-col-pinned { background: var(--b24-bg-surface-2); }
+.b24-datagrid tbody tr[aria-selected="true"] > td.b24-col-pinned,
+.b24-datagrid tbody tr.is-selected > td.b24-col-pinned { background: var(--b24-color-soft-blue-3); }
+.b24-datagrid--striped tbody tr:nth-child(even) > td.b24-col-pinned,
+.b24-table--striped.b24-datagrid tbody tr:nth-child(even) > td.b24-col-pinned { background: var(--b24-bg-surface-2); }
+.b24-datagrid .b24-col-pinned-last { box-shadow: inset -1px 0 0 var(--b24-divider-accent); }
+.b24-table-wrap.is-scrolled-x .b24-datagrid .b24-col-pinned-last { box-shadow: inset -1px 0 0 var(--b24-divider-accent), 6px 0 8px -6px rgba(0, 0, 0, 0.18); }
+
+.b24-grid-settings__item { display: flex; align-items: center; gap: 8px; }
+.b24-grid-settings__item > .b24-check { flex: 1 1 auto; min-width: 0; }
+.b24-grid-settings__pin {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 24px; height: 24px; padding: 0;
+  color: var(--b24-text-disabled);
+  background: transparent; border: 0; border-radius: var(--b24-radius-xs); cursor: pointer;
+}
+.b24-grid-settings__pin:hover { color: var(--b24-text-secondary); background: var(--b24-bg-hover); }
+.b24-grid-settings__pin.is-pinned { color: var(--b24-color-primary); background: var(--b24-color-soft-blue-2); }
+.b24-grid-settings__pin svg { width: 14px; height: 14px; }
+
+/* ── Редактирование в ячейке ── */
+.b24-cell-editable { position: relative; cursor: text; }
+.b24-cell-editable:not(.is-editing):hover { box-shadow: inset 0 0 0 1px var(--b24-border-strong); }
+.b24-cell-editable:not(.is-editing):hover::after {
+  content: "";
+  position: absolute; top: 50%; right: 6px;
+  width: 14px; height: 14px; margin-top: -7px;
+  background: currentColor;
+  color: var(--b24-text-disabled);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+.b24-cell-editable:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-table td.is-editing { padding-top: 6px !important; padding-bottom: 6px !important; overflow: visible !important; }
+.b24-cell-editor { width: 100%; min-width: 0; }
+.b24-table td.is-saving .b24-cell-editor { opacity: 0.6; pointer-events: none; }
+.b24-table td.is-saving::before {
+  content: ""; position: absolute; right: 10px; top: 50%; z-index: 2;
+  width: 14px; height: 14px; margin-top: -7px;
+  border: 2px solid var(--b24-color-soft-blue-1); border-top-color: var(--b24-color-primary); border-radius: 50%;
+  animation: b24-spin 0.8s linear infinite;
+}
+.b24-table td.is-editing { position: relative; }
+.b24-table td.is-error .b24-cell-editor { border-color: var(--b24-color-danger); background-color: var(--b24-color-soft-red-3); }
+.b24-cell-error { margin-top: 4px; font-size: var(--b24-font-size-xs); color: var(--b24-color-danger); white-space: normal; }
+.b24-datagrid td.b24-col-pinned.is-editing { position: sticky; }
