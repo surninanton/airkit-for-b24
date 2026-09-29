@@ -14,6 +14,26 @@ export interface GridState {
 
 const PREFIX = 'b24-grid:';
 export const MIN_COL_WIDTH = 60;
+/** служебные столбцы: угол (чекбокс + ⚙), только чекбокс, меню ☰ */
+export const SERVICE_WIDTH = { corner: 64, check: 44, menu: 36 } as const;
+export const DEFAULT_COL_WIDTH = 150;
+
+/**
+ * Итоговые ширины для отрисовки: сохранённые ширины как есть, а если сумма меньше контейнера,
+ * остаток получает последний видимый столбец. Благодаря этому граница любого другого столбца
+ * при перетаскивании идёт ровно за курсором (браузер не «размазывает» остаток по всем столбцам).
+ */
+export function layoutWidths(visibleKeys: string[], widths: Record<string, number>, serviceTotal: number, containerWidth: number): { widths: Record<string, number>; total: number } {
+  const out: Record<string, number> = {};
+  let total = serviceTotal;
+  for (const k of visibleKeys) { out[k] = widths[k] ?? DEFAULT_COL_WIDTH; total += out[k]; }
+  const last = visibleKeys[visibleKeys.length - 1];
+  if (last && containerWidth > 0 && total < containerWidth) {
+    out[last] += containerWidth - total;
+    total = containerWidth;
+  }
+  return { widths: out, total };
+}
 export const MAX_AUTOFIT_WIDTH = 600;
 
 export function loadGridState(key: string | undefined): Partial<GridState> | null {

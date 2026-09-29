@@ -2,8 +2,8 @@ import { icon, type IconName } from '../icons';
 import { h, html } from './dom';
 import { dropdown, type DropdownHandle } from './dropdown';
 import {
-  clearGridState, enableColumnReorder, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
-  startColumnResize, type GridState,
+  clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
+  SERVICE_WIDTH, startColumnResize, type GridState,
 } from './grid-core';
 import { confirm } from './modal';
 
@@ -128,7 +128,11 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     colgroup?.remove();
     colgroup = h('colgroup', {});
     for (const cell of Array.from(headRow.cells)) {
-      colgroup.append(h('col', { 'data-col': cell.dataset.key }));
+      const service = cell.dataset.key ? undefined
+        : cell.classList.contains('b24-table__cell-menu') ? 'menu'
+        : cell.classList.contains('b24-table__cell-check') ? (settings ? 'corner' : 'check')
+        : 'other';
+      colgroup.append(h('col', { 'data-col': cell.dataset.key, 'data-service': service }));
     }
     table.insertBefore(colgroup, table.firstChild);
   }
@@ -157,18 +161,26 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
 
     const hasWidths = Object.keys(state.widths).length > 0;
     table.classList.toggle('b24-datagrid--fixed', hasWidths);
+    const cols = Array.from(colgroup?.querySelectorAll<HTMLTableColElement>('col') ?? []);
     if (hasWidths) {
-      let total = 0;
-      colgroup?.querySelectorAll<HTMLTableColElement>('col').forEach((col) => {
+      let serviceTotal = 0;
+      for (const col of cols) {
+        const svc = col.dataset.service as keyof typeof SERVICE_WIDTH | 'other' | undefined;
+        if (!svc) continue;
+        const w = svc === 'other' ? Number(col.dataset.w) || 44 : SERVICE_WIDTH[svc];
+        col.style.width = `${w}px`;
+        serviceTotal += w;
+      }
+      const visibleKeys = state.order.filter((k) => !hidden.has(k));
+      const lay = layoutWidths(visibleKeys, state.widths, serviceTotal, wrap.clientWidth);
+      for (const col of cols) {
         const k = col.dataset.col;
-        if (k && hidden.has(k)) { col.style.width = ''; return; }
-        const w = k ? state.widths[k] : undefined;
-        col.style.width = w ? `${w}px` : '';
-        total += w ?? (k ? 150 : 44);
-      });
-      table.style.width = `${total}px`;
+        if (!k) continue;
+        col.style.width = hidden.has(k) ? '' : `${lay.widths[k]}px`;
+      }
+      table.style.width = `${lay.total}px`;
     } else {
-      colgroup?.querySelectorAll<HTMLTableColElement>('col').forEach((col) => { col.style.width = ''; });
+      cols.forEach((col) => { col.style.width = ''; });
       table.style.width = '';
     }
   }
@@ -179,10 +191,10 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     keyedTh().forEach((th) => {
       if (!th.classList.contains('b24-col-hidden')) state.widths[th.dataset.key!] = Math.round(th.getBoundingClientRect().width);
     });
-    // служебные столбцы
+    // прочие служебные столбцы (например, свой столбец действий в конце) — по текущей ширине
     Array.from(headRow.cells).forEach((c, i) => {
       const col = colgroup?.children[i] as HTMLElement | undefined;
-      if (!c.dataset.key && col) col.style.width = `${Math.round(c.getBoundingClientRect().width)}px`;
+      if (col?.dataset.service === 'other') col.dataset.w = String(Math.round(c.getBoundingClientRect().width));
     });
   }
 
@@ -360,6 +372,17 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   }
 
   // новые строки (подгрузка, сортировка) — размечаем и приводим к текущему порядку
+  if (typeof ResizeObserver !== 'undefined') {
+    let lastW = wrap.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (wrap.clientWidth === lastW || !Object.keys(state.widths).length) return;
+      lastW = wrap.clientWidth;
+      apply();
+    });
+    ro.observe(wrap);
+    cleanups.push(() => ro.disconnect());
+  }
+
   const mo = new MutationObserver((records) => {
     let changed = false;
     for (const r of records) r.addedNodes.forEach((n) => {

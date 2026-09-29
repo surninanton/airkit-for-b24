@@ -7,8 +7,8 @@ import { Dropdown, type MenuEntry } from './Overlay';
 import { cx } from './utils';
 import type { IconName } from '../icons';
 import {
-  clearGridState, enableColumnReorder, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
-  startColumnResize, type GridState,
+  clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
+  SERVICE_WIDTH, startColumnResize, type GridState,
 } from '../js/grid-core';
 import { confirm } from '../js/modal';
 
@@ -84,6 +84,16 @@ export function DataTable<T>({
   const sort = sortProp !== undefined ? sortProp : innerSort;
   const tableRef = useRef<HTMLTableElement>(null);
   const headRowRef = useRef<HTMLTableRowElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [wrapWidth, setWrapWidth] = useState(0);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    setWrapWidth(el.clientWidth);
+    const ro = new ResizeObserver(() => setWrapWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   /* ── состояние столбцов ── */
   const colKeys = columns.map((c) => c.key);
@@ -134,9 +144,10 @@ export function DataTable<T>({
     const w = measureColumn(tableRef.current, key);
     setGrid((g) => ({ ...g, widths: { ...base, ...g.widths, [key]: w } }));
   };
-  const tableWidth = hasWidths
-    ? visible.reduce((sum, c) => sum + (grid.widths[c.key] ?? 150), 0) + (selectable || columnSettings ? 44 : 0) + (rowActions ? 36 : 0)
-    : undefined;
+  const cornerW = columnSettings ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check;
+  const serviceTotal = (selectable || columnSettings ? cornerW : 0) + (rowActions ? SERVICE_WIDTH.menu : 0);
+  const layout = hasWidths ? layoutWidths(visible.map((c) => c.key), grid.widths, serviceTotal, wrapWidth) : null;
+  const tableWidth = layout?.total;
 
   /* ── сортировка ── */
   const sorted = useMemo(() => {
@@ -208,16 +219,16 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cx('b24-table-wrap', className)} style={{ maxHeight, position: 'relative' }}>
+    <div ref={wrapRef} className={cx('b24-table-wrap', className)} style={{ maxHeight, position: 'relative' }}>
       <table
         ref={tableRef}
         className={cx('b24-table', 'b24-datagrid', hasWidths && 'b24-datagrid--fixed', compact && 'b24-table--compact', striped && 'b24-table--striped')}
         style={tableWidth ? { width: tableWidth } : undefined}
       >
         <colgroup>
-          {cornerCol && <col style={{ width: 44 }} />}
-          {rowActions && <col style={{ width: 36 }} />}
-          {visible.map((c) => <col key={c.key} data-col={c.key} style={{ width: grid.widths[c.key] ?? (hasWidths ? 150 : c.width) }} />)}
+          {cornerCol && <col style={{ width: hasWidths ? cornerW : undefined }} />}
+          {rowActions && <col style={{ width: hasWidths ? SERVICE_WIDTH.menu : undefined }} />}
+          {visible.map((c) => <col key={c.key} data-col={c.key} style={{ width: layout ? layout.widths[c.key] : c.width }} />)}
         </colgroup>
         <thead>
           <tr ref={headRowRef}>

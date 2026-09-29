@@ -1,9 +1,11 @@
 /* ── Grid: ширина, перетаскивание, настройка столбцов, действия ─────
  * table.b24-table.b24-datagrid — ставит initGrid / data-b24-grid / <DataTable resizable …>
  */
-.b24-datagrid--fixed { table-layout: fixed; min-width: 100%; }
+.b24-datagrid--fixed { table-layout: fixed; }
 .b24-datagrid--fixed th,
 .b24-datagrid--fixed td { overflow: hidden; text-overflow: ellipsis; }
+.b24-datagrid--fixed .b24-table__cell-check,
+.b24-datagrid--fixed .b24-table__cell-menu { overflow: visible; text-overflow: clip; }
 .b24-col-hidden { display: none !important; }
 
 .b24-datagrid thead th { position: sticky; }
