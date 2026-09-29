@@ -13,6 +13,7 @@ import { initComposer } from './timeline';
 import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
 import { createVendor, type VendorOptions } from './vendor';
+import { initGrid, type GridOptions } from './grid';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -37,6 +38,9 @@ import { createVendor, type VendorOptions } from './vendor';
  *                                    data-values="09:00,14:30", data-unique="false", data-sort="false";
  *                                    варианты select — <option> внутри или JSON-конфиг; событие b24:multi-change
  *   [data-b24-vendor]              — блок разработчика (правило кита); JSON-конфиг VendorOptions внутри
+ *   table[data-b24-grid="ключ"]    — грид: ширина/порядок/видимость столбцов th[data-key] (сохраняются), меню ☰ строк,
+ *                                    групповые действия; JSON-конфиг GridOptions в <script> внутри .b24-table-wrap
+ *                                    или data-b24-grid-config="#id"; data-resizable / data-reorderable / data-settings="false"
  * Повторный вызов безопасен.
  */
 export function init(root: ParentNode = document): void {
@@ -174,6 +178,23 @@ export function init(root: ParentNode = document): void {
     el.dataset.b24Ready = '1';
     el.querySelectorAll('script[type="application/json"]').forEach((s) => s.remove());
     createVendor(el, config);
+  });
+
+  root.querySelectorAll<HTMLTableElement>('table[data-b24-grid]').forEach((table) => {
+    if (table.dataset.b24GridReady) return;
+    table.dataset.b24GridReady = '1';
+    const d = table.dataset;
+    const wrap = table.closest<HTMLElement>('.b24-table-wrap');
+    const config = (d.b24GridConfig ? readJsonConfig<GridOptions>(table, 'b24GridConfig') : wrap ? readJsonConfig<GridOptions>(wrap, 'b24GridConfigInline') : null) ?? {};
+    wrap?.querySelectorAll(':scope > script[type="application/json"]').forEach((s) => s.remove());
+    const flag = (v?: string) => (v === undefined ? undefined : v !== 'false');
+    initGrid(table, {
+      ...config,
+      id: d.b24Grid || config.id,
+      resizable: flag(d.resizable) ?? config.resizable,
+      reorderable: flag(d.reorderable) ?? config.reorderable,
+      settings: flag(d.settings) ?? config.settings,
+    });
   });
 }
 

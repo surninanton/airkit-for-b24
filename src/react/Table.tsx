@@ -1,8 +1,16 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Button } from './Button';
 import { Checkbox } from './Form';
 import { EmptyState, Loader } from './Display';
 import { Icon } from './Icon';
+import { Dropdown, type MenuEntry } from './Overlay';
 import { cx } from './utils';
+import type { IconName } from '../icons';
+import {
+  clearGridState, enableColumnReorder, loadGridState, measureColumn, moveColumn, normalizeGridState, saveGridState,
+  startColumnResize, type GridState,
+} from '../js/grid-core';
+import { confirm } from '../js/modal';
 
 export type SortDir = 'ascending' | 'descending';
 export interface SortState { key: string; dir: SortDir }
@@ -10,6 +18,8 @@ export interface SortState { key: string; dir: SortDir }
 export interface Column<T> {
   key: string;
   title: ReactNode;
+  /** подпись в меню ⚙ (если title — не строка) */
+  label?: string;
   render?: (row: T, index: number) => ReactNode;
   /** значение для сортировки (по умолчанию row[key]) */
   sortValue?: (row: T) => string | number | null | undefined;
@@ -17,6 +27,18 @@ export interface Column<T> {
   align?: 'left' | 'right' | 'center';
   width?: number | string;
   numeric?: boolean;
+  /** скрыт по умолчанию (можно включить в ⚙) */
+  hidden?: boolean;
+}
+
+export interface GroupAction<K> {
+  id: string;
+  label: string;
+  variant?: 'primary' | 'secondary' | 'danger' | 'tinted' | 'tinted-danger' | 'plain';
+  icon?: IconName;
+  /** текст подтверждения; {n} — количество отмеченных */
+  confirm?: string;
+  onClick: (keys: K[]) => void;
 }
 
 export interface DataTableProps<T> {
@@ -37,15 +59,86 @@ export interface DataTableProps<T> {
   striped?: boolean;
   maxHeight?: number | string;
   className?: string;
+  /* ── грид ── */
+  /** ключ для сохранения ширины/порядка/видимости столбцов в localStorage */
+  stateKey?: string;
+  /** менять ширину столбцов (двойной клик по ручке — по содержимому) */
+  resizable?: boolean;
+  /** перетаскивать столбцы */
+  reorderable?: boolean;
+  /** меню ⚙ с видимостью столбцов */
+  columnSettings?: boolean;
+  /** меню ☰ у строки */
+  rowActions?: (row: T) => MenuEntry[];
+  /** панель действий с отмеченными строками */
+  groupActions?: Array<GroupAction<string | number>>;
+  onGridStateChange?: (state: GridState) => void;
 }
 
 export function DataTable<T>({
   columns, rows, rowKey, selectable, selected = [], onSelectionChange,
   sort: sortProp, onSortChange, onRowClick, loading, empty, footer, compact, striped, maxHeight, className,
+  stateKey, resizable, reorderable, columnSettings, rowActions, groupActions, onGridStateChange,
 }: DataTableProps<T>) {
   const [innerSort, setInnerSort] = useState<SortState | null>(null);
   const sort = sortProp !== undefined ? sortProp : innerSort;
+  const tableRef = useRef<HTMLTableElement>(null);
+  const headRowRef = useRef<HTMLTableRowElement>(null);
 
+  /* ── состояние столбцов ── */
+  const colKeys = columns.map((c) => c.key);
+  const defaultHidden = columns.filter((c) => c.hidden).map((c) => c.key);
+  const [grid, setGrid] = useState<GridState>(() => normalizeGridState(colKeys, loadGridState(stateKey), defaultHidden));
+  const keysSig = colKeys.join('|');
+  useEffect(() => { setGrid((g) => normalizeGridState(colKeys, g, defaultHidden)); }, [keysSig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const gridCb = useRef(onGridStateChange);
+  gridCb.current = onGridStateChange;
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    saveGridState(stateKey, grid);
+    gridCb.current?.(grid);
+  }, [grid, stateKey]);
+
+  const byKey = new Map(columns.map((c) => [c.key, c]));
+  const visible = grid.order.map((k) => byKey.get(k)).filter((c): c is Column<T> => !!c && !grid.hidden.includes(c.key));
+  const hasWidths = Object.keys(grid.widths).length > 0;
+
+  /* ── перетаскивание столбцов ── */
+  useEffect(() => {
+    if (!reorderable || !headRowRef.current) return;
+    return enableColumnReorder(headRowRef.current, {
+      onReorder: (key, beforeKey) => setGrid((g) => ({ ...g, order: moveColumn(g.order, key, beforeKey) })),
+    });
+  }, [reorderable]);
+
+  /** перед первым изменением ширины «замораживаем» текущие ширины */
+  const freeze = (): Record<string, number> => {
+    if (hasWidths || !headRowRef.current) return grid.widths;
+    const w: Record<string, number> = {};
+    headRowRef.current.querySelectorAll<HTMLElement>('th[data-key]').forEach((th) => { w[th.dataset.key!] = Math.round(th.getBoundingClientRect().width); });
+    return w;
+  };
+  const onResizeStart = (e: React.PointerEvent, key: string) => {
+    const th = (e.currentTarget as HTMLElement).closest('th') as HTMLElement;
+    const base = freeze();
+    setGrid((g) => ({ ...g, widths: base }));
+    startColumnResize(e.nativeEvent, th, {
+      onMove: (w) => setGrid((g) => ({ ...g, widths: { ...g.widths, [key]: w } })),
+      onEnd: () => {},
+    });
+  };
+  const onAutofit = (key: string) => {
+    if (!tableRef.current) return;
+    const base = freeze();
+    const w = measureColumn(tableRef.current, key);
+    setGrid((g) => ({ ...g, widths: { ...base, ...g.widths, [key]: w } }));
+  };
+  const tableWidth = hasWidths
+    ? visible.reduce((sum, c) => sum + (grid.widths[c.key] ?? 150), 0) + (selectable || columnSettings ? 44 : 0) + (rowActions ? 36 : 0)
+    : undefined;
+
+  /* ── сортировка ── */
   const sorted = useMemo(() => {
     if (!sort || onSortChange) return rows;
     const col = columns.find((c) => c.key === sort.key);
@@ -64,6 +157,7 @@ export function DataTable<T>({
     if (onSortChange) onSortChange(next); else setInnerSort(next);
   };
 
+  /* ── выделение ── */
   const keys = sorted.map(rowKey);
   const selectedSet = new Set(selected);
   const allChecked = keys.length > 0 && keys.every((k) => selectedSet.has(k));
@@ -72,30 +166,91 @@ export function DataTable<T>({
   const toggleOne = (k: string | number) =>
     onSelectionChange?.(selectedSet.has(k) ? selected.filter((x) => x !== k) : [...selected, k]);
 
-  const colSpan = columns.length + (selectable ? 1 : 0);
+  const cornerCol = selectable || columnSettings;
+  const colSpan = visible.length + (cornerCol ? 1 : 0) + (rowActions ? 1 : 0);
   const alignStyle = (c: Column<T>): CSSProperties | undefined => (c.align && c.align !== 'left' ? { textAlign: c.align } : undefined);
+
+  const settingsMenu = columnSettings ? (
+    <Dropdown
+      placement="bottom-start"
+      trigger={<button type="button" className="b24-table__settings" aria-label="Настройка столбцов" title="Настройка столбцов"><Icon name="settings" size={16} /></button>}
+    >
+      <div className="b24-grid-settings">
+        <div className="b24-menu__title">Столбцы</div>
+        <div className="b24-grid-settings__list">
+          {grid.order.map((k) => {
+            const c = byKey.get(k);
+            if (!c) return null;
+            const on = !grid.hidden.includes(k);
+            const onlyOne = on && grid.order.length - grid.hidden.length === 1;
+            return (
+              <Checkbox
+                key={k}
+                label={c.label ?? (typeof c.title === 'string' ? c.title : k)}
+                checked={on}
+                disabled={onlyOne}
+                onChange={(e) => setGrid((g) => ({ ...g, hidden: e.target.checked ? g.hidden.filter((x) => x !== k) : [...g.hidden, k] }))}
+              />
+            );
+          })}
+        </div>
+        <div className="b24-grid-settings__footer">
+          <Button variant="link" size="sm" onClick={() => { clearGridState(stateKey); setGrid(normalizeGridState(colKeys, null, defaultHidden)); }}>Сбросить настройки</Button>
+        </div>
+      </div>
+    </Dropdown>
+  ) : null;
+
+  const runGroup = async (a: GroupAction<string | number>) => {
+    if (!selected.length) return;
+    if (a.confirm && !(await confirm(a.confirm.replace('{n}', String(selected.length)), { danger: a.variant?.includes('danger'), okText: a.label }))) return;
+    a.onClick([...selected]);
+  };
 
   return (
     <div className={cx('b24-table-wrap', className)} style={{ maxHeight, position: 'relative' }}>
-      <table className={cx('b24-table', compact && 'b24-table--compact', striped && 'b24-table--striped')}>
+      <table
+        ref={tableRef}
+        className={cx('b24-table', 'b24-datagrid', hasWidths && 'b24-datagrid--fixed', compact && 'b24-table--compact', striped && 'b24-table--striped')}
+        style={tableWidth ? { width: tableWidth } : undefined}
+      >
+        <colgroup>
+          {cornerCol && <col style={{ width: 44 }} />}
+          {rowActions && <col style={{ width: 36 }} />}
+          {visible.map((c) => <col key={c.key} data-col={c.key} style={{ width: grid.widths[c.key] ?? (hasWidths ? 150 : c.width) }} />)}
+        </colgroup>
         <thead>
-          <tr>
-            {selectable && (
-              <th className="b24-table__cell-check">
-                <Checkbox aria-label="Выбрать все" checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />
+          <tr ref={headRowRef}>
+            {cornerCol && (
+              <th className="b24-table__cell-check b24-datagrid__corner" data-fixed="">
+                {selectable && <Checkbox aria-label="Выбрать все" checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />}
+                {settingsMenu}
               </th>
             )}
-            {columns.map((c) => (
+            {rowActions && <th className="b24-table__cell-menu" data-fixed="" />}
+            {visible.map((c) => (
               <th
                 key={c.key}
-                style={{ width: c.width, ...alignStyle(c) }}
-                className={cx(c.numeric && 'b24-table__num')}
+                data-key={c.key}
+                data-col={c.key}
+                style={alignStyle(c)}
+                className={cx(c.numeric && 'b24-table__num', reorderable && 'b24-datagrid__draggable')}
                 aria-sort={c.sortable ? (sort?.key === c.key ? sort.dir : 'none') : undefined}
                 tabIndex={c.sortable ? 0 : undefined}
                 onClick={c.sortable ? () => toggleSort(c.key) : undefined}
                 onKeyDown={c.sortable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort(c.key); } } : undefined}
               >
                 {c.title}
+                {resizable && (
+                  <span
+                    className="b24-table__resizer"
+                    aria-hidden="true"
+                    title="Ширина столбца (двойной клик — по содержимому)"
+                    onPointerDown={(e) => onResizeStart(e, c.key)}
+                    onDoubleClick={(e) => { e.stopPropagation(); onAutofit(c.key); }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
               </th>
             ))}
           </tr>
@@ -109,6 +264,7 @@ export function DataTable<T>({
             sorted.map((row, i) => {
               const k = rowKey(row);
               const isSel = selectedSet.has(k);
+              const menu = rowActions?.(row);
               return (
                 <tr
                   key={k}
@@ -116,13 +272,24 @@ export function DataTable<T>({
                   onClick={onRowClick ? (e) => { if (!(e.target as HTMLElement).closest('a,button,input,label')) onRowClick(row); } : undefined}
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
                 >
-                  {selectable && (
+                  {cornerCol && (
                     <td className="b24-table__cell-check">
-                      <Checkbox aria-label="Выбрать строку" checked={isSel} onChange={() => toggleOne(k)} />
+                      {selectable && <Checkbox aria-label="Выбрать строку" checked={isSel} onChange={() => toggleOne(k)} />}
                     </td>
                   )}
-                  {columns.map((c) => (
-                    <td key={c.key} style={alignStyle(c)} className={cx(c.numeric && 'b24-table__num')}>
+                  {rowActions && (
+                    <td className="b24-table__cell-menu">
+                      {menu && menu.length > 0 && (
+                        <Dropdown
+                          placement="bottom-start"
+                          items={menu}
+                          trigger={<button type="button" className="b24-table__row-menu" aria-label="Действия со строкой"><Icon name="menu" size={16} /></button>}
+                        />
+                      )}
+                    </td>
+                  )}
+                  {visible.map((c) => (
+                    <td key={c.key} data-col={c.key} style={alignStyle(c)} className={cx(c.numeric && 'b24-table__num')}>
                       {c.render ? c.render(row, i) : String((row as Record<string, unknown>)[c.key] ?? '')}
                     </td>
                   ))}
@@ -132,6 +299,15 @@ export function DataTable<T>({
           )}
         </tbody>
       </table>
+      {groupActions && selected.length > 0 && (
+        <div className="b24-grid-actions" role="toolbar" aria-label="Действия с отмеченными">
+          <span className="b24-grid-actions__count">Отмечено: {selected.length} из {rows.length}</span>
+          {groupActions.map((a) => (
+            <Button key={a.id} size="sm" variant={a.variant ?? 'secondary'} icon={a.icon} onClick={() => void runGroup(a)}>{a.label}</Button>
+          ))}
+          <Button variant="link" size="sm" className="b24-grid-actions__clear" onClick={() => onSelectionChange?.([])}>Снять выделение</Button>
+        </div>
+      )}
       {loading && rows.length > 0 && <div className="b24-loader-overlay"><span className="b24-spinner" /></div>}
       {footer && <div className="b24-table-footer">{footer}</div>}
     </div>

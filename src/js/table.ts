@@ -6,14 +6,17 @@ export function initSortableTable(table: HTMLTableElement): void {
   if (table.dataset.b24Ready) return;
   table.dataset.b24Ready = '1';
   const heads = Array.from(table.tHead?.rows[0]?.cells ?? []);
-  heads.forEach((th, index) => {
+  heads.forEach((th) => {
     if (!th.hasAttribute('aria-sort')) return;
     th.tabIndex = 0;
     const run = () => {
+      // номер столбца — на момент клика: грид мог переставить или добавить столбцы
+      const index = Array.from(th.parentElement!.children).indexOf(th);
+      const allHeads = Array.from(th.parentElement!.children) as HTMLTableCellElement[];
       const dir = th.getAttribute('aria-sort') === 'ascending' ? 'descending' : 'ascending';
-      heads.forEach((other) => other.hasAttribute('aria-sort') && other.setAttribute('aria-sort', 'none'));
+      allHeads.forEach((other) => other.hasAttribute('aria-sort') && other.setAttribute('aria-sort', 'none'));
       th.setAttribute('aria-sort', dir);
-      const event = new CustomEvent('b24:sort', { detail: { index, dir }, bubbles: true, cancelable: true });
+      const event = new CustomEvent('b24:sort', { detail: { index, key: th.dataset.key, dir }, bubbles: true, cancelable: true });
       if (!table.dispatchEvent(event)) return; // серверная сортировка: preventDefault()
       const body = table.tBodies[0];
       const rows = Array.from(body.rows);

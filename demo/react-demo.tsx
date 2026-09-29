@@ -153,14 +153,6 @@ function DealsPage() {
     { key: 'created', title: 'Создана', sortable: true, sortValue: (d) => d.id },
   ];
 
-  const removeSelected = async () => {
-    const ok = await confirm(`Удалить выбранные сделки (${selected.length})?`, { danger: true, okText: 'Удалить' });
-    if (!ok) return;
-    setDeals((list) => list.filter((d) => !selected.includes(d.id)));
-    setSelected([]);
-    toast('Сделки удалены', { type: 'success', action: { label: 'Отменить', onClick: () => setDeals(DEALS) } });
-  };
-
   const total = filtered.reduce((s, d) => s + d.sum, 0);
 
   return (
@@ -228,12 +220,28 @@ function DealsPage() {
             selectable
             selected={selected}
             onSelectionChange={setSelected}
+            stateKey="demo-react-deals"
+            resizable
+            reorderable
+            columnSettings
+            rowActions={(d) => [
+              { label: 'Открыть', icon: 'eye', onClick: () => setOpenDeal(d) },
+              { label: 'Копировать', icon: 'copy', onClick: () => toast(`Скопировано: ${d.title}`) },
+              { type: 'divider' },
+              { label: 'Удалить', icon: 'trash', danger: true, onClick: () => { setDeals((l) => l.filter((x) => x.id !== d.id)); toast('Сделка удалена', { type: 'success' }); } },
+            ]}
+            groupActions={[
+              { id: 'export', label: 'Выгрузить', icon: 'download', onClick: (ids) => toast(`Выгружено: ${ids.length}`) },
+              { id: 'delete', label: 'Удалить', icon: 'trash', variant: 'tinted-danger', confirm: 'Удалить отмеченные сделки ({n})?', onClick: (ids) => {
+                setDeals((list) => list.filter((d) => !ids.includes(d.id)));
+                setSelected([]);
+                toast('Сделки удалены', { type: 'success', action: { label: 'Отменить', onClick: () => setDeals(DEALS) } });
+              } },
+            ]}
             footer={
               <>
-                <span>Выбрано: {selected.length}</span>
-                {selected.length > 0 && <Button size="xs" variant="tinted-danger" icon="trash" onClick={removeSelected}>Удалить</Button>}
-                <span className="b24-spacer" />
                 <span>Всего: {filtered.length}</span>
+                <span className="b24-spacer" />
                 <Pagination page={page} pages={pages} onChange={setPage} />
               </>
             }

@@ -203,19 +203,19 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
     <!-- Table -->
     <section class="b24-demo-section">
       <div class="b24-table-wrap">
-        <table class="b24-table" data-b24-sortable>
+        <table class="b24-table" data-b24-sortable data-b24-grid="demo-deals">
           <thead>
             <tr>
               <th class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" data-b24-check-all aria-label="Выбрать все" /></label></th>
-              <th aria-sort="none">Сделка</th>
-              <th aria-sort="none">Стадия</th>
-              <th aria-sort="none" class="b24-table__num">Сумма</th>
-              <th>Ответственный</th>
-              <th aria-sort="descending">Создана</th>
+              <th data-key="title" aria-sort="none">Сделка</th>
+              <th data-key="stage" aria-sort="none">Стадия</th>
+              <th data-key="sum" aria-sort="none" class="b24-table__num">Сумма</th>
+              <th data-key="owner">Ответственный</th>
+              <th data-key="created" aria-sort="descending">Создана</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
+            <tr data-id="101">
               <td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" aria-label="Выбрать" /></label></td>
               <td><a href="#">Поставка оборудования</a><div class="b24-table__muted">Первичная</div></td>
               <td><span class="b24-stage-mini" style="--stage-color:#39a8ef"><span class="b24-stage-mini__bar"><i class="is-done"></i><i class="is-done"></i><i></i><i></i><i></i></span><span class="b24-stage-mini__label">Подготовка документов</span></span></td>
@@ -223,7 +223,7 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
               <td><span class="b24-user"><span class="b24-avatar b24-avatar--sm" style="--b24-avatar-bg:#1bce7b">ДЛ</span><a class="b24-user__name" href="#">Дмитрий Лесников</a></span></td>
               <td data-sort-value="3">2 минуты назад</td>
             </tr>
-            <tr>
+            <tr data-id="102">
               <td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" aria-label="Выбрать" /></label></td>
               <td><a href="#">Входящий звонок</a> <span class="b24-badge b24-badge--danger b24-badge--sm">Пропущен</span><div class="b24-table__muted">Повторное обращение</div></td>
               <td><span class="b24-stage-mini" style="--stage-color:#ff5752"><span class="b24-stage-mini__bar"><i class="is-done"></i><i></i><i></i><i></i><i></i></span><span class="b24-stage-mini__label">Новая заявка</span></span></td>
@@ -231,7 +231,7 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
               <td><span class="b24-user"><span class="b24-avatar b24-avatar--sm" style="--b24-avatar-bg:#f85e9e">ЕР</span><a class="b24-user__name" href="#">Елена Ракитина</a></span></td>
               <td data-sort-value="2">1 минуту назад</td>
             </tr>
-            <tr>
+            <tr data-id="103" data-actions="open,copy">
               <td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" aria-label="Выбрать" /></label></td>
               <td><a href="#">Годовая лицензия</a><div class="b24-table__muted">Продление</div></td>
               <td><span class="b24-stage-mini" style="--stage-color:#1bce7b"><span class="b24-stage-mini__bar"><i class="is-done"></i><i class="is-done"></i><i class="is-done"></i><i class="is-done"></i><i class="is-done"></i></span><span class="b24-stage-mini__label">Сделка успешна</span></span></td>
@@ -241,6 +241,17 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
             </tr>
           </tbody>
         </table>
+        <script type="application/json">
+        { "rowActions": [
+            { "id": "open", "label": "Открыть", "icon": "eye" },
+            { "id": "edit", "label": "Редактировать", "icon": "edit" },
+            { "id": "copy", "label": "Копировать", "icon": "copy" },
+            { "id": "delete", "label": "Удалить", "icon": "trash", "danger": true } ],
+          "groupActions": [
+            { "id": "stage", "label": "Сменить стадию", "variant": "secondary" },
+            { "id": "export", "label": "Выгрузить", "variant": "secondary", "icon": "download" },
+            { "id": "delete", "label": "Удалить", "variant": "tinted-danger", "icon": "trash", "confirm": "Удалить отмеченные сделки ({n})?" } ] }
+        </script>
         <div class="b24-table-footer">
           <span id="selected-info">Выбрано: 0</span>
           <span class="b24-spacer"></span>
@@ -799,6 +810,11 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
     const fd = new FormData(document.getElementById('schedule-form'));
     document.getElementById('schedule-output').textContent = [...fd.entries()].map(([k, v]) => `${k} = ${v}`).join('\n');
   });
+
+
+  // Грид: действия строки и групповые
+  document.addEventListener('b24:row-action', (e) => B24UI.toast(`Строка #${e.detail.id}: ${e.detail.action}`));
+  document.addEventListener('b24:group-action', (e) => B24UI.toast(`${e.detail.action}: ${e.detail.ids.join(', ')}`, { type: e.detail.action === 'delete' ? 'danger' : 'default' }));
 
   document.addEventListener('b24:selection', (e) => { document.getElementById('selected-info').textContent = `Выбрано: ${e.detail.count}`; });
   document.getElementById('stages').addEventListener('click', (e) => {

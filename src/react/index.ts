@@ -12,7 +12,8 @@ export {
   type CardProps, type BadgeProps, type CounterProps, type AlertProps, type AvatarProps, type Stage, type StagesProps, type Tone,
 } from './Display';
 export { Tabs, type TabItem, type TabsProps } from './Tabs';
-export { DataTable, Pagination, type Column, type DataTableProps, type SortState, type SortDir, type PaginationProps } from './Table';
+export { DataTable, Pagination, type Column, type DataTableProps, type SortState, type SortDir, type PaginationProps, type GroupAction } from './Table';
+export type { GridState } from '../js/grid-core';
 export { Modal, SidePanel, Dropdown, Menu, Tooltip, type ModalProps, type SidePanelProps, type DropdownProps, type MenuEntry } from './Overlay';
 export { Calendar, DatePicker, DateRangePicker, PeriodPicker, type CalendarProps, type DatePickerProps, type DateRangePickerProps, type PeriodPickerProps } from './DatePicker';
 export { Filter, emptyFilterState, type FilterProps, type FilterField, type FilterPreset, type FilterState } from './Filter';

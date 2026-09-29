@@ -20,6 +20,8 @@ export { creditHtml, REPO_URL } from './credit';
 export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePickerHandle } from './timepicker';
 export { multiValue, type MultiValueOptions, type MultiValueHandle } from './multi-value';
 export { createVendor, checkVendor, type VendorOptions, type VendorHandle, type VendorLink } from './vendor';
+export { initGrid, type GridOptions, type GridHandle, type GridRowAction, type GridGroupAction } from './grid';
+export { loadGridState, saveGridState, clearGridState, normalizeGridState, moveColumn, measureColumn, startColumnResize, enableColumnReorder, type GridState } from './grid-core';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';

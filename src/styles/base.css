@@ -12,6 +12,8 @@
 }
 /* Браузерный margin у body (8px) ломает подгонку высоты фрейма: scrollHeight = 100vh + 16 → бесконечный рост */
 body.b24-root { margin: 0; }
+/* атрибут hidden сильнее display у компонентов (.b24-field, .b24-row …) */
+.b24-root [hidden] { display: none !important; }
 .b24-root *,
 .b24-root *::before,
 .b24-root *::after {

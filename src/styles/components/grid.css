@@ -1,0 +1,112 @@
+/* ── Grid: ширина, перетаскивание, настройка столбцов, действия ─────
+ * table.b24-table.b24-datagrid — ставит initGrid / data-b24-grid / <DataTable resizable …>
+ */
+.b24-datagrid--fixed { table-layout: fixed; min-width: 100%; }
+.b24-datagrid--fixed th,
+.b24-datagrid--fixed td { overflow: hidden; text-overflow: ellipsis; }
+.b24-col-hidden { display: none !important; }
+
+.b24-datagrid thead th { position: sticky; }
+.b24-datagrid__draggable { cursor: grab; }
+.b24-datagrid thead th.is-dragging { opacity: 0.4; }
+body.b24-col-reordering, body.b24-col-reordering * { cursor: grabbing !important; user-select: none !important; }
+
+/* ручка изменения ширины на правой границе заголовка */
+.b24-table__resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  z-index: 2;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+.b24-table__resizer::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  left: 4px;
+  width: 1px;
+  background: var(--b24-divider-accent);
+  transition: background-color var(--b24-duration-fast), top var(--b24-duration-fast), bottom var(--b24-duration-fast);
+}
+.b24-table__resizer:hover::after,
+body.b24-col-resizing .b24-table__resizer:hover::after { top: 0; bottom: 0; width: 2px; left: 3.5px; background: var(--b24-color-primary-light); }
+body.b24-col-resizing, body.b24-col-resizing * { cursor: col-resize !important; user-select: none !important; }
+
+/* «призрак» заголовка и линия вставки */
+.b24-col-ghost {
+  position: fixed;
+  z-index: var(--b24-z-toast);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: var(--b24-font-size-sm);
+  font-weight: var(--b24-font-weight-semibold);
+  color: var(--b24-text-secondary);
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-sm);
+  box-shadow: var(--b24-shadow-2xl);
+  pointer-events: none;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.b24-col-drop {
+  position: fixed;
+  z-index: var(--b24-z-toast);
+  width: 2px;
+  background: var(--b24-color-primary);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* угол с ⚙ и служебные столбцы */
+.b24-table__settings,
+.b24-table__row-menu {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--b24-text-subtle);
+  background: transparent;
+  border: 0;
+  border-radius: var(--b24-radius-xs);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.b24-table__settings:hover,
+.b24-table__row-menu:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-table__settings svg,
+.b24-table__row-menu svg { width: 16px; height: 16px; }
+.b24-datagrid__corner { white-space: nowrap; }
+.b24-datagrid__corner .b24-check + .b24-table__settings { margin-left: 4px; }
+.b24-table__cell-menu { width: 36px; padding-left: 0 !important; padding-right: 0 !important; text-align: center !important; }
+.b24-table__row-menu { opacity: 0.55; }
+.b24-table tbody tr:hover .b24-table__row-menu,
+.b24-table__row-menu[aria-expanded="true"] { opacity: 1; }
+
+.b24-grid-settings { min-width: 240px; }
+.b24-grid-settings__list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding: 4px 10px 8px; }
+.b24-grid-settings__footer { padding: 6px 6px 2px; border-top: 1px solid var(--b24-divider); }
+
+/* панель действий с отмеченными строками */
+.b24-grid-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--b24-bg-surface);
+  border-top: 1px solid var(--b24-divider-accent);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+  animation: b24-toast-in var(--b24-duration) var(--b24-ease);
+}
+.b24-grid-actions__count { margin-right: 8px; font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-semibold); color: var(--b24-text-secondary); }
+.b24-grid-actions__clear { margin-left: auto; }

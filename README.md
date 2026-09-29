@@ -138,6 +138,7 @@ npm run build    # dist/: b24ui.css, b24ui.min.css, tokens.css, b24ui.js (IIFE),
 | `[data-b24-editor]` | карточка с полями (как «О сделке»); JSON `EntityEditorOptions`; событие `b24:editor-save` (`preventDefault()` + `detail.resolve()` / `reject(err)`) |
 | `input[data-b24-timepicker]` | выбор времени `HH:MM`: попап часы/минуты, `data-step` (1/5/10/15/30, по умолчанию 15), `data-min`, `data-max`, `data-strict="false"` — разрешить некратные минуты; ввод «9», «930», «9:30», «09.30»; ↑/↓ — ±шаг |
 | `[data-b24-multi]` | несколько значений тегами: `data-type="time"` (редактор — timepicker) или `"select"` (варианты — `<option>` внутри); `data-name` → скрытые поля `name[]`, `data-max` — сколько значений, `data-values="09:00,14:30"`, `data-unique`, `data-sort`, `data-min-time`/`data-max-time`; событие `b24:multi-change` |
+| `table[data-b24-grid="ключ"]` | грид как в Б24: ширина столбцов (двойной клик по границе — по содержимому), перетаскивание столбцов, ⚙ — видимость; всё сохраняется в `localStorage` под ключом. Столбцы — `th[data-key]`, строки — `tr[data-id]`. JSON-конфиг внутри `.b24-table-wrap`: `rowActions` (меню ☰, `tr[data-actions]` ограничивает пункты), `groupActions` (панель «Отмечено: N»). События `b24:row-action`, `b24:group-action`, `b24:grid-change` |
 | `[data-b24-composer]` | композер таймлайна; событие `b24:composer-submit` `{ text, tab }` |
 | `[data-b24-filter]` | фильтр; конфиг `FilterOptions` в `<script type="application/json">` внутри; событие `b24:filter-apply` с готовым REST-фильтром |
 
@@ -171,6 +172,33 @@ B24UI.createFilter(el, { fields, presets, submit: 'get' });  // 'get' → ?filte
 ```
 
 JS: `B24UI.timepicker(input, { step, min, max, strict, onChange, onSelect })`, `B24UI.multiValue(el, { type, options, values, max, unique, sort, name })`.
+
+### Грид (таблица как в Битрикс24)
+
+```html
+<div class="b24-table-wrap">
+  <table class="b24-table" data-b24-grid="deals" data-b24-sortable>
+    <thead><tr>
+      <th class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" data-b24-check-all></label></th>
+      <th data-key="title" aria-sort="none">Сделка</th>
+      <th data-key="sum" aria-sort="none">Сумма</th>
+      <th data-key="comment" data-hidden>Комментарий</th>   <!-- скрыт по умолчанию -->
+    </tr></thead>
+    <tbody><tr data-id="42">…</tr></tbody>
+  </table>
+  <script type="application/json">
+  { "rowActions": [{ "id": "edit", "label": "Изменить", "icon": "edit" }, { "id": "delete", "label": "Удалить", "icon": "trash", "danger": true }],
+    "groupActions": [{ "id": "delete", "label": "Удалить", "variant": "tinted-danger", "confirm": "Удалить отмеченные ({n})?" }] }
+  </script>
+</div>
+```
+
+```tsx
+<DataTable columns={columns} rows={rows} rowKey={(r) => r.id} selectable selected={sel} onSelectionChange={setSel}
+  stateKey="deals" resizable reorderable columnSettings
+  rowActions={(row) => [{ label: 'Открыть', icon: 'eye', onClick: () => open(row) }]}
+  groupActions={[{ id: 'delete', label: 'Удалить', variant: 'tinted-danger', confirm: 'Удалить ({n})?', onClick: (ids) => remove(ids) }]} />
+```
 
 ### Выбор сотрудников из портала
 
