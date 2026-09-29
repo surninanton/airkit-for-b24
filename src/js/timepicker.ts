@@ -143,6 +143,7 @@ export function timepicker(input: HTMLInputElement, options: TimePickerOptions =
     }
     // выбранное — в видимую область колонки
     for (const col of [hoursCol, minutesCol]) {
+      col.classList.toggle('is-scrollable', col.scrollHeight > col.clientHeight + 1);
       const sel = col.querySelector<HTMLElement>('.is-selected');
       if (sel) col.scrollTop = sel.offsetTop - col.clientHeight / 2 + sel.offsetHeight / 2;
     }
