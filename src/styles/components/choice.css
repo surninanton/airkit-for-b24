@@ -79,3 +79,10 @@
 .b24-switch > input:disabled { cursor: default; }
 
 .b24-check__desc { display: block; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); margin-top: 2px; }
+
+/* В строке (.b24-row, .b24-form-actions) флажки и переключатели выравниваются по первой строке:
+   подпись-описание под флажком не приподнимает его над соседями */
+.b24-row > .b24-check,
+.b24-row > .b24-switch,
+.b24-form-actions > .b24-check,
+.b24-form-actions > .b24-switch { align-self: flex-start; }
