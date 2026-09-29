@@ -1,0 +1,65 @@
+/* ── TimePicker / MultiValue ─────────────────────────────
+ * .b24-timepicker-popup > .b24-timepicker__col (часы) + .b24-timepicker__col (минуты)
+ * .b24-multi > .b24-tag.b24-multi__chip* + .b24-multi__add | .b24-multi__editor | .b24-multi__limit
+ */
+.b24-timepicker-popup {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px;
+}
+.b24-timepicker__col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 56px;
+  max-height: 216px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.b24-timepicker__sep {
+  align-self: center;
+  padding: 0 1px;
+  font-weight: var(--b24-font-weight-semibold);
+  color: var(--b24-text-disabled);
+}
+.b24-timepicker__cell {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0;
+  font: inherit;
+  font-size: var(--b24-font-size-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--b24-text-primary);
+  background: transparent;
+  border: 0;
+  border-radius: var(--b24-radius-sm);
+  cursor: pointer;
+}
+.b24-timepicker__cell:hover { background: var(--b24-bg-hover); }
+.b24-timepicker__cell.is-selected { background: var(--b24-color-primary); color: #fff; font-weight: var(--b24-font-weight-semibold); }
+.b24-timepicker__cell:disabled { color: var(--b24-text-disabled); opacity: 0.45; cursor: default; background: transparent; }
+
+.b24-multi {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: var(--b24-size-md);
+  padding: 4px 6px;
+  background: var(--b24-bg-surface);
+  border: 1px solid var(--b24-border-field);
+  border-radius: var(--b24-radius-sm);
+  cursor: text;
+  transition: border-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast);
+}
+.b24-multi:hover { border-color: var(--b24-text-disabled); }
+.b24-multi:focus-within { border-color: var(--b24-color-primary-light); box-shadow: 0 0 0 3px rgba(88, 177, 255, 0.22); }
+.b24-multi .b24-tag { height: 26px; font-variant-numeric: tabular-nums; }
+.b24-multi__chip:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
+.b24-multi__editor { width: 84px; height: 26px; padding: 0 8px; }
+.b24-multi__limit { padding: 0 4px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-multi.is-disabled { background: var(--b24-bg-surface-2); cursor: default; }
+.b24-field--error .b24-multi, .b24-multi[aria-invalid="true"] { border-color: var(--b24-color-danger); background-color: var(--b24-color-soft-red-3); }

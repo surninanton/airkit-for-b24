@@ -4,6 +4,7 @@ import {
   startOfDay, toISODate, type DateRange,
 } from './date';
 import { h, html, pushLayer } from './dom';
+import { timepicker, type TimePickerHandle } from './timepicker';
 
 export interface CalendarOptions {
   mode?: 'single' | 'range';
@@ -36,11 +37,14 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
   let cursor = startOfDay(value ?? range.from ?? new Date());
   cursor.setDate(1);
   let hover: Date | null = null;
+  let timeHandle: TimePickerHandle | null = null;
 
   const root = h('div', { class: 'b24-calendar' });
   container.append(root);
 
   const render = () => {
+    timeHandle?.destroy();
+    timeHandle = null;
     root.textContent = '';
     const head = h('div', { class: 'b24-calendar__head' });
     const title = h('button', { type: 'button', class: 'b24-calendar__title', 'aria-live': 'polite' },
@@ -97,7 +101,8 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
     focusDay?.setAttribute('tabindex', '0');
 
     if (withTime && mode === 'single') {
-      const time = h('input', { type: 'time', class: 'b24-input b24-input--sm', value: value ? formatDate(value, true).slice(11) : '', 'aria-label': 'Время' });
+      const time = h('input', { class: 'b24-input b24-input--sm', value: value ? formatDate(value, true).slice(11) : '', 'aria-label': 'Время' });
+      timeHandle = timepicker(time, { step: 5, strict: false });
       time.addEventListener('change', () => {
         const [hh, mm] = time.value.split(':').map(Number);
         const base = value ?? startOfDay(new Date());
@@ -166,10 +171,21 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
   render();
   return {
     element: root,
-    setValue(v) { value = v; if (v) cursor = new Date(v.getFullYear(), v.getMonth(), 1); render(); },
+    setValue(v) {
+      // то же значение (например, эхо собственного change) — без перерисовки, чтобы не закрыть попап времени
+      if (v && value && v.getTime() === value.getTime()) return;
+      value = v;
+      if (v) cursor = new Date(v.getFullYear(), v.getMonth(), 1);
+      render();
+    },
     setRange(r) { range = r; if (r.from) cursor = new Date(r.from.getFullYear(), r.from.getMonth(), 1); render(); },
-    showMonth(d) { cursor = new Date(d.getFullYear(), d.getMonth(), 1); render(); },
-    destroy() { root.remove(); },
+    showMonth(d) {
+      // без перерисовки, если месяц тот же: иначе закрылся бы открытый попап времени
+      if (d.getFullYear() === cursor.getFullYear() && d.getMonth() === cursor.getMonth()) return;
+      cursor = new Date(d.getFullYear(), d.getMonth(), 1);
+      render();
+    },
+    destroy() { timeHandle?.destroy(); root.remove(); },
   };
 }
 
@@ -224,7 +240,7 @@ export function datepicker(input: HTMLInputElement, options: DatePickerOptions =
 
   const onDocDown = (e: MouseEvent) => {
     const t = e.target as Node;
-    if (!popup.contains(t) && t !== input && t !== inputTo && !(input.closest('.b24-datepicker')?.contains(t))) close();
+    if (!popup.contains(t) && t !== input && t !== inputTo && !(input.closest('.b24-datepicker')?.contains(t)) && !(t as HTMLElement).closest?.('.b24-timepicker-popup')) close();
   };
 
   function open() {

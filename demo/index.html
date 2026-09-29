@@ -584,6 +584,60 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
       </div>
     </section>
 
+    <!-- Расписание: timepicker + multi -->
+    <section class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Расписание</h2><span class="b24-card__subtitle">&nbsp;timepicker и multi — значения уходят обычными полями формы</span></div>
+      <div class="b24-card__body">
+        <form class="b24-form" id="schedule-form" onsubmit="return false">
+          <div class="b24-form-row">
+            <div class="b24-field">
+              <label class="b24-field__label" for="sch-from">Действует с — по</label>
+              <div class="b24-filter-popup__field-row">
+                <input class="b24-input" id="sch-from" name="DATE_FROM" data-b24-datepicker data-b24-to="#sch-to" value="01.10.2026" />
+                <span class="b24-filter-popup__sep">—</span>
+                <input class="b24-input" id="sch-to" name="DATE_TO" aria-label="по" value="31.12.2026" />
+              </div>
+            </div>
+            <div class="b24-field">
+              <label class="b24-field__label" for="sch-repeat">Повторять</label>
+              <select class="b24-select" id="sch-repeat" name="REPEAT">
+                <option value="daily">Каждый день</option><option value="weekdays" selected>По будням</option><option value="weekly">По дням недели</option>
+              </select>
+            </div>
+          </div>
+          <div class="b24-form-row">
+            <div class="b24-field">
+              <span class="b24-field__label">Время запуска (до 6 в сутки)</span>
+              <div data-b24-multi data-type="time" data-name="TIMES" data-max="6" data-step="15" data-values="14:30, 09:00"></div>
+              <span class="b24-field__hint">«+ Добавить» → выберите время или введите «930», «9:30», «09.30». Backspace в пустом поле удаляет последнее</span>
+            </div>
+            <div class="b24-field">
+              <span class="b24-field__label">Дни недели</span>
+              <div data-b24-multi data-type="select" data-name="DAYS">
+                <option value="1" selected>Пн</option><option value="2">Вт</option><option value="3" selected>Ср</option><option value="4">Чт</option><option value="5">Пт</option><option value="6">Сб</option><option value="7">Вс</option>
+              </div>
+            </div>
+          </div>
+          <div class="b24-form-row">
+            <div class="b24-field">
+              <label class="b24-field__label" for="tp-1">Одно время (шаг 15)</label>
+              <input class="b24-input" id="tp-1" name="TIME" data-b24-timepicker value="10:00" />
+            </div>
+            <div class="b24-field">
+              <label class="b24-field__label" for="tp-2">Рабочие часы 08:00–20:00, шаг 5</label>
+              <input class="b24-input" id="tp-2" name="TIME_WORK" data-b24-timepicker data-step="5" data-min="08:00" data-max="20:00" />
+            </div>
+            <div class="b24-field">
+              <label class="b24-field__label" for="tp-3">Любые минуты (data-strict="false")</label>
+              <input class="b24-input" id="tp-3" name="TIME_FREE" data-b24-timepicker data-strict="false" />
+            </div>
+          </div>
+          <div class="b24-form-actions"><button class="b24-btn b24-btn--success" type="submit" id="schedule-submit">Сохранить правило</button></div>
+          <pre class="demo-code" id="schedule-output">Нажмите «Сохранить правило» — здесь будет то, что получит сервер</pre>
+        </form>
+      </div>
+    </section>
+
     <section class="b24-card">
       <div class="b24-card__header"><h2 class="b24-card__title">Стадии</h2></div>
       <div class="b24-card__body b24-stack" style="--b24-gap:14px">
@@ -728,6 +782,13 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
         B24UI.h('div', { class: 'b24-timeline__body' }, text)));
     const today = [...document.querySelectorAll('#demo-timeline .b24-timeline__divider')].find((d) => d.textContent === 'Сегодня');
     today.after(item);
+  });
+
+
+  // Расписание → что получит сервер
+  document.getElementById('schedule-form').addEventListener('submit', () => {
+    const fd = new FormData(document.getElementById('schedule-form'));
+    document.getElementById('schedule-output').textContent = [...fd.entries()].map(([k, v]) => `${k} = ${v}`).join('\n');
   });
 
   document.addEventListener('b24:selection', (e) => { document.getElementById('selected-info').textContent = `Выбрано: ${e.detail.count}`; });

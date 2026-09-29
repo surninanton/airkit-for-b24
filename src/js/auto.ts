@@ -10,6 +10,8 @@ import { createTagSelector, type TagSelectorOptions } from './tag-selector';
 import { createUploader } from './uploader';
 import { createEntityEditor, type EntityEditorOptions } from './editor';
 import { initComposer } from './timeline';
+import { timepicker } from './timepicker';
+import { multiValue, type MultiValueOptions } from './multi-value';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -28,6 +30,11 @@ import { initComposer } from './timeline';
  *   [data-b24-uploader]            — загрузчик; data-name, data-url, data-accept, data-max-size (МБ), data-single, data-view="grid"
  *   [data-b24-editor]              — карточка с полями; JSON-конфиг EntityEditorOptions (без onSave), событие b24:editor-save
  *   [data-b24-composer]            — композер таймлайна; событие b24:composer-submit
+ *   input[data-b24-timepicker]     — выбор времени HH:MM; data-step (1/5/10/15/30), data-min, data-max, data-strict="false"
+ *   [data-b24-multi]               — несколько значений тегами; data-type="time|select", data-name, data-max (кол-во),
+ *                                    data-step, data-min-time / data-max-time (HH:MM),
+ *                                    data-values="09:00,14:30", data-unique="false", data-sort="false";
+ *                                    варианты select — <option> внутри или JSON-конфиг; событие b24:multi-change
  * Повторный вызов безопасен.
  */
 export function init(root: ParentNode = document): void {
@@ -121,6 +128,41 @@ export function init(root: ParentNode = document): void {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';
     initComposer(el);
+  });
+
+  root.querySelectorAll<HTMLInputElement>('input[data-b24-timepicker]').forEach((input) => {
+    if (input.dataset.b24Ready) return;
+    input.dataset.b24Ready = '1';
+    const d = input.dataset;
+    timepicker(input, { step: d.step ? Number(d.step) : undefined, min: d.min, max: d.max, strict: d.strict !== 'false' });
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-b24-multi]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    const d = el.dataset;
+    const json = readJsonConfig<MultiValueOptions>(el, 'b24Multi') ?? {};
+    // варианты для select можно задать разметкой: <option value="mon">Пн</option>
+    const optionEls = Array.from(el.querySelectorAll('option'));
+    const fromOptions = optionEls.map((o) => ({ value: o.value, label: o.textContent ?? o.value }));
+    const selectedFromOptions = optionEls.filter((o) => o.selected || o.hasAttribute('selected')).map((o) => o.value);
+    optionEls.forEach((o) => o.remove());
+    el.querySelectorAll('script[type="application/json"]').forEach((s) => s.remove());
+    const bool = (v?: string) => (v === undefined ? undefined : v !== 'false');
+    multiValue(el, {
+      ...json,
+      type: (d.type as 'time' | 'select') ?? json.type,
+      name: d.name ?? json.name,
+      max: d.max ? Number(d.max) : json.max,
+      step: d.step ? Number(d.step) : json.step,
+      minTime: d.minTime ?? json.minTime,
+      maxTime: d.maxTime ?? json.maxTime,
+      unique: bool(d.unique) ?? json.unique,
+      sort: bool(d.sort) ?? json.sort,
+      addLabel: d.addLabel ?? json.addLabel,
+      options: json.options ?? (fromOptions.length ? fromOptions : undefined),
+      values: d.values !== undefined ? d.values.split(',').map((v) => v.trim()).filter(Boolean) : json.values ?? selectedFromOptions,
+    });
   });
 }
 

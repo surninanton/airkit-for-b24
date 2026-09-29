@@ -95,6 +95,8 @@ npm run build    # dist/: b24ui.css, b24ui.min.css, tokens.css, b24ui.js (IIFE),
 | `[data-b24-entity-selector]` | выбор сотрудников/отделов/сущностей тегами; конфиг `TagSelectorOptions` в JSON; `name` → скрытые поля формы |
 | `[data-b24-uploader]` | загрузчик: `data-name`, `data-url`, `data-accept`, `data-max-size` (МБ), `data-single`, `data-view="grid"`; без `data-url` файлы уходят с формой |
 | `[data-b24-editor]` | карточка с полями (как «О сделке»); JSON `EntityEditorOptions`; событие `b24:editor-save` (`preventDefault()` + `detail.resolve()` / `reject(err)`) |
+| `input[data-b24-timepicker]` | выбор времени `HH:MM`: попап часы/минуты, `data-step` (1/5/10/15/30, по умолчанию 15), `data-min`, `data-max`, `data-strict="false"` — разрешить некратные минуты; ввод «9», «930», «9:30», «09.30»; ↑/↓ — ±шаг |
+| `[data-b24-multi]` | несколько значений тегами: `data-type="time"` (редактор — timepicker) или `"select"` (варианты — `<option>` внутри); `data-name` → скрытые поля `name[]`, `data-max` — сколько значений, `data-values="09:00,14:30"`, `data-unique`, `data-sort`, `data-min-time`/`data-max-time`; событие `b24:multi-change` |
 | `[data-b24-composer]` | композер таймлайна; событие `b24:composer-submit` `{ text, tab }` |
 | `[data-b24-filter]` | фильтр; конфиг `FilterOptions` в `<script type="application/json">` внутри; событие `b24:filter-apply` с готовым REST-фильтром |
 
@@ -115,6 +117,19 @@ B24UI.datepicker(input, { mode: 'range', min: new Date() });
 B24UI.enableKanbanDnd(board, { onMove: async (m) => (await save(m)) !== false }); // false → карточка вернётся
 B24UI.createFilter(el, { fields, presets, submit: 'get' });  // 'get' → ?filter[STAGE_ID]=NEW… для $_GET
 ```
+
+### Расписание: время запуска
+
+```html
+<form method="post">
+  <input class="b24-input" name="DATE_FROM" data-b24-datepicker data-b24-to="#to"> — <input class="b24-input" id="to" name="DATE_TO">
+  <div data-b24-multi data-type="time" data-name="TIMES" data-max="6" data-step="15" data-values="09:00,14:30"></div>
+  <div data-b24-multi data-type="select" data-name="DAYS"><option value="1" selected>Пн</option><option value="2">Вт</option>…</div>
+</form>
+<!-- POST: TIMES[]=09:00&TIMES[]=14:30&DAYS[]=1 -->
+```
+
+JS: `B24UI.timepicker(input, { step, min, max, strict, onChange, onSelect })`, `B24UI.multiValue(el, { type, options, values, max, unique, sort, name })`.
 
 ### Выбор сотрудников из портала
 

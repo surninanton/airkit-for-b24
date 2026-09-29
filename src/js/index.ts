@@ -17,6 +17,8 @@ export { createEntityEditor, formatMoney, type EntityEditorOptions, type EntityE
 export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
 export { initials, avatarColor, avatarHtml } from './avatar';
 export { creditHtml, REPO_URL } from './credit';
+export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePickerHandle } from './timepicker';
+export { multiValue, type MultiValueOptions, type MultiValueHandle } from './multi-value';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';
