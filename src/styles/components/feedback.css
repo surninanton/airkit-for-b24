@@ -110,8 +110,10 @@
 .b24-stages--sm .b24-stages__item { height: 24px; font-size: var(--b24-font-size-xs); --_notch: 7px; }
 
 /* Мини-индикатор стадии (как в колонке «Стадия» грида) */
-.b24-stage-mini { display: inline-flex; flex-direction: column; gap: 4px; min-width: 80px; }
-.b24-stage-mini__bar { display: flex; gap: 2px; height: 6px; }
-.b24-stage-mini__bar > i { flex: 1 1 0; background: var(--b24-bg-surface-3); border-radius: 1px; }
+/* Длина полосы постоянная при любом числе стадий: стадии делят её поровну.
+   Подпись на длину полосы не влияет. Длина — --b24-stage-mini-width (по умолчанию 120px). */
+.b24-stage-mini { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
+.b24-stage-mini__bar { display: flex; gap: 2px; height: 6px; width: var(--b24-stage-mini-width, 120px); max-width: 100%; }
+.b24-stage-mini__bar > i { flex: 1 1 0; min-width: 0; background: var(--b24-bg-surface-3); border-radius: 1px; }
 .b24-stage-mini__bar > i.is-done { background: var(--stage-color, var(--b24-color-primary)); }
-.b24-stage-mini__label { font-size: var(--b24-font-size-2xs); color: var(--b24-text-subtle); }
+.b24-stage-mini__label { max-width: 100%; font-size: var(--b24-font-size-2xs); color: var(--b24-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
