@@ -1,0 +1,53 @@
+/* ── Блок разработчика (правило кита) ─────────────────────
+ * Правый конец верхней строки приложения. Логотип: высота 24px, ширина до 140px.
+ */
+.b24-vendor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--b24-size-md);
+  max-width: 220px;
+  padding: 0 8px 0 10px;
+  font: inherit;
+  font-size: var(--b24-font-size-sm);
+  font-weight: var(--b24-font-weight-medium);
+  color: var(--b24-text-secondary);
+  background: var(--b24-bg-surface);
+  border: 1px solid var(--b24-border);
+  border-radius: var(--b24-radius-md);
+  cursor: pointer;
+  transition: background-color var(--b24-duration-fast), border-color var(--b24-duration-fast);
+}
+.b24-vendor:hover { border-color: var(--b24-border-strong); background: var(--b24-bg-surface-2); }
+.b24-vendor[aria-expanded="true"] { border-color: var(--b24-color-primary-light); }
+.b24-vendor__logo { display: block; height: 24px; width: auto; max-width: 140px; object-fit: contain; }
+.b24-vendor__icon { display: block; width: 24px; height: 24px; border-radius: 6px; object-fit: contain; flex: 0 0 auto; }
+.b24-vendor__icon--mobile { display: none; }
+.b24-vendor__monogram {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 24px; height: 24px; border-radius: 6px;
+  font-size: 12px; font-weight: var(--b24-font-weight-bold);
+  color: #fff; background: var(--b24-text-secondary);
+}
+.b24-vendor__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-vendor__chevron { flex: 0 0 auto; color: var(--b24-text-subtle); }
+
+/* На Air-подложке — стеклянный вариант */
+.b24-vendor--on-dark { color: var(--b24-glass-text); background: var(--b24-glass-bg); border-color: var(--b24-glass-border-soft); backdrop-filter: blur(12px); }
+.b24-vendor--on-dark:hover { background: var(--b24-glass-bg-hover); border-color: var(--b24-glass-border); }
+.b24-vendor--on-dark .b24-vendor__chevron { color: var(--b24-glass-text-secondary); }
+.b24-vendor--on-dark .b24-vendor__monogram { color: var(--b24-air-bg-color); background: #fff; }
+
+@media (max-width: 768px) {
+  .b24-vendor { padding: 0 6px; }
+  .b24-vendor__name, .b24-vendor__chevron { display: none; }
+  .b24-vendor__logo:has(+ .b24-vendor__icon--mobile) { display: none; }
+  .b24-vendor__icon--mobile { display: block; }
+}
+
+.b24-vendor-menu { min-width: 260px; }
+.b24-vendor-menu__head { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--b24-divider); }
+.b24-vendor-menu__app { font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-semibold); color: var(--b24-text-primary); }
+.b24-vendor-menu__version { font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-regular); color: var(--b24-text-subtle); }
+.b24-vendor-menu__by { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-vendor__ext { margin-left: auto; color: var(--b24-text-disabled); }

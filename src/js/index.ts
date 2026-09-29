@@ -19,6 +19,7 @@ export { initials, avatarColor, avatarHtml } from './avatar';
 export { creditHtml, REPO_URL } from './credit';
 export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePickerHandle } from './timepicker';
 export { multiValue, type MultiValueOptions, type MultiValueHandle } from './multi-value';
+export { createVendor, checkVendor, type VendorOptions, type VendorHandle, type VendorLink } from './vendor';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';

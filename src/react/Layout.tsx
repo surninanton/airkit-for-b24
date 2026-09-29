@@ -4,6 +4,8 @@ import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
 import { setTheme, setAirPreset, type AirPreset, type Theme } from '../js/theme';
+import { Vendor } from './Vendor';
+import type { VendorOptions } from '../js/vendor';
 
 /** Корень приложения: подключает базовые стили и тему. */
 export function B24Provider({ theme = 'light', air = 'blue', children }: { theme?: Theme; air?: AirPreset; children: ReactNode }) {
@@ -34,15 +36,17 @@ export interface ToolbarProps {
   /** вторая строка: вкладки-вью, быстрые фильтры */
   bottom?: ReactNode;
   glass?: boolean;
+  /** блок разработчика — всегда последним справа (правило кита) */
+  vendor?: VendorOptions;
 }
-export function Toolbar({ title, actions, search, right, bottom, glass }: ToolbarProps) {
+export function Toolbar({ title, actions, search, right, bottom, glass, vendor }: ToolbarProps) {
   return (
     <div className={cx('b24-toolbar', glass && 'b24-toolbar--glass')}>
       <div className="b24-toolbar__row">
         <h1 className="b24-toolbar__title">{title}</h1>
         {actions}
         {search && <div className="b24-toolbar__search">{search}</div>}
-        {right && <div className="b24-toolbar__right">{right}</div>}
+        {(right || vendor) && <div className="b24-toolbar__right">{right}{vendor && <Vendor {...vendor} />}</div>}
       </div>
       {bottom && <div className="b24-toolbar__row">{bottom}</div>}
     </div>
@@ -56,8 +60,10 @@ export interface ShellProps {
   children: ReactNode;
   collapsed?: boolean;
   onCollapsedChange?: (v: boolean) => void;
+  /** блок разработчика — всегда последним справа в шапке (правило кита) */
+  vendor?: VendorOptions;
 }
-export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange }: ShellProps) {
+export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange, vendor }: ShellProps) {
   const [inner, setInner] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const collapsed = collapsedProp ?? inner;
@@ -74,6 +80,7 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
           <Icon name="menu" />
         </button>
         {header}
+        {vendor && <Vendor {...vendor} />}
       </header>
       <main className="b24-shell__main">{children}</main>
     </div>

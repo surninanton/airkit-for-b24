@@ -48,6 +48,47 @@
 
 > Это неофициальный проект. Он не связан с компанией «1С-Битрикс» и не поддерживается ею. «Битрикс24» — товарный знак правообладателя.
 
+## Правила кита
+
+Кит не только набор компонентов, но и договорённость о том, как выглядит порядочное стороннее приложение внутри Битрикс24. Лицензия MIT не может обязать им следовать. Но если вы используете кит, пожалуйста, соблюдайте эти правила: ради них он и сделан.
+
+### 1. Блок разработчика: всегда и в одном месте
+
+Пользователь должен с первого взгляда понимать, что перед ним стороннее приложение, чьё оно и куда идти с вопросом. Поэтому в каждом приложении есть блок разработчика:
+
+- **Место:** правый конец верхней строки приложения (тулбар или шапка), последним элементом.
+- **Логотип:** горизонтальный, **высота 24 px**, ширина до 140 px, SVG или PNG @2x. Для синей подложки Air можно дать светлую версию (`logoOnDark`).
+- **Нет горизонтального логотипа** (квадратный или вертикальный): иконка **24×24** плюс название компании текстом. На узких экранах остаётся только иконка.
+- **Меню по клику:**
+  - заголовок: название и версия приложения, «Разработчик: …»;
+  - **Поддержка:** «Мои обращения» и «Новое обращение» (страница, слайдер или ссылка);
+  - **Политика конфиденциальности;**
+  - **Контакты;**
+  - Сайт разработчика, Приложение в Маркетплейсе (по желанию).
+- **Обязательно:** название, поддержка, политика конфиденциальности, контакты. Если чего-то не хватает, кит пишет предупреждение в консоль (`checkVendor`).
+
+```html
+<div class="b24-toolbar__right">
+  …
+  <span data-b24-vendor>
+    <script type="application/json">
+    { "name": "Кедр Софт", "logo": "/img/logo.svg", "logoOnDark": "/img/logo-white.svg", "icon": "/img/icon.svg",
+      "app": { "name": "Планировщик", "version": "1.4.0" },
+      "links": { "support": "/support", "newTicket": "/support/new", "privacy": "https://example.com/privacy",
+                 "contacts": "https://example.com/contacts", "site": "https://example.com", "marketplace": "https://…" } }
+    </script>
+  </span>
+</div>
+```
+
+```tsx
+// React: проп vendor у <Toolbar> или <AppShell> сам ставит блок последним справа
+<AppShell vendor={{ name: 'Кедр Софт', logo, logoOnDark, icon, app: { name: 'Мини-CRM', version: '0.9.2' },
+  links: { support: () => openSidePanel({ title: 'Мои обращения', content }), privacy: '…', contacts: '…' } }} … />
+```
+
+Ссылка может быть URL (откроется в новой вкладке) или функцией: например, открыть слайдер со списком обращений прямо в приложении.
+
 ## Быстрый старт
 
 ```bash
@@ -172,7 +213,7 @@ import { B24Provider, App, Toolbar, SplitButton, SearchInput, DataTable, SidePan
 </B24Provider>
 ```
 
-Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), раскладка: `B24Provider`, `App`, `Toolbar`, `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
+Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), раскладка: `B24Provider`, `App`, `Toolbar`, `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
 
 Канбан в React контролируемый: DnD только сообщает о переносе, состояние обновляете вы.
 

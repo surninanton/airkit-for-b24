@@ -12,6 +12,7 @@ import { createEntityEditor, type EntityEditorOptions } from './editor';
 import { initComposer } from './timeline';
 import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
+import { createVendor, type VendorOptions } from './vendor';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -35,6 +36,7 @@ import { multiValue, type MultiValueOptions } from './multi-value';
  *                                    data-step, data-min-time / data-max-time (HH:MM),
  *                                    data-values="09:00,14:30", data-unique="false", data-sort="false";
  *                                    варианты select — <option> внутри или JSON-конфиг; событие b24:multi-change
+ *   [data-b24-vendor]              — блок разработчика (правило кита); JSON-конфиг VendorOptions внутри
  * Повторный вызов безопасен.
  */
 export function init(root: ParentNode = document): void {
@@ -163,6 +165,15 @@ export function init(root: ParentNode = document): void {
       options: json.options ?? (fromOptions.length ? fromOptions : undefined),
       values: d.values !== undefined ? d.values.split(',').map((v) => v.trim()).filter(Boolean) : json.values ?? selectedFromOptions,
     });
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-b24-vendor]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    const config = readJsonConfig<VendorOptions>(el, 'b24Vendor');
+    if (!config) return;
+    el.dataset.b24Ready = '1';
+    el.querySelectorAll('script[type="application/json"]').forEach((s) => s.remove());
+    createVendor(el, config);
   });
 }
 

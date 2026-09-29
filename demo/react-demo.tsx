@@ -9,7 +9,7 @@ import {
   Filter, emptyFilterState, Kanban, KanbanCard, applyKanbanMove, DatePicker, DateRangePicker, resolvePeriod, parseDate,
   type FilterField, type FilterPreset, type FilterState, type DateRange,
   Combobox, EntitySelector, Uploader, EntityEditor, Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer,
-  formatTimelineTime, Icon, Credit, type DialogItem, type EditorField, type EditorSection, type EditorValues,
+  formatTimelineTime, Icon, Credit, openSidePanel, modal, type DialogItem, type EditorField, type EditorSection, type EditorValues,
 } from '../src/react';
 
 const STAGES: Stage[] = [
@@ -495,6 +495,21 @@ function Demo() {
   return (
     <B24Provider theme={theme}>
       <AppShell
+        vendor={{
+          name: 'Кедр Софт',
+          logoOnDark: 'vendor-logo-on-dark.svg',
+          logo: 'vendor-logo.svg',
+          icon: 'vendor-icon.svg',
+          app: { name: 'Мини-CRM', version: '0.9.2' },
+          links: {
+            support: () => openSidePanel({ title: 'Мои обращения', content: 'Здесь список обращений в поддержку разработчика.', width: 700 }),
+            newTicket: () => modal({ title: 'Новое обращение', content: 'Форма обращения в поддержку.', buttons: [{ text: 'Отправить', variant: 'primary' }, { text: 'Отмена', variant: 'link' }] }),
+            privacy: 'https://example.com/privacy',
+            contacts: 'https://example.com/contacts',
+            site: 'https://example.com',
+            marketplace: 'https://example.com/market',
+          },
+        }}
         sidebar={
           <Sidebar brand="Мой портал">
             <SidebarItem icon="home" label="Главная" active={section === 'home'} onClick={() => setSection('home')} />

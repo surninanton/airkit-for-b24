@@ -20,4 +20,5 @@
 @import "./components/uploader.css";
 @import "./components/editor.css";
 @import "./components/timeline.css";
+@import "./components/vendor.css";
 @import "./components/layout.css";
