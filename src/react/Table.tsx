@@ -149,8 +149,8 @@ export function DataTable<T>({
     if (hasWidths || !headRowRef.current) return grid.widths;
     const w: Record<string, number> = {};
     headRowRef.current.querySelectorAll<HTMLElement>('th[data-key]').forEach((th) => { w[th.dataset.key!] = round1(th.getBoundingClientRect().width); });
-    const corner = headRowRef.current.querySelector<HTMLElement>('th.b24-table__cell-check');
-    const menu = headRowRef.current.querySelector<HTMLElement>('.b24-table__cell-menu');
+    const corner = cornerCol ? (headRowRef.current.cells[0] as HTMLElement) : null;
+    const menu = rowActions ? headRowRef.current.querySelector<HTMLElement>('th.b24-table__cell-menu:not(.b24-datagrid__corner)') : null;
     setServiceW({ corner: corner ? round1(corner.getBoundingClientRect().width) : undefined, menu: menu ? round1(menu.getBoundingClientRect().width) : undefined });
     return w;
   };
@@ -171,7 +171,8 @@ export function DataTable<T>({
   };
   // как в Б24: ⚙ — в столбце ☰ (если есть меню строк), иначе — рядом с чекбоксом
   const gearInMenu = !!columnSettings && !!rowActions;
-  const cornerW = serviceW.corner ?? (columnSettings && !gearInMenu ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check);
+  // угол: чекбокс + ⚙ — 64px; только чекбокс — 44px; только ⚙ (без чекбоксов и меню строк) — как ☰, 36px
+  const cornerW = serviceW.corner ?? (selectable ? (columnSettings && !gearInMenu ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check) : SERVICE_WIDTH.menu);
   const menuW = serviceW.menu ?? SERVICE_WIDTH.menu;
   const serviceTotal = (selectable || (columnSettings && !rowActions) ? cornerW : 0) + (rowActions ? menuW : 0);
   const layout = hasWidths ? layoutWidths(visible.map((c) => c.key), grid.widths, serviceTotal, wrapWidth) : null;
@@ -359,7 +360,7 @@ export function DataTable<T>({
         <thead>
           <tr ref={headRowRef}>
             {cornerCol && (
-              <th className={cx('b24-table__cell-check', !gearInMenu && 'b24-datagrid__corner')} data-fixed="">
+              <th className={cx(selectable ? 'b24-table__cell-check' : 'b24-table__cell-menu', !gearInMenu && 'b24-datagrid__corner')} data-fixed="">
                 <span className="b24-datagrid__corner-inner">
                   {selectable && <Checkbox aria-label="Выбрать все" checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />}
                   {!gearInMenu && settingsMenu}
@@ -412,7 +413,7 @@ export function DataTable<T>({
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
                 >
                   {cornerCol && (
-                    <td className="b24-table__cell-check">
+                    <td className={selectable ? 'b24-table__cell-check' : 'b24-table__cell-menu'}>
                       {selectable && <Checkbox aria-label="Выбрать строку" checked={isSel} onChange={() => toggleOne(k)} />}
                     </td>
                   )}

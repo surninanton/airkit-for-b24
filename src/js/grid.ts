@@ -129,18 +129,22 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     headRow.querySelectorAll<HTMLElement>('th[data-key]').forEach((th) => { th.dataset.col = th.dataset.key!; });
   }
   let cornerInserted = false;
+  /**
+   * Место под ⚙ нужно, только если нет ни меню строк (там ⚙ — над ☰), ни своей служебной ячейки в начале
+   * (например, чекбокса «выбрать все»). Тогда — узкий служебный столбец шириной как ☰, без чекбоксов.
+   */
   function ensureCorner() {
-    if (!settings) return;
+    if (!settings || rowActions.length) return;
     const has = Array.from(headRow.cells).some((c) => !c.dataset.key && !c.classList.contains('b24-table__cell-menu'));
     if (has) return;
-    headRow.insertBefore(h('th', { class: 'b24-table__cell-check', 'data-fixed': true }), headRow.firstChild);
+    headRow.insertBefore(h('th', { class: 'b24-table__cell-menu b24-datagrid__gear-cell', 'data-fixed': true }), headRow.firstChild);
     cornerInserted = true;
   }
   function markRow(row: HTMLTableRowElement) {
     if (row.dataset.b24GridRow) return;
     if (row.cells.length === 1 && row.cells[0].colSpan > 1) return;
     if (cornerInserted && !row.querySelector(':scope > .b24-datagrid__corner-cell')) {
-      row.insertBefore(h('td', { class: 'b24-table__cell-check b24-datagrid__corner-cell' }), row.firstChild);
+      row.insertBefore(h('td', { class: 'b24-table__cell-menu b24-datagrid__corner-cell' }), row.firstChild);
     }
     ensureMenuCell(row, false);
     Array.from(row.cells).forEach((cell, i) => {
