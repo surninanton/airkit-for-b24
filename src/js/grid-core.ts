@@ -327,3 +327,83 @@ export function enableColumnReorder(headRow: HTMLTableRowElement, opts: ReorderO
     document.removeEventListener('keydown', onKey, true);
   };
 }
+
+/**
+ * Направляющая как в гриде Битрикс24: пока курсор в заголовке, у столбца под курсором
+ * граница тянется линией через всю высоту таблицы. Во время изменения ширины — подсвечена и идёт за границей.
+ */
+export function enableColumnGuide(table: HTMLTableElement, wrap: HTMLElement): () => void {
+  const head = table.tHead;
+  if (!head) return () => {};
+  if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+  const line = document.createElement('div');
+  line.className = 'b24-col-guide';
+  line.hidden = true;
+  wrap.append(line);
+  let current: HTMLElement | null = null;
+  let resizing = false;
+
+  const place = (th: HTMLElement) => {
+    const wr = wrap.getBoundingClientRect();
+    const tr = th.getBoundingClientRect();
+    const tb = table.getBoundingClientRect();
+    line.style.left = `${tr.right - wr.left + wrap.scrollLeft - 1}px`;
+    line.style.top = `${tb.top - wr.top + wrap.scrollTop}px`;
+    line.style.height = `${tb.height}px`;
+    line.hidden = false;
+  };
+  const hide = () => { if (!resizing) { line.hidden = true; current = null; } };
+
+  const onOver = (e: MouseEvent) => {
+    if (resizing) return;
+    const th = (e.target as HTMLElement).closest<HTMLElement>('th[data-key]');
+    if (!th || !head.contains(th)) return;
+    current = th;
+    line.classList.toggle('is-active', !!(e.target as HTMLElement).closest('.b24-table__resizer'));
+    place(th);
+  };
+  const onDown = (e: PointerEvent) => {
+    const rz = (e.target as HTMLElement).closest('.b24-table__resizer');
+    if (!rz) return;
+    current = rz.closest('th');
+    resizing = true;
+    line.classList.add('is-active');
+    if (current) place(current);
+    const move = () => { if (current) place(current); };
+    // ширина меняется в обработчике ручки (vanilla — сразу, React — после отрисовки):
+    // следим и за движением (подписка после обработчика ручки), и за размером самого столбца
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(move) : null;
+    if (current) ro?.observe(current);
+    const subscribe = setTimeout(() => window.addEventListener('pointermove', move), 0);
+    const up = (ev: PointerEvent) => {
+      resizing = false;
+      clearTimeout(subscribe);
+      ro?.disconnect();
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      line.classList.remove('is-active');
+      const over = document.elementFromPoint(ev.clientX, ev.clientY);
+      if (!over || !head.contains(over)) hide(); else if (current) place(current);
+    };
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  };
+  const onScroll = () => { if (current && !line.hidden) place(current); };
+  // React-грид сообщает об обновлении раскладки после каждой отрисовки
+  const onLayout = () => { if (current && !line.hidden) place(current); };
+  table.addEventListener('b24:grid-layout', onLayout);
+
+  head.addEventListener('mouseover', onOver);
+  head.addEventListener('mouseleave', hide);
+  head.addEventListener('pointerdown', onDown, true); // перехват: ручка ширины останавливает всплытие
+  wrap.addEventListener('scroll', onScroll, { passive: true });
+  return () => {
+    head.removeEventListener('mouseover', onOver);
+    head.removeEventListener('mouseleave', hide);
+    head.removeEventListener('pointerdown', onDown, true);
+    table.removeEventListener('b24:grid-layout', onLayout);
+    wrap.removeEventListener('scroll', onScroll);
+    line.remove();
+  };
+}

@@ -7,7 +7,7 @@ import { Dropdown, type MenuEntry } from './Overlay';
 import { cx } from './utils';
 import type { IconName } from '../icons';
 import {
-  applyStickyColumns, clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, normalizeGridState,
+  applyStickyColumns, clearGridState, enableColumnGuide, enableColumnReorder, layoutWidths, loadGridState, measureColumn, normalizeGridState,
   reorderWithPins, round1, saveGridState, SERVICE_WIDTH, startColumnResize, togglePinned, type GridState,
 } from '../js/grid-core';
 import { formatDate, parseDate } from '../js/date';
@@ -128,6 +128,12 @@ export function DataTable<T>({
   const visible = grid.order.map((k) => byKey.get(k)).filter((c): c is Column<T> => !!c && !grid.hidden.includes(c.key));
   const hasWidths = Object.keys(grid.widths).length > 0;
 
+  /* ── направляющая границы столбца ── */
+  useEffect(() => {
+    if (!resizable || !tableRef.current || !wrapRef.current) return;
+    return enableColumnGuide(tableRef.current, wrapRef.current);
+  }, [resizable]);
+
   /* ── перетаскивание столбцов ── */
   useEffect(() => {
     if (!reorderable || !headRowRef.current) return;
@@ -143,7 +149,7 @@ export function DataTable<T>({
     if (hasWidths || !headRowRef.current) return grid.widths;
     const w: Record<string, number> = {};
     headRowRef.current.querySelectorAll<HTMLElement>('th[data-key]').forEach((th) => { w[th.dataset.key!] = round1(th.getBoundingClientRect().width); });
-    const corner = headRowRef.current.querySelector<HTMLElement>('.b24-datagrid__corner');
+    const corner = headRowRef.current.querySelector<HTMLElement>('th.b24-table__cell-check');
     const menu = headRowRef.current.querySelector<HTMLElement>('.b24-table__cell-menu');
     setServiceW({ corner: corner ? round1(corner.getBoundingClientRect().width) : undefined, menu: menu ? round1(menu.getBoundingClientRect().width) : undefined });
     return w;
@@ -163,16 +169,20 @@ export function DataTable<T>({
     const w = measureColumn(tableRef.current, key);
     setGrid((g) => ({ ...g, widths: { ...base, ...g.widths, [key]: w } }));
   };
-  const cornerW = serviceW.corner ?? (columnSettings ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check);
+  // как в Б24: ⚙ — в столбце ☰ (если есть меню строк), иначе — рядом с чекбоксом
+  const gearInMenu = !!columnSettings && !!rowActions;
+  const cornerW = serviceW.corner ?? (columnSettings && !gearInMenu ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check);
   const menuW = serviceW.menu ?? SERVICE_WIDTH.menu;
-  const serviceTotal = (selectable || columnSettings ? cornerW : 0) + (rowActions ? menuW : 0);
+  const serviceTotal = (selectable || (columnSettings && !rowActions) ? cornerW : 0) + (rowActions ? menuW : 0);
   const layout = hasWidths ? layoutWidths(visible.map((c) => c.key), grid.widths, serviceTotal, wrapWidth) : null;
   const tableWidth = layout?.total;
 
   /* ── закреплённые столбцы: отступы по фактическим ширинам после каждой отрисовки ── */
   const pinnedVisible = grid.pinned.filter((k) => !grid.hidden.includes(k));
   useLayoutEffect(() => {
-    if (tableRef.current) applyStickyColumns(tableRef.current, pinnedVisible);
+    if (!tableRef.current) return;
+    applyStickyColumns(tableRef.current, pinnedVisible);
+    tableRef.current.dispatchEvent(new Event('b24:grid-layout'));
   });
   useEffect(() => {
     const el = wrapRef.current;
@@ -280,7 +290,7 @@ export function DataTable<T>({
   const toggleOne = (k: string | number) =>
     onSelectionChange?.(selectedSet.has(k) ? selected.filter((x) => x !== k) : [...selected, k]);
 
-  const cornerCol = selectable || columnSettings;
+  const cornerCol = selectable || (columnSettings && !rowActions);
   const colSpan = visible.length + (cornerCol ? 1 : 0) + (rowActions ? 1 : 0);
   const alignStyle = (c: Column<T>): CSSProperties | undefined => (c.align && c.align !== 'left' ? { textAlign: c.align } : undefined);
 
@@ -349,14 +359,14 @@ export function DataTable<T>({
         <thead>
           <tr ref={headRowRef}>
             {cornerCol && (
-              <th className="b24-table__cell-check b24-datagrid__corner" data-fixed="">
+              <th className={cx('b24-table__cell-check', !gearInMenu && 'b24-datagrid__corner')} data-fixed="">
                 <span className="b24-datagrid__corner-inner">
                   {selectable && <Checkbox aria-label="Выбрать все" checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />}
-                  {settingsMenu}
+                  {!gearInMenu && settingsMenu}
                 </span>
               </th>
             )}
-            {rowActions && <th className="b24-table__cell-menu" data-fixed="" />}
+            {rowActions && <th className="b24-table__cell-menu" data-fixed="">{gearInMenu && settingsMenu}</th>}
             {visible.map((c) => (
               <th
                 key={c.key}

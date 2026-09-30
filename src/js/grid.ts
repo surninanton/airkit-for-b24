@@ -2,7 +2,7 @@ import { icon, type IconName } from '../icons';
 import { h, html } from './dom';
 import { dropdown, type DropdownHandle } from './dropdown';
 import {
-  applyStickyColumns, clearGridState, enableColumnReorder, layoutWidths, loadGridState, measureColumn, normalizeGridState,
+  applyStickyColumns, clearGridState, enableColumnGuide, enableColumnReorder, layoutWidths, loadGridState, measureColumn, normalizeGridState,
   reorderWithPins, round1, saveGridState, SERVICE_WIDTH, startColumnResize, togglePinned, type GridState,
 } from './grid-core';
 import { confirm } from './modal';
@@ -158,7 +158,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     for (const cell of Array.from(headRow.cells)) {
       const service = cell.dataset.key ? undefined
         : cell.classList.contains('b24-table__cell-menu') ? 'menu'
-        : cell.classList.contains('b24-table__cell-check') ? (settings ? 'corner' : 'check')
+        : cell.classList.contains('b24-table__cell-check') ? (settings && !rowActions.length ? 'corner' : 'check')
         : 'other';
       colgroup.append(h('col', { 'data-col': cell.dataset.key, 'data-service': service }));
     }
@@ -266,13 +266,19 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   let settingsDd: DropdownHandle | null = null;
   function addSettings() {
     if (!settings) return;
-    const host = Array.from(headRow.cells).find((c) => !c.dataset.key && !c.classList.contains('b24-table__cell-menu'))!;
-    host.classList.add('b24-datagrid__corner');
     const btn = h('button', { type: 'button', class: 'b24-table__settings', 'aria-label': 'Настройка столбцов', title: 'Настройка столбцов' }, html(icon('settings', { size: 16 })));
-    // чекбокс «выбрать все» и ⚙ — в общем флекс-контейнере, оба ровно по центру ячейки
-    const inner = h('span', { class: 'b24-datagrid__corner-inner' });
-    inner.append(...Array.from(host.childNodes), btn);
-    host.append(inner);
+    // как в Б24: ⚙ — в заголовке столбца ☰ (над меню строк); без меню строк — рядом с чекбоксом
+    const menuHead = headRow.querySelector<HTMLElement>('th.b24-table__cell-menu');
+    if (menuHead) {
+      menuHead.append(btn);
+    } else {
+      const host = Array.from(headRow.cells).find((c) => !c.dataset.key)!;
+      host.classList.add('b24-datagrid__corner');
+      // чекбокс «выбрать все» и ⚙ — в общем флекс-контейнере, оба ровно по центру ячейки
+      const inner = h('span', { class: 'b24-datagrid__corner-inner' });
+      inner.append(...Array.from(host.childNodes), btn);
+      host.append(inner);
+    }
     const popup = h('div', { class: 'b24-popup b24-grid-settings', hidden: true });
     const renderSettings = () => {
       popup.textContent = '';
@@ -561,6 +567,8 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   }
 
   // новые строки (подгрузка, сортировка) — размечаем и приводим к текущему порядку
+  if (resizable) cleanups.push(enableColumnGuide(table, wrap));
+
   const onScrollX = () => wrap.classList.toggle('is-scrolled-x', wrap.scrollLeft > 0);
   wrap.addEventListener('scroll', onScrollX, { passive: true });
   cleanups.push(() => wrap.removeEventListener('scroll', onScrollX));
