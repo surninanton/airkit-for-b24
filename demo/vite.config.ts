@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         index: resolve(__dirname, 'index.html'),
         react: resolve(__dirname, 'react.html'),
+        site: resolve(__dirname, 'site.html'),
       },
     },
   },

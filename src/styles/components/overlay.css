@@ -139,7 +139,7 @@
   box-shadow: var(--b24-shadow-panel-left);
   animation: b24-panel-in var(--b24-duration-slow) var(--b24-ease-panel);
 }
-.b24-sidepanel--air { background: var(--b24-air-bg-color) var(--b24-air-bg-image) fixed; }
+.b24-sidepanel--air { background-color: var(--b24-air-bg-color); background-image: var(--b24-air-bg-image); background-attachment: fixed; background-size: cover; }
 .b24-sidepanel-overlay.is-closing { animation: b24-fade-out var(--b24-duration-slow) var(--b24-ease-panel) forwards; }
 .b24-sidepanel-overlay.is-closing .b24-sidepanel { animation: b24-panel-out var(--b24-duration-slow) var(--b24-ease-panel) forwards; }
 .b24-sidepanel__close {

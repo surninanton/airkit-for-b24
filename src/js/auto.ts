@@ -14,6 +14,7 @@ import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
 import { createVendor, type VendorOptions } from './vendor';
 import { initGrid, type GridOptions } from './grid';
+import { initGallery, initTopnav } from './site';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -38,6 +39,8 @@ import { initGrid, type GridOptions } from './grid';
  *                                    data-values="09:00,14:30", data-unique="false", data-sort="false";
  *                                    варианты select — <option> внутри или JSON-конфиг; событие b24:multi-change
  *   [data-b24-vendor]              — блок разработчика (правило кита); JSON-конфиг VendorOptions внутри
+ *   [data-b24-gallery]             — галерея скриншотов: a.b24-gallery__item → лайтбокс (←/→, Esc)
+ *   .b24-topnav[data-b24-topnav]   — верхнее меню сайта: на ≤768px пункты прячутся в «☰»
  *   table[data-b24-grid="ключ"]    — грид: ширина/порядок/видимость столбцов th[data-key] (сохраняются), меню ☰ строк,
  *                                    групповые действия; JSON-конфиг GridOptions в <script> внутри .b24-table-wrap
  *                                    или data-b24-grid-config="#id"; data-resizable / data-reorderable / data-settings="false"
@@ -196,6 +199,17 @@ export function init(root: ParentNode = document): void {
       settings: flag(d.settings) ?? config.settings,
     });
   });
+  root.querySelectorAll<HTMLElement>('[data-b24-gallery]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initGallery(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('.b24-topnav[data-b24-topnav]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initTopnav(el);
+  });
 }
 
 /** data-min / data-max: дата или «today» */
@@ -220,4 +234,5 @@ export function delegateGlobalEvents(): void {
       else shell.classList.toggle('is-collapsed');
     }
   });
+
 }

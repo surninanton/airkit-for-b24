@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>B24 UI — пример сайта приложений</title>
+  <script type="module">import '../src/styles/index.css';</script>
+  <style>
+    /* картинки-заглушки для демо */
+    .demo-shot { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 6px; background: linear-gradient(135deg, #eef2f4 0 30%, #fff 30% 100%); }
+  </style>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+<div class="b24-page" style="--b24-page-max: 1120px; gap: var(--b24-space-lg); min-height: calc(100vh - 52px)">
+
+  <!-- 4. Шапка: бренд + адаптивное меню + блок разработчика -->
+  <header class="b24-toolbar">
+    <div class="b24-toolbar__row">
+      <a class="b24-brand" href="#"><span class="b24-brand__mark" aria-hidden="true">b24</span><span class="b24-brand__text">Кедр Софт · Приложения</span></a>
+      <nav class="b24-topnav" data-b24-topnav aria-label="Разделы сайта">
+        <a class="b24-topnav__item" href="#" aria-current="page">Приложения</a>
+        <a class="b24-topnav__item" href="#docs">Документы</a>
+        <a class="b24-topnav__item" href="#changelog">Что нового</a>
+        <a class="b24-topnav__item" href="#footer">Контакты</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="b24-stack" style="--b24-gap: var(--b24-space-xl)">
+    <!-- 11. Хлебные крошки -->
+    <nav class="b24-breadcrumbs b24-breadcrumbs--glass" aria-label="Навигация">
+      <ol><li><a href="#">Приложения</a></li><li><a href="#">Планировщик</a></li><li><span aria-current="page">Возможности</span></li></ol>
+    </nav>
+
+    <!-- 6. Hero со скриншотом -->
+    <section class="b24-hero">
+      <div class="b24-hero__content">
+        <p class="b24-hero__eyebrow">Приложение для Битрикс24</p>
+        <h1 class="b24-hero__title">Бизнес-процессы по расписанию — без ручного запуска</h1>
+        <p class="b24-hero__text">Планировщик каждый день находит нужные элементы CRM и запускает по ним шаблоны бизнес-процессов. Работает внутри портала и выглядит как его часть.</p>
+        <div class="b24-hero__actions">
+          <a class="b24-btn b24-btn--success b24-btn--lg" href="#">Установить из Маркета</a>
+          <a class="b24-btn b24-btn--glass b24-btn--lg" href="#steps">Как это работает</a>
+        </div>
+      </div>
+      <div class="b24-hero__media"><span class="b24-gallery__frame"><span class="demo-shot"></span></span></div>
+    </section>
+
+    <!-- 10 + 7. Подпись секции и преимущества -->
+    <section class="b24-site-section">
+      <h2 class="b24-section-label">Возможности</h2>
+      <ul class="b24-features">
+        <li class="b24-feature"><span class="b24-feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><h3 class="b24-feature__title">По расписанию</h3><p class="b24-feature__text">До шести запусков в сутки, в рабочие дни или каждый день.</p></li>
+        <li class="b24-feature"><span class="b24-feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span><h3 class="b24-feature__title">Фильтр CRM</h3><p class="b24-feature__text">Те же условия, что и в фильтре списка сделок или лидов.</p></li>
+        <li class="b24-feature"><span class="b24-feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.8-7 9-4-1.2-7-4.7-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg></span><h3 class="b24-feature__title">Без повторов</h3><p class="b24-feature__text">Один элемент запускается не чаще раза в день.</p></li>
+        <li class="b24-feature"><span class="b24-feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg></span><h3 class="b24-feature__title">Журнал</h3><p class="b24-feature__text">Каждый прогон и каждый запуск — в истории.</p></li>
+      </ul>
+    </section>
+
+    <!-- 8. Шаги -->
+    <section class="b24-card" id="steps">
+      <div class="b24-card__header"><h2 class="b24-card__title">Как это работает</h2></div>
+      <div class="b24-card__body">
+        <ol class="b24-steps">
+          <li class="b24-step"><h3 class="b24-step__title">Установите приложение</h3><p class="b24-step__text">Из Битрикс24 Маркета, права администратора портала.</p></li>
+          <li class="b24-step"><h3 class="b24-step__title">Создайте обходчик</h3><p class="b24-step__text">Сущность CRM, фильтр и шаблон бизнес-процесса.</p></li>
+          <li class="b24-step"><h3 class="b24-step__title">Задайте расписание</h3><p class="b24-step__text">Дни недели и время запусков.</p></li>
+          <li class="b24-step"><h3 class="b24-step__title">Готово</h3><p class="b24-step__text">Процессы запускаются сами, результат — в журнале.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 2. Карточки продуктов -->
+    <section class="b24-site-section">
+      <h2 class="b24-section-label">Другие приложения</h2>
+      <div class="b24-grid" style="--b24-grid-min: 340px">
+        <article class="b24-card b24-product-card">
+          <div class="b24-product-card__body">
+            <img class="b24-product-card__icon" src="vendor-icon.svg" width="56" height="56" alt="">
+            <div class="b24-product-card__text">
+              <div class="b24-product-card__head"><h3 class="b24-product-card__title"><a class="b24-product-card__link" href="#">Журнал БП</a></h3><span class="b24-badge b24-badge--success">Опубликовано</span></div>
+              <p class="b24-product-card__desc">Все запущенные бизнес-процессы портала в одной таблице: кто, когда, по какому элементу.</p>
+            </div>
+          </div>
+          <div class="b24-product-card__footer">
+            <span class="b24-product-card__more">Подробнее <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            <span class="b24-product-card__links"><a class="b24-link" href="#">Политика</a><a class="b24-link" href="#">Соглашение</a></span>
+          </div>
+        </article>
+        <article class="b24-card b24-product-card">
+          <div class="b24-product-card__body">
+            <img class="b24-product-card__icon" src="vendor-icon.svg" width="56" height="56" alt="">
+            <div class="b24-product-card__text">
+              <div class="b24-product-card__head"><h3 class="b24-product-card__title"><a class="b24-product-card__link" href="#">Синхронизация форм</a></h3><span class="b24-badge b24-badge--warning">На модерации</span></div>
+              <p class="b24-product-card__desc">Заявки с форм сайта попадают в CRM с полями, источником и UTM-метками.</p>
+            </div>
+          </div>
+          <div class="b24-product-card__footer">
+            <span class="b24-product-card__more">Подробнее <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            <span class="b24-product-card__links"><a class="b24-link" href="#">Политика</a></span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="b24-site-layout">
+      <div>
+        <!-- 3. Галерея -->
+        <section class="b24-card">
+          <div class="b24-card__header"><h2 class="b24-card__title">Скриншоты</h2></div>
+          <div class="b24-card__body">
+            <ul class="b24-gallery" data-b24-gallery id="demo-gallery">
+              <li><a class="b24-gallery__item" href="vendor-logo.svg"><span class="b24-gallery__frame"><img src="vendor-logo.svg" alt="Список обходчиков"></span><span class="b24-gallery__caption">Список обходчиков</span></a></li>
+              <li><a class="b24-gallery__item" href="vendor-icon.svg"><span class="b24-gallery__frame"><img src="vendor-icon.svg" alt="Расписание"></span><span class="b24-gallery__caption">Расписание запусков</span></a></li>
+              <li><a class="b24-gallery__item" href="vendor-logo-on-dark.svg"><span class="b24-gallery__frame"><img src="vendor-logo-on-dark.svg" alt="Журнал"></span><span class="b24-gallery__caption">Журнал БП</span></a></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 1. Длинный текст -->
+        <section class="b24-card">
+          <div class="b24-card__header"><h2 class="b24-card__title">О приложении</h2></div>
+          <div class="b24-card__body b24-prose">
+            <p>Планировщик запускает <strong>шаблоны бизнес-процессов</strong> по элементам CRM в заданные часы. Подходит для напоминаний, проверок и регулярной обработки сделок.</p>
+            <h3>Что нужно для работы</h3>
+            <ul><li>Тариф Битрикс24 с бизнес-процессами;</li><li>шаблон процесса для нужной сущности;</li><li>права администратора для установки.</li></ul>
+            <ol><li>Откройте приложение в разделе «Приложения».</li><li>Нажмите «Новый обходчик».</li></ol>
+            <p>Метод REST: <code>bizproc.workflow.start</code>. Подробнее — в <a href="#">документации</a>.</p>
+          </div>
+        </section>
+
+        <!-- 12. История версий -->
+        <section class="b24-card" id="changelog">
+          <div class="b24-card__header"><h2 class="b24-card__title">Что нового</h2></div>
+          <div class="b24-card__body">
+            <ol class="b24-changelog">
+              <li class="b24-changelog__release">
+                <div class="b24-changelog__head"><span class="b24-changelog__version">1.4.0</span><span class="b24-changelog__date">28 сентября 2026</span></div>
+                <ul class="b24-changelog__items"><li><span class="b24-badge b24-badge--success b24-badge--sm b24-changelog__tag">Новое</span>До шести запусков в сутки.</li><li><span class="b24-badge b24-badge--primary b24-badge--sm b24-changelog__tag">Улучшено</span>Журнал открывается быстрее.</li></ul>
+              </li>
+              <li class="b24-changelog__release">
+                <div class="b24-changelog__head"><span class="b24-changelog__version">1.3.2</span><span class="b24-changelog__date">12 сентября 2026</span></div>
+                <ul class="b24-changelog__items"><li><span class="b24-badge b24-badge--danger b24-badge--sm b24-changelog__tag">Исправлено</span>Повторный запуск в тот же день.</li></ul>
+              </li>
+            </ol>
+          </div>
+        </section>
+      </div>
+
+      <aside>
+        <section class="b24-card">
+          <div class="b24-card__header"><h2 class="b24-card__title">Битрикс24 Маркет</h2></div>
+          <div class="b24-card__body"><a class="b24-btn b24-btn--primary b24-btn--wide" href="#">Открыть в Битрикс24 Маркет</a></div>
+        </section>
+        <!-- 9. Список документов -->
+        <section class="b24-card" id="docs">
+          <div class="b24-card__header"><h2 class="b24-card__title">Документы</h2></div>
+          <div class="b24-card__body">
+            <ul class="b24-linklist">
+              <li><a class="b24-linklist__item" href="#policy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 3.5h7l5 5v11a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1z"/><path d="M13.5 3.5v5h5"/></svg><span class="b24-linklist__text"><span class="b24-linklist__title">Политика конфиденциальности</span><span class="b24-linklist__meta">Редакция от 1 октября 2026</span></span></a></li>
+              <li><a class="b24-linklist__item" href="#policy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 3.5h7l5 5v11a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1z"/><path d="M13.5 3.5v5h5"/></svg><span class="b24-linklist__text"><span class="b24-linklist__title">Лицензионное соглашение</span><span class="b24-linklist__meta">Редакция от 1 октября 2026</span></span></a></li>
+            </ul>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <!-- 1. Документ -->
+    <article class="b24-card b24-document-card" id="policy">
+      <div class="b24-card__body b24-document">
+        <h1>Политика конфиденциальности приложения «Планировщик»</h1>
+        <p>Редакция от 1 октября 2026 года</p>
+        <h2>1. Общие положения</h2>
+        <p>Настоящая политика описывает, какие данные портала обрабатывает приложение и с какой целью.</p>
+        <blockquote><p>Приложение не передаёт данные портала третьим лицам.</p></blockquote>
+        <h2>2. Какие данные обрабатываются</h2>
+        <table>
+          <thead><tr><th>Данные</th><th>Цель</th><th>Срок хранения</th></tr></thead>
+          <tbody>
+            <tr><td>Настройки обходчиков</td><td>Запуск по расписанию</td><td>Пока приложение установлено</td></tr>
+            <tr><td>Журнал запусков</td><td>История и отладка</td><td>90 дней</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </main>
+
+  <!-- 5. Подвал -->
+  <footer class="b24-site-footer" id="footer">
+    <div class="b24-site-footer__row">
+      <div>
+        <div class="b24-site-footer__brand">Кедр Софт</div>
+        <div>ИП Примеров П. П.</div>
+        <div>ИНН 000000000000</div>
+      </div>
+      <div>
+        <h2 class="b24-site-footer__title">Поддержка</h2>
+        <div><a href="mailto:support@example.com">support@example.com</a></div>
+        <div>Будни, 10:00–19:00 (МСК)</div>
+      </div>
+      <ul class="b24-site-footer__links">
+        <li><a class="b24-site-footer__link" href="#">Приложения</a></li>
+        <li><a class="b24-site-footer__link" href="#docs">Документы</a></li>
+      </ul>
+    </div>
+    <div class="b24-site-footer__bottom">
+      <span>Сайт не является официальным ресурсом компании «1С-Битрикс».</span>
+      <span id="demo-credit"></span>
+    </div>
+  </footer>
+</div>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+</script>
+</body>
+</html>
