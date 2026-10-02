@@ -195,4 +195,14 @@
   --b24-glass-text-secondary: rgba(255, 255, 255, 0.7);
 
   color-scheme: light;
+
+  /* графики: категориальная палитра в фиксированном порядке (проверена на различимость при дальтонизме) */
+  --b24-chart-1: #0075ff;
+  --b24-chart-2: #e8890c;
+  --b24-chart-3: #0f9e8a;
+  --b24-chart-4: #8a3fd1;
+  --b24-chart-5: #d9465f;
+  --b24-chart-6: #0aa5c2;
+  --b24-chart-grid: #eef0f2;
+  --b24-chart-axis: #dfe3e6;
 }

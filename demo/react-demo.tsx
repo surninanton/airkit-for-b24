@@ -5,7 +5,7 @@ import {
   B24Provider, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, Toolbar,
   Button, SplitButton, Tabs, DataTable, Pagination, Badge, User, StageMini, Stages,
   SidePanel, Modal, Dropdown, Card, SectionTitle, Props, Field, Input, Select, Textarea, Switch,
-  Alert, Stat, toast, confirm, type Column, type Stage,
+  Alert, Stat, Kpi, Chart, toast, confirm, type Column, type Stage,
   Filter, emptyFilterState, Kanban, KanbanCard, applyKanbanMove, DatePicker, DateRangePicker, resolvePeriod, parseDate,
   type FilterField, type FilterPreset, type FilterState, type DateRange,
   Combobox, EntitySelector, Uploader, EntityEditor, Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer,
@@ -208,10 +208,13 @@ function DealsPage() {
 
       {view === 'list' ? (
         <>
-          <div className="b24-grid" style={{ ['--b24-grid-min' as string]: '200px' }}>
-            <Card><Stat label="Сделок в работе" value={filtered.length} delta="+12% к прошлой неделе" trend="up" /></Card>
-            <Card><Stat label="Сумма" value={money(total)} /></Card>
-            <Card><Stat label="Конверсия" value="18,4%" delta="−2,1%" trend="down" /></Card>
+          <div className="b24-dashboard">
+            <Kpi span={3} label="Сделок в работе" value={filtered.length} delta="12%" period="к прошлой неделе" trend="up" spark={[18, 21, 19, 24, 26, filtered.length]} />
+            <Kpi span={3} label="Сумма" value={money(total)} />
+            <Kpi span={3} label="Конверсия" value="18,4%" delta="2,1 п. п." trend="down" spark={[21, 20.8, 20.1, 19.6, 18.9, 18.4]} />
+            <Card className="b24-span-3" title="По стадиям">
+              <Chart type="donut" height={120} labels={STAGES.slice(0, 4).map((st) => st.name)} series={[{ name: 'Сделки', data: STAGES.slice(0, 4).map((st) => filtered.filter((d) => d.stage === st.id).length) }]} title="Сделки по стадиям" />
+            </Card>
           </div>
           <DataTable
             columns={columns}

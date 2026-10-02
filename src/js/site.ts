@@ -239,7 +239,7 @@ function initMegamenuPanes(menu: HTMLElement, mq: MediaQueryList): () => void {
 /* ── Подсветка текущего раздела (якорное меню, оглавление статьи) ──
  * Активен последний раздел, верх которого уже прошёл под шапкой (и якорным меню, если оно есть).
  */
-function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onActive?: (a: HTMLAnchorElement) => void): () => void {
+export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onActive?: (a: HTMLAnchorElement) => void, firstByDefault = false): () => void {
   const pairs = links
     .map((a) => ({ a, t: document.getElementById(decodeURIComponent(a.hash.slice(1))) }))
     .filter((p): p is { a: HTMLAnchorElement; t: HTMLElement } => !!p.t);
@@ -256,24 +256,54 @@ function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onActive?: 
     if (a) onActive?.(a);
   };
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // пункт, по которому кликнули: держим его, пока раздел на экране и пользователь сам не прокрутил
+  // (иначе внизу страницы подсветится последний раздел вместо выбранного)
+  let picked: { a: HTMLAnchorElement; t: HTMLElement } | null = null;
   const update = () => {
     timer = undefined;
+    if (picked) {
+      const r = picked.t.getBoundingClientRect();
+      if (r.bottom > 0 && r.top < window.innerHeight) { setActive(picked.a); return; }
+      picked = null;
+    }
     const line = offset();
     let active: HTMLAnchorElement | null = null;
     // по клику заголовок встаёт на свой scroll-margin-top — он и есть линия, иначе подсветится предыдущий пункт
     for (const p of pairs) {
+      if (!p.t.getClientRects().length) continue; // раздел скрыт
       const margin = parseFloat(getComputedStyle(p.t).scrollMarginTop) || 0;
       if (p.t.getBoundingClientRect().top <= Math.max(line, margin) + 1) active = p.a;
     }
-    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = pairs[pairs.length - 1].a;
+    // пока ни один раздел не дошёл до линии — первый видимый (для меню настроек; у лендинга над разделами герой)
+    if (!active && firstByDefault) active = pairs.find((p) => p.t.getClientRects().length)?.a ?? null;
+    const lastT = pairs[pairs.length - 1];
+    if (lastT.t.getClientRects().length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = lastT.a;
     setActive(active);
   };
   // троттлинг таймером, а не кадрами: в фоновой вкладке кадры не приходят и пересчёт бы «залип»
   const onScroll = () => { if (!timer) timer = setTimeout(update, 60); };
+  const onPick = (e: MouseEvent) => { const p = pairs.find((x) => x.a === (e.target as Element).closest?.('a')); if (p) { picked = p; setActive(p.a); } };
+  const onUserScroll = () => { picked = null; };
+  pairs.forEach((p) => p.a.addEventListener('click', onPick));
+  window.addEventListener('wheel', onUserScroll, { passive: true });
+  window.addEventListener('touchmove', onUserScroll, { passive: true });
+  window.addEventListener('keydown', onUserScroll);
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
+  // высота страницы меняется и без прокрутки: открыли скрытую вкладку, догрузился контент
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(onScroll) : null;
+  ro?.observe(document.body);
   update();
-  return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); clearTimeout(timer); };
+  return () => {
+    pairs.forEach((p) => p.a.removeEventListener('click', onPick));
+    window.removeEventListener('wheel', onUserScroll);
+    window.removeEventListener('touchmove', onUserScroll);
+    window.removeEventListener('keydown', onUserScroll);
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onScroll);
+    ro?.disconnect();
+    clearTimeout(timer);
+  };
 }
 
 const headerBottom = () => {

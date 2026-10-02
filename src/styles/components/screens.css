@@ -1,0 +1,240 @@
+/* ── Типовые экраны приложения ────────────────────────────
+ * Пустые состояния, страница настроек, дашборд с графиками, мастер первой настройки.
+ */
+
+/* ── Пустые состояния: тон и размер ── */
+.b24-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--b24-space-xs); margin-top: var(--b24-space-xs); }
+.b24-empty__note { margin: var(--b24-space-xs) 0 0; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-empty__note a { color: var(--b24-color-link); }
+.b24-empty--neutral .b24-empty__icon { color: var(--b24-text-subtle); background: var(--b24-bg-surface-3); }
+.b24-empty--access .b24-empty__icon { color: var(--b24-color-warning-strong); background: var(--b24-color-soft-orange-3); }
+.b24-empty--error .b24-empty__icon { color: var(--b24-color-danger); background: var(--b24-color-soft-red-3); }
+.b24-empty--success .b24-empty__icon { color: var(--b24-color-success-active); background: var(--b24-color-soft-green-3); }
+/* внутри карточки, таблицы, колонки */
+.b24-empty--compact { padding: var(--b24-space-2xl) var(--b24-space-md); }
+.b24-empty--compact .b24-empty__icon { width: 56px; height: 56px; }
+.b24-empty--compact .b24-empty__icon svg { width: 26px; height: 26px; }
+.b24-empty--compact .b24-empty__title { font-size: var(--b24-font-size-lg); }
+/* прямо на подложке Air */
+.b24-empty--glass, .b24-empty--glass .b24-empty__title { color: var(--b24-glass-text); }
+.b24-empty--glass .b24-empty__text { color: var(--b24-glass-text-secondary); }
+.b24-empty--glass .b24-empty__icon { color: #fff; background: var(--b24-glass-bg); }
+
+/* ── Страница настроек ── */
+.b24-settings {
+  display: grid;
+  grid-template-columns: var(--b24-settings-nav-w, 240px) minmax(0, 1fr);
+  gap: var(--b24-space-md);
+  align-items: start;
+}
+.b24-settings__nav {
+  position: sticky; top: var(--b24-settings-top, 12px);
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px;
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-xl);
+  box-shadow: var(--b24-shadow-sm);
+}
+.b24-settings__link {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 38px; padding: 0 10px;
+  font-size: var(--b24-font-size-md); color: var(--b24-text-primary); text-decoration: none;
+  border-radius: var(--b24-radius-md);
+  user-select: none;
+}
+.b24-settings__link svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--b24-text-subtle); }
+.b24-settings__link:hover { background: var(--b24-bg-hover); }
+.b24-settings__link.is-active, .b24-settings__link[aria-current] { color: var(--b24-color-primary); background: var(--b24-color-soft-blue-3); }
+.b24-settings__link.is-active svg, .b24-settings__link[aria-current] svg { color: currentColor; }
+.b24-settings__link .b24-counter, .b24-settings__link .b24-badge { margin-left: auto; }
+.b24-settings__body { display: flex; flex-direction: column; gap: var(--b24-space-md); min-width: 0; }
+.b24-settings__section { scroll-margin-top: var(--b24-settings-top, 12px); }
+.b24-settings__section-desc { margin: 2px 0 0; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+
+/* строка настройки: подпись и пояснение слева, контрол справа */
+.b24-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, var(--b24-setting-control-w, 320px));
+  gap: 6px var(--b24-space-lg);
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--b24-divider);
+}
+.b24-setting:first-child { border-top: 0; padding-top: 0; }
+.b24-setting:last-child { padding-bottom: 0; }
+.b24-setting__label { font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-medium); color: var(--b24-text-primary); }
+.b24-setting__hint { margin: 2px 0 0; font-size: var(--b24-font-size-sm); line-height: 1.45; color: var(--b24-text-subtle); }
+.b24-setting__control { display: flex; align-items: center; justify-content: flex-end; gap: var(--b24-space-xs); min-width: 0; }
+.b24-setting__control > .b24-input, .b24-setting__control > .b24-select, .b24-setting__control > .b24-textarea { flex: 1 1 auto; }
+/* контрол под подписью на всю ширину (список, таблица) */
+.b24-setting--block { grid-template-columns: minmax(0, 1fr); }
+.b24-setting--block .b24-setting__control { justify-content: flex-start; align-items: flex-start; }
+.b24-setting--danger .b24-setting__label { color: var(--b24-color-danger); }
+
+/* панель сохранения: появляется, когда в форме есть несохранённые изменения */
+.b24-savebar {
+  position: sticky; bottom: 12px; z-index: 30;
+  display: flex; align-items: center; gap: var(--b24-space-xs);
+  padding: 10px 12px 10px 18px;
+  color: var(--b24-text-primary);
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-xl);
+  box-shadow: var(--b24-shadow-popup);
+  animation: b24-pop-in var(--b24-duration-fast) var(--b24-ease);
+}
+.b24-savebar[hidden] { display: none; }
+.b24-savebar__text { margin-right: auto; font-size: var(--b24-font-size-md); }
+
+@media (max-width: 860px) {
+  .b24-settings { grid-template-columns: minmax(0, 1fr); }
+  .b24-settings__nav {
+    position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none;
+    padding: 4px;
+  }
+  .b24-settings__link { flex: 0 0 auto; white-space: nowrap; }
+  .b24-setting { grid-template-columns: minmax(0, 1fr); }
+  .b24-setting__control { justify-content: flex-start; }
+  .b24-savebar { flex-wrap: wrap; }
+}
+
+/* ── Дашборд ── */
+.b24-dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--b24-space-md);
+}
+.b24-dashboard > * { grid-column: span var(--b24-span, 12); min-width: 0; }
+.b24-span-3 { --b24-span: 3; } .b24-span-4 { --b24-span: 4; } .b24-span-6 { --b24-span: 6; } .b24-span-8 { --b24-span: 8; } .b24-span-12 { --b24-span: 12; }
+@media (max-width: 1100px) { .b24-dashboard > .b24-span-3 { --b24-span: 6; } .b24-dashboard > .b24-span-4, .b24-dashboard > .b24-span-8 { --b24-span: 12; } }
+@media (max-width: 640px) { .b24-dashboard > * { --b24-span: 12 !important; } }
+
+/* KPI-плитка: подпись, значение, изменение, спарклайн */
+.b24-kpi { display: flex; flex-direction: column; gap: 6px; height: 100%; padding: var(--b24-space-md); background: var(--b24-bg-surface); border-radius: var(--b24-radius-xl); box-shadow: var(--b24-shadow-sm); }
+.b24-kpi__label { display: flex; align-items: center; gap: 6px; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-kpi__value { font-size: var(--b24-font-size-5xl); font-weight: var(--b24-font-weight-semibold); line-height: 1.1; color: var(--b24-text-primary); }
+.b24-kpi__row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px var(--b24-space-sm); margin-top: auto; }
+.b24-kpi__delta { display: inline-flex; align-items: center; gap: 2px; font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium); white-space: nowrap; }
+.b24-kpi__delta--up { color: var(--b24-color-success-active); }
+.b24-kpi__delta--down { color: var(--b24-color-danger); }
+.b24-kpi__delta--flat { color: var(--b24-text-subtle); }
+.b24-kpi__period { font-weight: 400; color: var(--b24-text-subtle); }
+.b24-kpi .b24-sparkline { width: 96px; height: 32px; flex: 0 0 auto; margin-left: auto; }
+
+/* рейтинг полосами: «топ-5 менеджеров», «источники» — без графика */
+.b24-meters { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.b24-meter { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px var(--b24-space-sm); font-size: var(--b24-font-size-md); }
+.b24-meter__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--b24-text-primary); }
+.b24-meter__value { font-variant-numeric: tabular-nums; color: var(--b24-text-secondary); }
+.b24-meter__track { grid-column: 1 / -1; height: 6px; overflow: hidden; background: var(--b24-color-soft-blue-3); border-radius: 999px; }
+.b24-meter__fill { display: block; width: calc(var(--value, 0) * 1%); height: 100%; background: var(--b24-color-primary); border-radius: 999px; }
+
+/* ── Графики (рисует createChart / data-b24-chart) ── */
+.b24-chart { position: relative; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.b24-chart__plot { position: relative; height: var(--b24-chart-h, 240px); }
+.b24-chart__plot svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.b24-chart__grid { stroke: var(--b24-chart-grid); stroke-width: 1; shape-rendering: crispEdges; }
+.b24-chart__baseline { stroke: var(--b24-chart-axis); stroke-width: 1; shape-rendering: crispEdges; }
+.b24-chart__tick { font-size: 11px; fill: var(--b24-text-subtle); font-variant-numeric: tabular-nums; }
+.b24-chart__line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.b24-chart__area { opacity: 0.1; }
+.b24-chart__dot { stroke: var(--b24-bg-surface); stroke-width: 2; }
+.b24-chart__cross { stroke: var(--b24-chart-axis); stroke-width: 1; shape-rendering: crispEdges; }
+.b24-chart__bar { transition: opacity var(--b24-duration-fast); }
+.b24-chart__plot.is-hover .b24-chart__bar:not(.is-hover), .b24-chart__plot.is-hover .b24-chart__slice:not(.is-hover) { opacity: 0.45; }
+.b24-chart__slice { stroke: var(--b24-bg-surface); stroke-width: 2; transition: opacity var(--b24-duration-fast); }
+.b24-chart__center { fill: var(--b24-text-primary); font-size: 22px; font-weight: 600; }
+.b24-chart__center-label { fill: var(--b24-text-subtle); font-size: 12px; }
+.b24-chart__end { font-size: 12px; font-weight: 500; fill: var(--b24-text-secondary); }
+.b24-chart__legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
+.b24-chart__legend li { display: inline-flex; align-items: center; gap: 6px; }
+.b24-chart__key { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.b24-chart__key--line { width: 14px; height: 2px; border-radius: 1px; }
+.b24-chart__tip {
+  position: absolute; z-index: 5; pointer-events: none;
+  min-width: 140px; padding: 8px 10px;
+  font-size: var(--b24-font-size-sm); color: var(--b24-text-primary);
+  background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-md);
+  box-shadow: var(--b24-shadow-popup);
+}
+.b24-chart__tip[hidden] { display: none; }
+.b24-chart__tip-title { margin-bottom: 4px; font-weight: var(--b24-font-weight-semibold); }
+.b24-chart__tip-row { display: flex; align-items: center; gap: 6px; }
+.b24-chart__tip-row b { margin-left: auto; padding-left: 12px; font-weight: var(--b24-font-weight-semibold); font-variant-numeric: tabular-nums; }
+/* донат: легенда справа от кольца */
+/* кольцо и легенда в строку; в узкой карточке легенда переносится под кольцо */
+.b24-chart--donut { flex-flow: row wrap; align-items: center; justify-content: center; gap: var(--b24-space-md) var(--b24-space-lg); }
+.b24-chart--donut .b24-chart__plot { flex: 0 0 auto; width: var(--b24-chart-h, 180px); height: var(--b24-chart-h, 180px); }
+.b24-chart--donut .b24-chart__legend { flex-direction: column; flex-wrap: nowrap; gap: 8px; min-width: 160px; flex: 1 1 160px; }
+.b24-chart--donut .b24-chart__legend li { width: 100%; }
+.b24-chart--donut .b24-chart__legend b { margin-left: auto; font-weight: var(--b24-font-weight-medium); color: var(--b24-text-primary); font-variant-numeric: tabular-nums; }
+.b24-sparkline { display: block; overflow: visible; }
+.b24-sparkline path { fill: none; stroke: var(--b24-sparkline-color, var(--b24-chart-1)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.b24-sparkline circle { fill: var(--b24-sparkline-color, var(--b24-chart-1)); stroke: var(--b24-bg-surface); stroke-width: 2; }
+
+/* ── Степпер и мастер ── */
+.b24-stepper { display: flex; gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: b24-step; }
+.b24-stepper__item {
+  position: relative;
+  display: flex; flex: 1 1 0; flex-direction: column; align-items: center; gap: 6px;
+  min-width: 0; text-align: center;
+  counter-increment: b24-step;
+}
+/* соединительная линия к предыдущему шагу */
+.b24-stepper__item + .b24-stepper__item::before {
+  content: ""; position: absolute; top: 15px; right: calc(50% + 22px); left: calc(-50% + 22px);
+  height: 2px; background: var(--b24-divider-accent); border-radius: 1px;
+}
+.b24-stepper__item.is-done + .b24-stepper__item::before,
+.b24-stepper__item.is-done + .b24-stepper__item.is-current::before { background: var(--b24-color-primary); }
+.b24-stepper__marker {
+  position: relative; z-index: 1;
+  display: grid; place-items: center;
+  width: 32px; height: 32px;
+  font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-semibold);
+  color: var(--b24-text-subtle);
+  background: var(--b24-bg-surface);
+  border: 2px solid var(--b24-divider-accent);
+  border-radius: 50%;
+}
+.b24-stepper__marker::before { content: counter(b24-step); }
+.b24-stepper__marker svg { display: none; width: 16px; height: 16px; }
+.b24-stepper__title { font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium); color: var(--b24-text-secondary); }
+.b24-stepper__desc { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-stepper__item.is-current .b24-stepper__marker { color: #fff; background: var(--b24-color-primary); border-color: var(--b24-color-primary); box-shadow: 0 0 0 4px var(--b24-color-soft-blue-2); }
+.b24-stepper__item.is-current .b24-stepper__title { color: var(--b24-text-primary); }
+.b24-stepper__item.is-done .b24-stepper__marker { color: #fff; background: var(--b24-color-primary); border-color: var(--b24-color-primary); }
+.b24-stepper__item.is-done .b24-stepper__marker::before,
+.b24-stepper__item.is-error .b24-stepper__marker::before { content: none; }
+.b24-stepper__item.is-done .b24-stepper__marker::after {
+  content: ""; width: 12px; height: 7px; margin-top: -3px;
+  border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(-45deg);
+}
+.b24-stepper__item.is-error .b24-stepper__marker { color: #fff; background: var(--b24-color-danger); border-color: var(--b24-color-danger); }
+.b24-stepper__item.is-error .b24-stepper__marker::after { content: "!"; }
+.b24-stepper__item.is-error .b24-stepper__title { color: var(--b24-color-danger); }
+.b24-stepper__item > button, .b24-stepper__item > a { display: contents; color: inherit; text-decoration: none; cursor: pointer; }
+/* вертикальный: шаги списком, линия слева */
+.b24-stepper--vertical { flex-direction: column; gap: 18px; }
+.b24-stepper--vertical .b24-stepper__item { display: grid; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; align-items: center; text-align: left; }
+.b24-stepper--vertical .b24-stepper__marker { grid-row: span 2; }
+.b24-stepper--vertical .b24-stepper__item + .b24-stepper__item::before { top: -18px; bottom: auto; left: 15px; right: auto; width: 2px; height: 18px; }
+@media (max-width: 640px) {
+  .b24-stepper:not(.b24-stepper--vertical) .b24-stepper__title { display: none; }
+  .b24-stepper:not(.b24-stepper--vertical) .b24-stepper__item.is-current .b24-stepper__title { display: block; }
+  .b24-stepper:not(.b24-stepper--vertical) .b24-stepper__desc { display: none; }
+}
+
+.b24-wizard { display: flex; flex-direction: column; max-width: var(--b24-wizard-w, 760px); margin: 0 auto; background: var(--b24-bg-surface); border-radius: var(--b24-radius-xl); box-shadow: var(--b24-shadow-sm); }
+.b24-wizard__head { padding: var(--b24-space-lg) var(--b24-space-lg) var(--b24-space-md); border-bottom: 1px solid var(--b24-divider); }
+.b24-wizard__step { padding: var(--b24-space-lg); }
+/* без JS видны все шаги подряд; с JS — только текущий */
+.b24-wizard.is-enhanced .b24-wizard__step:not(.is-current) { display: none; }
+.b24-wizard__title { margin: 0 0 4px; font-size: var(--b24-font-size-2xl); font-weight: var(--b24-font-weight-semibold); }
+.b24-wizard__lead { margin: 0 0 var(--b24-space-md); color: var(--b24-text-secondary); }
+.b24-wizard__foot { display: flex; align-items: center; gap: var(--b24-space-xs); padding: var(--b24-space-md) var(--b24-space-lg); border-top: 1px solid var(--b24-divider); }
+.b24-wizard__foot [data-b24-wizard-next], .b24-wizard__foot [data-b24-wizard-finish] { margin-left: auto; }
+.b24-wizard__foot [data-b24-wizard-next] + [data-b24-wizard-finish] { margin-left: 0; }
+.b24-wizard:not(.is-enhanced) .b24-wizard__foot [data-b24-wizard-next],
+.b24-wizard:not(.is-enhanced) .b24-wizard__foot [data-b24-wizard-back] { display: none; }
+.b24-wizard__counter { font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }

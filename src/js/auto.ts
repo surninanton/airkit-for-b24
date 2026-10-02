@@ -14,6 +14,8 @@ import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
 import { createVendor, type VendorOptions } from './vendor';
 import { initGrid, type GridOptions } from './grid';
+import { createChart, sparkline, type ChartOptions } from './chart';
+import { initSettings, initWizard } from './screens';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 
 /**
@@ -47,6 +49,10 @@ import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initTheme
  *   .b24-toc[data-b24-toc]         — оглавление статьи: подсветка раздела; пустой <ol> + data-source — собрать из h2/h3
  *   [data-b24-cookie]              — уведомление о cookie (показывается, пока не принято)
  *   [data-b24-theme-switch]        — переключатель светлой/тёмной темы (запоминается)
+ *   [data-b24-chart]               — график: JSON-конфиг ChartOptions внутри или data-b24-chart="#id"
+ *   [data-b24-sparkline="3,5,4,8"] — спарклайн (data-color — свой цвет)
+ *   .b24-settings[data-b24-settings] — страница настроек: подсветка раздела, панель сохранения, событие b24:settings-save
+ *   .b24-wizard[data-b24-wizard]   — мастер по шагам: проверка полей, события b24:wizard-next / b24:wizard-finish
  *   table[data-b24-grid="ключ"]    — грид: ширина/порядок/видимость столбцов th[data-key] (сохраняются), меню ☰ строк,
  *                                    групповые действия; JSON-конфиг GridOptions в <script> внутри .b24-table-wrap
  *                                    или data-b24-grid-config="#id"; data-resizable / data-reorderable / data-settings="false"
@@ -247,6 +253,28 @@ export function init(root: ParentNode = document): void {
     initCookieNotice(el);
   });
 
+  root.querySelectorAll<HTMLElement>('[data-b24-chart]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    const cfg = readJsonConfig<ChartOptions>(el, 'b24Chart');
+    if (!cfg) return;
+    el.dataset.b24Ready = '1';
+    createChart(el, cfg);
+  });
+  root.querySelectorAll<HTMLElement>('[data-b24-sparkline]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    sparkline(el, el.dataset.b24Sparkline!.split(',').map(Number).filter((n) => !Number.isNaN(n)), { color: el.dataset.color });
+  });
+  root.querySelectorAll<HTMLElement>('.b24-settings[data-b24-settings]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initSettings(el);
+  });
+  root.querySelectorAll<HTMLElement>('.b24-wizard[data-b24-wizard]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initWizard(el);
+  });
   root.querySelectorAll<HTMLElement>('[data-b24-theme-switch]').forEach((el) => {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';

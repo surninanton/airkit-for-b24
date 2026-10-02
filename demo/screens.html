@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Экраны приложения — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1200px" data-b24-tabs-scope>
+    <div class="b24-toolbar">
+      <div class="b24-toolbar__row">
+        <h1 class="b24-toolbar__title">Экраны приложения</h1>
+        <div class="b24-toolbar__right">
+          <div class="b24-tabs b24-tabs--pills b24-tabs--glass" id="theme-tabs">
+            <button class="b24-tabs__item is-active" data-theme="light">Светлая</button>
+            <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
+          </div>
+        </div>
+      </div>
+      <div class="b24-toolbar__row">
+        <div class="b24-tabs b24-tabs--pills b24-tabs--glass" data-b24-tabs>
+          <button class="b24-tabs__item" data-b24-tab="dashboard">Дашборд</button>
+          <button class="b24-tabs__item" data-b24-tab="settings">Настройки</button>
+          <button class="b24-tabs__item" data-b24-tab="wizard">Мастер настройки</button>
+          <button class="b24-tabs__item" data-b24-tab="empty">Пустые состояния</button>
+        </div>
+        <div class="b24-toolbar__right"><a class="b24-btn b24-btn--glass b24-btn--sm" href="index.html">← Все компоненты</a></div>
+      </div>
+    </div>
+
+    <!-- ── Дашборд ── -->
+    <section data-b24-tab-panel="dashboard" aria-label="Дашборд">
+      <div class="b24-dashboard">
+        <div class="b24-kpi b24-span-3"><span class="b24-kpi__label">Запусков за месяц</span><span class="b24-kpi__value">12 480</span><div class="b24-kpi__row"><span class="b24-kpi__delta b24-kpi__delta--up">▲ 18% <span class="b24-kpi__period">к августу</span></span><span class="b24-sparkline" data-b24-sparkline="6200,7100,8000,9400,10600,12480"></span></div></div>
+        <div class="b24-kpi b24-span-3"><span class="b24-kpi__label">Успешно</span><span class="b24-kpi__value">97,4%</span><div class="b24-kpi__row"><span class="b24-kpi__delta b24-kpi__delta--up">▲ 0,6 п. п.</span><span class="b24-sparkline" data-b24-sparkline="95.1,96,96.2,96.4,96.8,97.4"></span></div></div>
+        <div class="b24-kpi b24-span-3"><span class="b24-kpi__label">Ошибок</span><span class="b24-kpi__value">324</span><div class="b24-kpi__row"><span class="b24-kpi__delta b24-kpi__delta--down">▲ 4% <span class="b24-kpi__period">к августу</span></span><span class="b24-sparkline" data-b24-sparkline="280,300,290,310,311,324"></span></div></div>
+        <div class="b24-kpi b24-span-3"><span class="b24-kpi__label">Активных обходчиков</span><span class="b24-kpi__value">18</span><div class="b24-kpi__row"><span class="b24-kpi__delta b24-kpi__delta--flat">без изменений</span></div></div>
+
+        <section class="b24-card b24-span-8">
+          <div class="b24-card__header"><div><h2 class="b24-card__title">Запуски по месяцам</h2><div class="b24-card__subtitle">По типу сущности</div></div>
+            <div class="b24-card__actions"><div class="b24-tabs b24-tabs--pills" id="chart-type"><button class="b24-tabs__item is-active" data-type="area">Линии</button><button class="b24-tabs__item" data-type="bar">Столбцы</button></div></div></div>
+          <div class="b24-card__body"><div id="runs-chart"></div></div>
+        </section>
+        <section class="b24-card b24-span-4">
+          <div class="b24-card__header"><h2 class="b24-card__title">По сущностям</h2></div>
+          <div class="b24-card__body"><div data-b24-chart><script type="application/json">
+            { "type": "donut", "labels": ["Сделки", "Лиды", "Контакты", "Смарт-процессы"], "series": [{ "name": "Запуски", "data": [6120, 3480, 1960, 920] }], "centerLabel": "запусков", "title": "Запуски по сущностям" }
+          </script></div></div>
+        </section>
+        <section class="b24-card b24-span-6">
+          <div class="b24-card__header"><h2 class="b24-card__title">Запуски по дням недели</h2></div>
+          <div class="b24-card__body"><div data-b24-chart style="--b24-chart-h: 200px"><script type="application/json">
+            { "type": "bar", "labels": ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], "series": [{ "name": "Запуски", "data": [2310, 2480, 2290, 2520, 2140, 420, 320] }], "title": "Запуски по дням недели" }
+          </script></div></div>
+        </section>
+        <section class="b24-card b24-span-6">
+          <div class="b24-card__header"><h2 class="b24-card__title">Самые активные обходчики</h2></div>
+          <div class="b24-card__body"><ul class="b24-meters">
+            <li class="b24-meter" style="--value: 100"><span class="b24-meter__label">Напоминание о сделке</span><span class="b24-meter__value">3 940</span><span class="b24-meter__track"><span class="b24-meter__fill"></span></span></li>
+            <li class="b24-meter" style="--value: 71"><span class="b24-meter__label">Сверка оплат</span><span class="b24-meter__value">2 810</span><span class="b24-meter__track"><span class="b24-meter__fill"></span></span></li>
+            <li class="b24-meter" style="--value: 44"><span class="b24-meter__label">Закрытие просроченных задач</span><span class="b24-meter__value">1 720</span><span class="b24-meter__track"><span class="b24-meter__fill"></span></span></li>
+            <li class="b24-meter" style="--value: 23"><span class="b24-meter__label">Проверка дублей контактов</span><span class="b24-meter__value">905</span><span class="b24-meter__track"><span class="b24-meter__fill"></span></span></li>
+          </ul></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ── Настройки ── -->
+    <section data-b24-tab-panel="settings" aria-label="Настройки" hidden>
+      <div class="b24-settings" data-b24-settings>
+        <nav class="b24-settings__nav" aria-label="Разделы настроек">
+          <a class="b24-settings__link" href="#s-general"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5M9.5 13h0M14.5 13h0"/></svg>Общие</a>
+          <a class="b24-settings__link" href="#s-schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg>Расписание</a>
+          <a class="b24-settings__link" href="#s-notify"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5L19 18H5z"/><path d="M10 20.5h4"/></svg>Уведомления</a>
+          <a class="b24-settings__link" href="#s-access"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="9" r="3.5"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M16 6a3 3 0 0 1 0 6M17.5 14.5A4.5 4.5 0 0 1 20.5 19"/></svg>Права доступа <span class="b24-counter b24-counter--gray">3</span></a>
+          <a class="b24-settings__link" href="#s-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.8-7 9-4-1.2-7-4.7-7-9V6z"/></svg>Опасная зона</a>
+        </nav>
+        <form class="b24-settings__body" action="#" id="settings-form">
+          <section class="b24-card b24-settings__section" id="s-general">
+            <div class="b24-card__header"><div><h2 class="b24-card__title">Общие</h2><p class="b24-settings__section-desc">Как приложение работает на портале</p></div></div>
+            <div class="b24-card__body">
+              <div class="b24-setting"><div><div class="b24-setting__label">Приложение включено</div><p class="b24-setting__hint">Выключенное приложение не запускает обходчики, настройки сохраняются</p></div><div class="b24-setting__control"><label class="b24-switch"><input type="checkbox" name="enabled" value="1" checked><span class="b24-sr-only">Приложение включено</span></label></div></div>
+              <div class="b24-setting"><div><label class="b24-setting__label" for="st-name">Название в меню</label><p class="b24-setting__hint">Так приложение называется в левом меню портала</p></div><div class="b24-setting__control"><input class="b24-input" id="st-name" name="title" value="Обходчики"></div></div>
+              <div class="b24-setting"><div><label class="b24-setting__label" for="st-tz">Часовой пояс</label></div><div class="b24-setting__control"><select class="b24-select" id="st-tz" name="tz"><option>Москва (UTC+3)</option><option selected>Екатеринбург (UTC+5)</option><option>Новосибирск (UTC+7)</option></select></div></div>
+            </div>
+          </section>
+          <section class="b24-card b24-settings__section" id="s-schedule">
+            <div class="b24-card__header"><h2 class="b24-card__title">Расписание</h2></div>
+            <div class="b24-card__body">
+              <div class="b24-setting"><div><label class="b24-setting__label" for="st-limit">Запусков на элемент в сутки</label><p class="b24-setting__hint">Защита от повторов: элемент не обрабатывается чаще</p></div><div class="b24-setting__control"><input class="b24-input" id="st-limit" name="limit" type="number" min="1" max="6" value="1" style="max-width:120px"></div></div>
+              <div class="b24-setting"><div><div class="b24-setting__label">Не запускать в выходные</div></div><div class="b24-setting__control"><label class="b24-switch"><input type="checkbox" name="weekends" value="1"><span class="b24-sr-only">Не запускать в выходные</span></label></div></div>
+            </div>
+          </section>
+          <section class="b24-card b24-settings__section" id="s-notify">
+            <div class="b24-card__header"><h2 class="b24-card__title">Уведомления</h2></div>
+            <div class="b24-card__body">
+              <div class="b24-setting b24-setting--block"><div><div class="b24-setting__label">О чём сообщать</div><p class="b24-setting__hint">Уведомления приходят в чат Битрикс24 ответственному</p></div><div class="b24-setting__control b24-stack">
+                <label class="b24-check"><input type="checkbox" name="n_error" value="1" checked><span>Ошибка запуска</span></label>
+                <label class="b24-check"><input type="checkbox" name="n_limit" value="1" checked><span>Достигнут лимит запусков</span></label>
+                <label class="b24-check"><input type="checkbox" name="n_daily" value="1"><span>Ежедневная сводка<span class="b24-check__desc">В 9:00 по часовому поясу портала</span></span></label>
+              </div></div>
+            </div>
+          </section>
+          <section class="b24-card b24-settings__section" id="s-access">
+            <div class="b24-card__header"><h2 class="b24-card__title">Права доступа</h2></div>
+            <div class="b24-card__body">
+              <div class="b24-setting"><div><label class="b24-setting__label" for="st-who">Кто может создавать обходчики</label></div><div class="b24-setting__control"><select class="b24-select" id="st-who" name="who"><option>Только администраторы</option><option selected>Администраторы и руководители</option><option>Все сотрудники</option></select></div></div>
+            </div>
+          </section>
+          <section class="b24-card b24-settings__section" id="s-danger">
+            <div class="b24-card__header"><h2 class="b24-card__title">Опасная зона</h2></div>
+            <div class="b24-card__body">
+              <div class="b24-setting b24-setting--danger"><div><div class="b24-setting__label">Удалить все обходчики</div><p class="b24-setting__hint">Журнал запусков останется. Действие нельзя отменить</p></div><div class="b24-setting__control"><button class="b24-btn b24-btn--tinted-danger" type="button" id="st-delete">Удалить</button></div></div>
+            </div>
+          </section>
+          <div class="b24-savebar" hidden>
+            <span class="b24-savebar__text">Есть несохранённые изменения</span>
+            <button class="b24-btn b24-btn--secondary" type="button" data-b24-settings-reset>Отменить</button>
+            <button class="b24-btn b24-btn--success" type="submit">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── Мастер ── -->
+    <section data-b24-tab-panel="wizard" aria-label="Мастер настройки" hidden>
+      <form class="b24-wizard" data-b24-wizard action="#" id="wizard" novalidate>
+        <div class="b24-wizard__head">
+          <ol class="b24-stepper">
+            <li class="b24-stepper__item"><span class="b24-stepper__marker"></span><span class="b24-stepper__title">Подключение</span></li>
+            <li class="b24-stepper__item"><span class="b24-stepper__marker"></span><span class="b24-stepper__title">Права</span></li>
+            <li class="b24-stepper__item"><span class="b24-stepper__marker"></span><span class="b24-stepper__title">Готово</span></li>
+          </ol>
+        </div>
+        <div class="b24-wizard__step">
+          <h2 class="b24-wizard__title">Подключите источник данных</h2>
+          <p class="b24-wizard__lead">Укажите адрес и ключ — мы проверим подключение.</p>
+          <div class="b24-stack" style="--b24-gap: var(--b24-space-md)">
+            <div class="b24-field"><label class="b24-field__label b24-field__label--required" for="wz-url">Адрес сервера</label><input class="b24-input" id="wz-url" name="url" type="url" required placeholder="https://metabase.example.com"><div class="b24-field__hint">Для проверки ошибки введите адрес с «fail»</div></div>
+            <div class="b24-field"><label class="b24-field__label b24-field__label--required" for="wz-key">Ключ API</label><input class="b24-input" id="wz-key" name="key" required></div>
+          </div>
+        </div>
+        <div class="b24-wizard__step">
+          <h2 class="b24-wizard__title">Кто будет работать с приложением</h2>
+          <p class="b24-wizard__lead">Права можно изменить позже в настройках.</p>
+          <div class="b24-stack">
+            <label class="b24-check"><input type="radio" name="role" value="admins" checked><span>Только администраторы</span></label>
+            <label class="b24-check"><input type="radio" name="role" value="heads"><span>Администраторы и руководители</span></label>
+            <label class="b24-check"><input type="radio" name="role" value="all"><span>Все сотрудники</span></label>
+          </div>
+        </div>
+        <div class="b24-wizard__step">
+          <div class="b24-empty b24-empty--success b24-empty--compact">
+            <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 12.5 4 4 8-9"/></svg></div>
+            <h2 class="b24-empty__title b24-wizard__title">Всё готово</h2>
+            <p class="b24-empty__text">Источник подключён. Создайте первый обходчик — это займёт пару минут.</p>
+          </div>
+        </div>
+        <div class="b24-wizard__foot">
+          <button class="b24-btn b24-btn--secondary" type="button" data-b24-wizard-back>Назад</button>
+          <span class="b24-wizard__counter"></span>
+          <button class="b24-btn b24-btn--primary" type="button" data-b24-wizard-next>Далее</button>
+          <button class="b24-btn b24-btn--success" type="submit" data-b24-wizard-finish>Создать обходчик</button>
+        </div>
+      </form>
+      <ol class="b24-stepper b24-stepper--vertical b24-card" style="max-width: 360px; margin: 24px auto 0; padding: 20px" aria-label="Вертикальный степпер">
+        <li class="b24-stepper__item is-done"><span class="b24-stepper__marker"></span><span class="b24-stepper__title">Установка</span><span class="b24-stepper__desc">2 октября, 10:14</span></li>
+        <li class="b24-stepper__item is-error"><span class="b24-stepper__marker"></span><span class="b24-stepper__title">Подключение источника</span><span class="b24-stepper__desc">Сервер не ответил</span></li>
+        <li class="b24-stepper__item"><span class="b24-stepper__marker"></span><span class="b24-stepper__title">Первый обходчик</span></li>
+      </ol>
+    </section>
+
+    <!-- ── Пустые состояния ── -->
+    <section data-b24-tab-panel="empty" aria-label="Пустые состояния" hidden>
+      <div class="b24-grid" style="--b24-grid-min: 340px">
+        <div class="b24-card"><div class="b24-empty">
+          <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13.5 6.5 5h11l2.5 8.5V19H4z"/><path d="M4 13.5h4.5l1 2h5l1-2H20"/></svg></div>
+          <h3 class="b24-empty__title">Пока нет обходчиков</h3>
+          <p class="b24-empty__text">Обходчик запускает бизнес-процесс по элементам CRM в заданное время</p>
+          <div class="b24-empty__actions"><button class="b24-btn b24-btn--success">Создать обходчик</button><button class="b24-btn b24-btn--secondary">Как это работает</button></div>
+        </div></div>
+        <div class="b24-card"><div class="b24-empty b24-empty--neutral">
+          <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></div>
+          <h3 class="b24-empty__title">Ничего не найдено</h3>
+          <p class="b24-empty__text">По фильтру «Ошибки за неделю» записей нет</p>
+          <div class="b24-empty__actions"><button class="b24-btn b24-btn--secondary">Сбросить фильтр</button></div>
+        </div></div>
+        <div class="b24-card"><div class="b24-empty b24-empty--access">
+          <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg></div>
+          <h3 class="b24-empty__title">Нет доступа</h3>
+          <p class="b24-empty__text">Настройки приложения доступны администраторам портала</p>
+          <p class="b24-empty__note">Попросите администратора выдать права в разделе «Права доступа»</p>
+        </div></div>
+        <div class="b24-card"><div class="b24-empty b24-empty--error">
+          <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 4 21 19.5H3z" stroke-linejoin="round"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></div>
+          <h3 class="b24-empty__title">Не удалось загрузить данные</h3>
+          <p class="b24-empty__text">Битрикс24 не ответил на запрос. Проверьте подключение и попробуйте ещё раз</p>
+          <div class="b24-empty__actions"><button class="b24-btn b24-btn--primary">Повторить</button></div>
+          <p class="b24-empty__note">Код ошибки: QUERY_LIMIT_EXCEEDED · <a href="#">написать в поддержку</a></p>
+        </div></div>
+        <div class="b24-card"><div class="b24-card__header"><h3 class="b24-card__title">Последние запуски</h3></div><div class="b24-empty b24-empty--compact b24-empty--neutral">
+          <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></div>
+          <h3 class="b24-empty__title">Запусков ещё не было</h3>
+          <p class="b24-empty__text">Первый запуск — сегодня в 10:00</p>
+        </div></div>
+      </div>
+      <div class="b24-empty b24-empty--glass" style="margin-top: 16px">
+        <div class="b24-empty__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 8V5M9.5 13h0M14.5 13h0"/></svg></div>
+        <h3 class="b24-empty__title">Прямо на подложке Air</h3>
+        <p class="b24-empty__text">Модификатор --glass — для пустого экрана без карточки</p>
+      </div>
+    </section>
+
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  // Вкладка из адреса: screens.html#settings
+  // якоря разделов (#s-access) вкладку не переключают
+  const tabFromHash = () => document.querySelector(`[data-b24-tab="${CSS.escape(location.hash.slice(1))}"]`);
+  (tabFromHash() ?? document.querySelector('[data-b24-tab]')).click();
+  window.addEventListener('hashchange', () => tabFromHash()?.click());
+  document.addEventListener('b24:tab-change', (e) => history.replaceState(null, '', '#' + e.detail.id));
+
+  document.getElementById('theme-tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme]'); if (!b) return;
+    B24UI.setTheme(b.dataset.theme);
+    document.querySelectorAll('#theme-tabs .b24-tabs__item').forEach((x) => x.classList.toggle('is-active', x === b));
+  });
+
+  // График с переключением вида
+  const runs = B24UI.createChart(document.getElementById('runs-chart'), {
+    type: 'area', title: 'Запуски по месяцам',
+    labels: ['апр', 'май', 'июн', 'июл', 'авг', 'сен'],
+    series: [{ name: 'Сделки', data: [3120, 3640, 4210, 4980, 5530, 6120] }, { name: 'Лиды', data: [2210, 2380, 2650, 2900, 3150, 3480] }, { name: 'Контакты', data: [870, 1080, 1140, 1520, 1720, 1960] }],
+  });
+  document.getElementById('chart-type').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-type]'); if (!b) return;
+    runs.update({ type: b.dataset.type, stacked: b.dataset.type === 'bar' });
+    document.querySelectorAll('#chart-type .b24-tabs__item').forEach((x) => x.classList.toggle('is-active', x === b));
+  });
+
+  // Настройки: сохраняем «на сервере»
+  document.addEventListener('b24:settings-save', (e) => {
+    e.preventDefault();
+    setTimeout(() => { e.detail.resolve(); B24UI.toast('Настройки сохранены', { type: 'success' }); }, 500);
+  });
+  document.getElementById('st-delete').addEventListener('click', async () => {
+    if (await B24UI.confirm("Действие нельзя отменить", { title: "Удалить все обходчики?", okText: 'Удалить', danger: true })) B24UI.toast('Демо: ничего не удалено');
+  });
+
+  // Мастер: проверка подключения на первом шаге
+  document.addEventListener('b24:wizard-next', (e) => {
+    if (e.detail.index !== 0) return;
+    const url = document.getElementById('wz-url').value;
+    e.detail.waitUntil(new Promise((ok, fail) => setTimeout(() => (url.includes('fail') ? (B24UI.toast('Сервер не ответил', { type: 'danger' }), fail()) : ok()), 700)));
+  });
+  document.addEventListener('b24:wizard-finish', (e) => {
+    e.preventDefault();
+    B24UI.toast('Готово: ' + JSON.stringify(e.detail.values));
+  });
+</script>
+</body>
+</html>

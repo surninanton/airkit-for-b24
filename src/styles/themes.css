@@ -4,6 +4,14 @@
  *   data-b24-air="blue" | "violet" | "teal" | "graphite" — пресет фона Air-подложки
  */
 [data-b24-theme="dark"] {
+  --b24-chart-1: #3b8cff;
+  --b24-chart-2: #c97a1a;
+  --b24-chart-3: #17917e;
+  --b24-chart-4: #9d6fe0;
+  --b24-chart-5: #d4546b;
+  --b24-chart-6: #1897b2;
+  --b24-chart-grid: #2a2e34;
+  --b24-chart-axis: #353a41;
   --b24-text-primary: #eef0f3;
   --b24-text-secondary: #b7bec8;
   --b24-text-subtle: #8a929c;
