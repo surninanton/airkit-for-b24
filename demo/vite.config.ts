@@ -14,6 +14,7 @@ export default defineConfig({
         index: resolve(__dirname, 'index.html'),
         react: resolve(__dirname, 'react.html'),
         site: resolve(__dirname, 'site.html'),
+        landing: resolve(__dirname, 'landing.html'),
       },
     },
   },

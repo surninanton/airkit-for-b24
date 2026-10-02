@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>B24 UI — лендинг продукта</title>
+  <script type="module">import '../src/styles/index.css';</script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .demo-logo { font: 700 22px/1 var(--b24-font-family); letter-spacing: -0.02em; color: #2b3440; }
+    .demo-logo--b { font-style: italic; }
+  </style>
+</head>
+<body class="b24-root">
+<div class="b24-site">
+
+  <!-- Липкая шапка с мегаменю -->
+  <header class="b24-site-header" data-b24-site-header>
+    <div class="b24-container b24-site-header__row">
+      <a class="b24-brand" href="#"><span class="b24-brand__mark" aria-hidden="true">b24</span><span class="b24-brand__text">Кедр Софт</span></a>
+      <nav class="b24-site-nav" aria-label="Основное меню">
+        <details class="b24-site-nav__group">
+          <summary>Продукты</summary>
+          <div class="b24-megamenu">
+            <a class="b24-megamenu__item" href="#"><span class="b24-megamenu__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><span class="b24-megamenu__text"><span class="b24-megamenu__title">Планировщик БП</span><span class="b24-megamenu__desc">Запуск бизнес-процессов по расписанию</span></span></a>
+            <a class="b24-megamenu__item" href="#"><span class="b24-megamenu__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/></svg></span><span class="b24-megamenu__text"><span class="b24-megamenu__title">Журнал БП</span><span class="b24-megamenu__desc">Все запущенные процессы в одной таблице</span></span></a>
+            <a class="b24-megamenu__item" href="#"><span class="b24-megamenu__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span><span class="b24-megamenu__text"><span class="b24-megamenu__title">Синхронизация форм</span><span class="b24-megamenu__desc">Заявки с сайта сразу в CRM</span></span></a>
+            <a class="b24-megamenu__item" href="#"><span class="b24-megamenu__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.8-7 9-4-1.2-7-4.7-7-9V6z"/></svg></span><span class="b24-megamenu__text"><span class="b24-megamenu__title">Поиск дублей</span><span class="b24-megamenu__desc">Склеивает повторяющиеся контакты</span></span></a>
+            <div class="b24-megamenu__footer"><a class="b24-link" href="#">Все приложения →</a><span class="b24-badge b24-badge--primary">Новое: Журнал БП 2.0</span></div>
+          </div>
+        </details>
+        <details class="b24-site-nav__group">
+          <summary>Компания</summary>
+          <div class="b24-megamenu" style="--b24-megamenu-cols: 1">
+            <a class="b24-megamenu__item" href="#team"><span class="b24-megamenu__text"><span class="b24-megamenu__title">О нас</span><span class="b24-megamenu__desc">Команда и подход к работе</span></span></a>
+            <a class="b24-megamenu__item" href="#contacts"><span class="b24-megamenu__text"><span class="b24-megamenu__title">Контакты</span><span class="b24-megamenu__desc">Реквизиты и каналы связи</span></span></a>
+          </div>
+        </details>
+        <a class="b24-site-nav__link" href="#pricing">Цены</a>
+        <a class="b24-site-nav__link" href="#faq">Вопросы</a>
+      </nav>
+      <div class="b24-site-header__actions">
+        <a class="b24-btn b24-btn--glass" href="#contacts">Связаться</a>
+        <a class="b24-btn b24-btn--success" href="#pricing">Установить</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero на подложке -->
+  <section class="b24-section b24-section--air">
+    <div class="b24-container">
+      <div class="b24-hero" style="padding-top: 0">
+        <div class="b24-hero__content">
+          <p class="b24-hero__eyebrow">Приложение для Битрикс24</p>
+          <h1 class="b24-hero__title">Бизнес-процессы по расписанию — без ручного запуска</h1>
+          <p class="b24-hero__text">Планировщик каждый день находит нужные элементы CRM и запускает по ним шаблоны бизнес-процессов.</p>
+          <div class="b24-hero__actions">
+            <a class="b24-btn b24-btn--success b24-btn--lg" href="#pricing">Попробовать бесплатно</a>
+            <a class="b24-btn b24-btn--glass b24-btn--lg" href="#video">Смотреть видео</a>
+          </div>
+        </div>
+        <div class="b24-hero__media">
+          <a class="b24-video" id="video" href="demo.mp4" data-b24-video aria-label="Обзор Планировщика за 2 минуты">
+            <span class="b24-video__duration">2:14</span><span class="b24-video__play" aria-hidden="true"></span><span class="b24-video__caption">Обзор за 2 минуты</span>
+          </a>
+        </div>
+      </div>
+      <ul class="b24-numbers b24-numbers--glass b24-numbers--divided" style="margin-top: var(--b24-space-3xl)">
+        <li class="b24-number"><span class="b24-number__value">1 200+</span><span class="b24-number__label">порталов используют наши приложения</span></li>
+        <li class="b24-number"><span class="b24-number__value">4,9</span><span class="b24-number__label">средняя оценка в Битрикс24 Маркете</span></li>
+        <li class="b24-number"><span class="b24-number__value">15 мин</span><span class="b24-number__label">первый ответ поддержки в рабочее время</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Якорное меню -->
+  <nav class="b24-anchor-nav" data-b24-anchor-nav aria-label="Разделы страницы">
+    <div class="b24-container">
+      <ul class="b24-anchor-nav__list">
+        <li><a class="b24-anchor-nav__link" href="#features">Возможности</a></li>
+        <li><a class="b24-anchor-nav__link" href="#pricing">Тарифы</a></li>
+        <li><a class="b24-anchor-nav__link" href="#compare">Сравнение</a></li>
+        <li><a class="b24-anchor-nav__link" href="#reviews">Отзывы</a></li>
+        <li><a class="b24-anchor-nav__link" href="#faq">Вопросы</a></li>
+        <li><a class="b24-anchor-nav__link" href="#team">Команда</a></li>
+        <li><a class="b24-anchor-nav__link" href="#contacts">Контакты</a></li>
+      </ul>
+      <div class="b24-anchor-nav__actions"><a class="b24-btn b24-btn--success b24-btn--sm" href="#pricing">Установить</a></div>
+    </div>
+  </nav>
+
+  <!-- Возможности: светлая секция -->
+  <section class="b24-section b24-section--light" id="features">
+    <div class="b24-container">
+      <div class="b24-section__head">
+        <p class="b24-section__eyebrow">Возможности</p>
+        <h2 class="b24-section__title">Всё, что нужно для регулярной автоматизации</h2>
+        <p class="b24-section__lead">Настраивается за пять минут, работает каждый день.</p>
+      </div>
+      <ul class="b24-features">
+        <li class="b24-feature"><span class="b24-feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span><h3 class="b24-feature__title">По расписанию</h3><p class="b24-feature__text">До шести запусков в сутки.</p></li>
+        <li class="b24-feature"><span class="b24-feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span><h3 class="b24-feature__title">Фильтр CRM</h3><p class="b24-feature__text">Те же условия, что в списке сделок.</p></li>
+        <li class="b24-feature"><span class="b24-feature__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.8-7 9-4-1.2-7-4.7-7-9V6z"/></svg></span><h3 class="b24-feature__title">Без повторов</h3><p class="b24-feature__text">Элемент — не чаще раза в день.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Тарифы: подложка -->
+  <section class="b24-section b24-section--air" id="pricing">
+    <div class="b24-container">
+      <div class="b24-section__head b24-section__head--center">
+        <p class="b24-section__eyebrow">Тарифы</p>
+        <h2 class="b24-section__title">Платите только за то, чем пользуетесь</h2>
+      </div>
+      <div class="b24-pricing">
+        <div class="b24-pricing__period" role="radiogroup" aria-label="Период оплаты">
+          <input type="radio" name="period" id="p-month" value="month" checked><label for="p-month">Месяц</label>
+          <input type="radio" name="period" id="p-year" value="year"><label for="p-year">Год <span class="b24-badge b24-badge--success b24-badge--sm">−20%</span></label>
+        </div>
+        <div class="b24-plans">
+          <article class="b24-plan">
+            <h3 class="b24-plan__name">Старт</h3>
+            <p class="b24-plan__desc">Для небольших команд</p>
+            <div class="b24-plan__price"><span class="b24-plan__amount">0 ₽</span><span class="b24-plan__per">навсегда</span></div>
+            <ul class="b24-plan__features"><li>1 обходчик</li><li>1 запуск в сутки</li><li class="is-off">Журнал за 90 дней</li><li class="is-off">Приоритетная поддержка</li></ul>
+            <a class="b24-btn b24-btn--secondary b24-btn--wide b24-btn--lg b24-plan__action" href="#">Установить</a>
+          </article>
+          <article class="b24-plan is-featured">
+            <span class="b24-badge b24-badge--filled b24-badge--primary b24-badge--round b24-plan__ribbon">Популярный</span>
+            <h3 class="b24-plan__name">Бизнес</h3>
+            <p class="b24-plan__desc">Для отделов продаж</p>
+            <div class="b24-plan__price"><span class="b24-plan__amount" data-period="month">990 ₽</span><span class="b24-plan__amount" data-period="year">790 ₽</span><span class="b24-plan__per">в месяц</span></div>
+            <p class="b24-plan__note" data-period="year">9 480 ₽ при оплате за год</p>
+            <ul class="b24-plan__features"><li>10 обходчиков</li><li>6 запусков в сутки</li><li>Журнал за 90 дней</li><li class="is-off">Приоритетная поддержка</li></ul>
+            <a class="b24-btn b24-btn--success b24-btn--wide b24-btn--lg b24-plan__action" href="#">Попробовать 14 дней</a>
+          </article>
+          <article class="b24-plan">
+            <h3 class="b24-plan__name">Компания</h3>
+            <p class="b24-plan__desc">Без ограничений</p>
+            <div class="b24-plan__price"><span class="b24-plan__amount" data-period="month">2 490 ₽</span><span class="b24-plan__amount" data-period="year">1 990 ₽</span><span class="b24-plan__per">в месяц</span></div>
+            <ul class="b24-plan__features"><li>Без лимита обходчиков</li><li>6 запусков в сутки</li><li>Журнал за год</li><li>Приоритетная поддержка</li></ul>
+            <a class="b24-btn b24-btn--secondary b24-btn--wide b24-btn--lg b24-plan__action" href="#">Попробовать 14 дней</a>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Сравнение: белая секция -->
+  <section class="b24-section b24-section--white" id="compare">
+    <div class="b24-container">
+      <div class="b24-section__head"><h2 class="b24-section__title">Сравнение тарифов</h2></div>
+      <div class="b24-compare-wrap">
+        <table class="b24-compare">
+          <thead><tr><th>Возможность</th><th>Старт</th><th class="b24-compare__featured">Бизнес</th><th>Компания</th></tr></thead>
+          <tbody>
+            <tr class="b24-compare__group"><th colspan="4">Запуски</th></tr>
+            <tr><td>Обходчиков<span class="b24-compare__hint">одновременно активных</span></td><td>1</td><td class="b24-compare__featured">10</td><td>∞</td></tr>
+            <tr><td>Запусков в сутки</td><td>1</td><td class="b24-compare__featured">6</td><td>6</td></tr>
+            <tr class="b24-compare__group"><th colspan="4">История и поддержка</th></tr>
+            <tr><td>Журнал запусков</td><td><span class="b24-compare__no" aria-label="Нет"></span></td><td class="b24-compare__featured"><span class="b24-compare__yes" aria-label="Да"></span></td><td><span class="b24-compare__yes" aria-label="Да"></span></td></tr>
+            <tr><td>Приоритетная поддержка</td><td><span class="b24-compare__no" aria-label="Нет"></span></td><td class="b24-compare__featured"><span class="b24-compare__no" aria-label="Нет"></span></td><td><span class="b24-compare__yes" aria-label="Да"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Отзывы и логотипы: светлая -->
+  <section class="b24-section b24-section--light" id="reviews">
+    <div class="b24-container b24-stack" style="--b24-gap: var(--b24-space-3xl)">
+      <div>
+        <div class="b24-section__head"><h2 class="b24-section__title">Что говорят клиенты</h2></div>
+        <div class="b24-quotes">
+          <figure class="b24-quote"><span class="b24-quote__rating" aria-label="Оценка 5 из 5">★★★★★</span><blockquote class="b24-quote__text">Раньше менеджеры забывали запускать напоминания. Теперь всё уходит само каждое утро.</blockquote><figcaption class="b24-quote__author"><span class="b24-avatar" style="--b24-avatar-bg:#1bce7b">ОТ</span><span><span class="b24-quote__name">Олег Тихомиров</span><br><span class="b24-quote__role">руководитель продаж</span></span></figcaption></figure>
+          <figure class="b24-quote"><span class="b24-quote__rating" aria-label="Оценка 5 из 5">★★★★★</span><blockquote class="b24-quote__text">Настроили за вечер. Поддержка отвечает быстро и по делу.</blockquote><figcaption class="b24-quote__author"><span class="b24-avatar" style="--b24-avatar-bg:#853af5">ВП</span><span><span class="b24-quote__name">Вера Полянская</span><br><span class="b24-quote__role">администратор портала</span></span></figcaption></figure>
+        </div>
+      </div>
+      <div>
+        <h2 class="b24-section-label b24-section-label--dark" style="margin-bottom: 12px">Нам доверяют</h2>
+        <ul class="b24-logos">
+          <li><span class="demo-logo">северстрой</span></li><li><span class="demo-logo demo-logo--b">Lumen</span></li><li><span class="demo-logo">ПРОФИТ</span></li><li><span class="demo-logo demo-logo--b">орбита</span></li><li><span class="demo-logo">Nordline</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ: подложка -->
+  <section class="b24-section b24-section--air" id="faq">
+    <div class="b24-container b24-container--narrow">
+      <div class="b24-section__head b24-section__head--center"><h2 class="b24-section__title">Частые вопросы</h2></div>
+      <div class="b24-faq b24-faq--glass">
+        <details class="b24-faq__item" name="faq" open><summary>Нужны ли права администратора?</summary><div class="b24-faq__answer"><p>Только для установки. Настраивать обходчики могут сотрудники с доступом к приложению.</p></div></details>
+        <details class="b24-faq__item" name="faq"><summary>Какие тарифы Битрикс24 подходят?</summary><div class="b24-faq__answer"><p>Любые тарифы с бизнес-процессами.</p></div></details>
+        <details class="b24-faq__item" name="faq"><summary>Что будет при превышении лимита?</summary><div class="b24-faq__answer"><p>Лишние запуски переносятся на следующий день, данные не теряются.</p></div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Команда и контакты: белая -->
+  <section class="b24-section b24-section--white" id="team">
+    <div class="b24-container b24-stack" style="--b24-gap: var(--b24-space-3xl)">
+      <div>
+        <div class="b24-section__head"><h2 class="b24-section__title">Команда</h2></div>
+        <ul class="b24-people">
+          <li class="b24-person"><span class="b24-avatar" style="--b24-avatar-bg:#0075ff">ГВ</span><h3 class="b24-person__name">Григорий Воронцов</h3><p class="b24-person__role">Основатель, разработчик</p><p class="b24-person__text">Пишет приложения для Битрикс24 с 2016 года.</p><div class="b24-person__links"><a href="#">Telegram</a><a href="#">E-mail</a></div></li>
+          <li class="b24-person"><span class="b24-avatar" style="--b24-avatar-bg:#f85e9e">ЕР</span><h3 class="b24-person__name">Елена Ракитина</h3><p class="b24-person__role">Поддержка</p><p class="b24-person__text">Отвечает на вопросы и помогает с настройкой.</p></li>
+        </ul>
+      </div>
+      <div id="contacts">
+        <div class="b24-section__head"><h2 class="b24-section__title">Контакты</h2></div>
+        <div class="b24-contacts">
+          <div class="b24-card"><div class="b24-card__body b24-stack">
+            <ul class="b24-channels">
+              <li><a class="b24-channel" href="mailto:support@example.com"><span class="b24-channel__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4.5 7 7.5 6 7.5-6"/></svg></span><span class="b24-channel__text"><span class="b24-channel__label">Поддержка</span><span class="b24-channel__value">support@example.com</span></span></a></li>
+              <li><a class="b24-channel" href="tel:+79001234567"><span class="b24-channel__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z"/></svg></span><span class="b24-channel__text"><span class="b24-channel__label">Телефон</span><span class="b24-channel__value">+7 900 123-45-67</span></span></a></li>
+            </ul>
+            <div class="b24-props">
+              <div class="b24-prop"><span class="b24-prop__label">Правообладатель</span><span class="b24-prop__value">ИП Примеров П. П.</span></div>
+              <div class="b24-prop"><span class="b24-prop__label">ИНН</span><span class="b24-prop__value">000000000000</span></div>
+            </div>
+          </div></div>
+          <a class="b24-map" href="#" aria-label="Открыть адрес на карте"><span class="b24-map__pin"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span class="b24-map__address">Екатеринбург, ул. Примерная, 1</span><span class="b24-link">Открыть на карте</span></span></a>
+        </div>
+      </div>
+      <nav class="b24-site-pagination" aria-label="Страницы">
+        <ol>
+          <li><a class="b24-site-pagination__prev" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>Назад</a></li>
+          <li><a href="#">1</a></li><li><span aria-current="page">2</span></li><li><a href="#">3</a></li><li><span>…</span></li><li><a href="#">9</a></li>
+          <li><a class="b24-site-pagination__next" href="#">Вперёд<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></a></li>
+        </ol>
+      </nav>
+    </div>
+  </section>
+
+  <!-- CTA на подложке -->
+  <section class="b24-section b24-section--air">
+    <div class="b24-container">
+      <div class="b24-cta b24-cta--glass">
+        <div class="b24-cta__content"><h2 class="b24-cta__title">Попробуйте Планировщик 14 дней бесплатно</h2><p class="b24-cta__text">Установка из Битрикс24 Маркета за минуту, карта не нужна.</p></div>
+        <div class="b24-cta__actions"><a class="b24-btn b24-btn--success b24-btn--lg" href="#">Установить</a><a class="b24-btn b24-btn--glass b24-btn--lg" href="#contacts">Задать вопрос</a></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="b24-container b24-site-footer">
+    <div class="b24-site-footer__row">
+      <div><div class="b24-site-footer__brand">Кедр Софт</div><div>ИП Примеров П. П.</div></div>
+      <div><h2 class="b24-site-footer__title">Поддержка</h2><div><a href="mailto:support@example.com">support@example.com</a></div></div>
+      <ul class="b24-site-footer__links"><li><a class="b24-site-footer__link" href="#">Приложения</a></li><li><a class="b24-site-footer__link" href="#">Документы</a></li></ul>
+    </div>
+    <div class="b24-site-footer__bottom"><span>Сайт не является официальным ресурсом компании «1С-Битрикс».</span><span id="demo-credit"></span></div>
+  </footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+</script>
+</body>
+</html>

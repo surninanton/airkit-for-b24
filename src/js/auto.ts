@@ -14,7 +14,7 @@ import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
 import { createVendor, type VendorOptions } from './vendor';
 import { initGrid, type GridOptions } from './grid';
-import { initGallery, initTopnav } from './site';
+import { initAnchorNav, initGallery, initSiteHeader, initTopnav, initVideo } from './site';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -41,6 +41,9 @@ import { initGallery, initTopnav } from './site';
  *   [data-b24-vendor]              — блок разработчика (правило кита); JSON-конфиг VendorOptions внутри
  *   [data-b24-gallery]             — галерея скриншотов: a.b24-gallery__item → лайтбокс (←/→, Esc)
  *   .b24-topnav[data-b24-topnav]   — верхнее меню сайта: на ≤768px пункты прячутся в «☰»
+ *   .b24-site-header[data-b24-site-header] — липкая шапка сайта: бургер на ≤960px, группы меню (details)
+ *   .b24-anchor-nav[data-b24-anchor-nav]   — якорное меню: подсветка текущей секции
+ *   a.b24-video[data-b24-video]    — видео: по клику плеер на месте постера (data-embed — iframe)
  *   table[data-b24-grid="ключ"]    — грид: ширина/порядок/видимость столбцов th[data-key] (сохраняются), меню ☰ строк,
  *                                    групповые действия; JSON-конфиг GridOptions в <script> внутри .b24-table-wrap
  *                                    или data-b24-grid-config="#id"; data-resizable / data-reorderable / data-settings="false"
@@ -209,6 +212,24 @@ export function init(root: ParentNode = document): void {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';
     initTopnav(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('.b24-site-header[data-b24-site-header]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initSiteHeader(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('.b24-anchor-nav[data-b24-anchor-nav]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initAnchorNav(el);
+  });
+
+  root.querySelectorAll<HTMLAnchorElement>('a.b24-video[data-b24-video]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initVideo(el);
   });
 }
 

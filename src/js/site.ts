@@ -112,3 +112,148 @@ export function initTopnav(nav: HTMLElement): () => void {
   const dd: DropdownHandle = dropdown(toggle, popup, { placement: 'bottom-start' });
   return () => { dd.destroy(); popup.remove(); toggle.remove(); nav.classList.remove('is-enhanced'); };
 }
+
+/* ── Липкая шапка сайта ────────────────────────────────────
+ * <header class="b24-site-header" data-b24-site-header>
+ *   <div class="b24-container b24-site-header__row">
+ *     <a class="b24-brand">…</a>
+ *     <nav class="b24-site-nav">
+ *       <a class="b24-site-nav__link" href="…">Цены</a>
+ *       <details class="b24-site-nav__group"><summary>Продукты</summary><div class="b24-megamenu">…</div></details>
+ *     </nav>
+ *     <div class="b24-site-header__actions">…кнопки…</div>
+ *   </div>
+ * </header>
+ * Без JS группы раскрываются кликом (details), пункты переносятся. С JS: на ≤960px — бургер,
+ * открытая группа закрывает остальные, Esc и клик мимо закрывают, при прокрутке — плотный фон.
+ */
+export function initSiteHeader(header: HTMLElement): () => void {
+  header.classList.add('is-enhanced');
+  const row = header.querySelector<HTMLElement>('.b24-site-header__row') ?? header;
+  const groups = () => Array.from(header.querySelectorAll<HTMLDetailsElement>('details.b24-site-nav__group'));
+  let burger = header.querySelector<HTMLButtonElement>('.b24-site-header__burger');
+  if (!burger) {
+    burger = h('button', { type: 'button', class: 'b24-btn b24-btn--glass b24-btn--icon b24-site-header__burger', 'aria-label': 'Меню', 'aria-expanded': 'false' }, html(icon('menu'))) as HTMLButtonElement;
+    row.append(burger);
+  }
+  const nav = header.querySelector<HTMLElement>('.b24-site-nav');
+  if (nav && !nav.id) nav.id = `b24-site-nav-${Math.random().toString(36).slice(2, 7)}`;
+  if (nav) burger.setAttribute('aria-controls', nav.id);
+
+  const closeGroups = (except?: HTMLDetailsElement) => groups().forEach((g) => { if (g !== except) g.open = false; });
+  const setMenu = (open: boolean) => {
+    header.classList.toggle('is-menu-open', open);
+    burger!.setAttribute('aria-expanded', String(open));
+    burger!.innerHTML = icon(open ? 'close' : 'menu');
+    document.body.classList.toggle('b24-menu-open', open);
+    if (!open) closeGroups();
+  };
+  const onBurger = () => setMenu(!header.classList.contains('is-menu-open'));
+  const onToggle = (e: Event) => { const g = e.target as HTMLDetailsElement; if (g.matches?.('details.b24-site-nav__group') && g.open) closeGroups(g); };
+  const onDocDown = (e: MouseEvent) => { if (!header.contains(e.target as Node)) closeGroups(); };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    const open = groups().find((g) => g.open);
+    if (open) { open.open = false; open.querySelector('summary')?.focus(); }
+    else if (header.classList.contains('is-menu-open')) { setMenu(false); burger!.focus(); }
+  };
+  const onClick = (e: MouseEvent) => {
+    const a = (e.target as HTMLElement).closest('a');
+    if (a && header.contains(a) && (a.closest('.b24-megamenu') || header.classList.contains('is-menu-open'))) { closeGroups(); setMenu(false); }
+  };
+  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 4);
+  const mq = window.matchMedia('(max-width: 960px)');
+  const onMq = () => { if (!mq.matches) setMenu(false); };
+
+  burger.addEventListener('click', onBurger);
+  header.addEventListener('toggle', onToggle, true);
+  header.addEventListener('click', onClick);
+  document.addEventListener('mousedown', onDocDown);
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  mq.addEventListener?.('change', onMq);
+  onScroll();
+  return () => {
+    burger!.removeEventListener('click', onBurger);
+    header.removeEventListener('toggle', onToggle, true);
+    header.removeEventListener('click', onClick);
+    document.removeEventListener('mousedown', onDocDown);
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('scroll', onScroll);
+    mq.removeEventListener?.('change', onMq);
+    header.classList.remove('is-enhanced', 'is-menu-open');
+  };
+}
+
+/* ── Якорное меню: подсветка секции, которая сейчас на экране ──
+ * Активна последняя секция, верх которой уже прошёл под шапкой и якорным меню.
+ */
+export function initAnchorNav(nav: HTMLElement): () => void {
+  // только пункты меню: кнопки справа (например, «Установить» → #pricing) — не пункты
+  const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a.b24-anchor-nav__link[href^="#"], .b24-anchor-nav__list a[href^="#"]'));
+  const pairs = links
+    .map((a) => ({ a, t: document.getElementById(decodeURIComponent(a.hash.slice(1))) }))
+    .filter((p): p is { a: HTMLAnchorElement; t: HTMLElement } => !!p.t);
+  if (!pairs.length) return () => {};
+  let current: HTMLAnchorElement | null = null;
+  const setActive = (a: HTMLAnchorElement | null) => {
+    if (a === current) return;
+    current = a;
+    for (const p of pairs) {
+      const on = p.a === a;
+      p.a.classList.toggle('is-active', on);
+      if (on) p.a.setAttribute('aria-current', 'true'); else p.a.removeAttribute('aria-current');
+    }
+    // активный пункт — в видимую часть горизонтальной полосы
+    if (a) {
+      const list = a.closest<HTMLElement>('.b24-anchor-nav__list');
+      if (list) {
+        const lr = list.getBoundingClientRect(), ar = a.getBoundingClientRect();
+        if (ar.left < lr.left || ar.right > lr.right) list.scrollLeft += ar.left - lr.left - 16;
+      }
+    }
+  };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const update = () => {
+    timer = undefined;
+    const line = nav.getBoundingClientRect().bottom + 24;
+    let active: HTMLAnchorElement | null = null;
+    for (const p of pairs) if (p.t.getBoundingClientRect().top <= line) active = p.a;
+    // у самого низа страницы — последняя секция
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = pairs[pairs.length - 1].a;
+    setActive(active);
+  };
+  // троттлинг таймером, а не кадрами: в фоновой вкладке кадры не приходят и пересчёт бы «залип»
+  const onScroll = () => { if (!timer) timer = setTimeout(update, 60); };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+  return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); clearTimeout(timer); };
+}
+
+/* ── Видео с постером ──────────────────────────────────────
+ * <a class="b24-video" href="demo.mp4" data-b24-video [data-embed="https://…/embed/…"]>
+ *   <img class="b24-video__poster" src="poster.jpg" alt=""><span class="b24-video__play"></span>
+ * </a>
+ * Без JS — ссылка на видео; с JS — плеер на месте постера.
+ */
+export function initVideo(el: HTMLAnchorElement): () => void {
+  const onClick = (e: MouseEvent) => {
+    if (el.classList.contains('is-playing')) return;
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    const embed = el.dataset.embed;
+    const title = el.getAttribute('aria-label') ?? el.querySelector('.b24-video__caption')?.textContent ?? 'Видео';
+    el.textContent = '';
+    if (embed) {
+      const src = embed + (embed.includes('?') ? '&' : '?') + 'autoplay=1';
+      el.append(h('iframe', { src, title, allow: 'autoplay; fullscreen; picture-in-picture', allowfullscreen: true }));
+    } else {
+      el.append(h('video', { src: el.href, controls: true, autoplay: true, playsinline: true }));
+    }
+    el.classList.add('is-playing');
+    el.removeAttribute('href');
+  };
+  el.addEventListener('click', onClick);
+  return () => el.removeEventListener('click', onClick);
+}

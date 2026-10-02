@@ -289,6 +289,29 @@ import { B24Provider, App, Toolbar, SplitButton, SearchInput, DataTable, SidePan
 | `.b24-changelog` | история версий: версия, дата, пункты с бейджами |
 | `.b24-site-layout` | две колонки (контент + боковая 320px), на ≤920px — одна |
 
+
+### Корпоративный сайт: раскладка и маркетинговые блоки
+
+Полноценная страница сайта — `.b24-site` (Air-подложка на всю страницу) со стопкой секций. Пример — `demo/landing.html`.
+
+| Класс | Что это |
+|---|---|
+| `.b24-site`, `.b24-container` (`--narrow`, `--wide`) | страница сайта и контейнер по ширине |
+| `.b24-section` (`--air`, `--light`, `--white`, `--compact`) + `__head`, `__eyebrow`, `__title`, `__lead` | секции с чередованием подложки и светлого фона, единые отступы |
+| `.b24-site-header[data-b24-site-header]` | липкая шапка: бренд, меню `.b24-site-nav` (ссылки и группы `details.b24-site-nav__group` с мегаменю `.b24-megamenu`), кнопки `__actions`. Без JS группы раскрываются кликом. С JS: на ≤960px бургер, Esc и клик мимо закрывают, при прокрутке фон плотнее |
+| `.b24-anchor-nav[data-b24-anchor-nav]` | липкое якорное меню под шапкой, подсвечивает текущую секцию |
+| `.b24-site-pagination` (`--glass`) | пагинация сайта ссылками |
+| `.b24-cta` (`--glass`, `--accent`, `--center`) | полоса призыва: заголовок, текст, кнопки |
+| `.b24-pricing` > `.b24-pricing__period` + `.b24-plans` > `.b24-plan` (`is-featured`) | тарифы. Переключатель «месяц/год» на радиокнопках, без JS: цены `data-period="month|year"` |
+| `.b24-compare-wrap` > `table.b24-compare` | сравнение: строки-группы, выделенная колонка, ✓/—, первая колонка липкая |
+| `.b24-faq` (`--glass`) > `details.b24-faq__item` | вопросы-ответы на `details/summary` (`name="…"` — открыт один) |
+| `.b24-numbers` (`--glass`, `--divided`) > `.b24-number` | крупные цифры с подписями |
+| `.b24-quotes` > `figure.b24-quote`, `.b24-logos` (`--glass`) | отзывы и монохромные логотипы |
+| `.b24-people` > `.b24-person` | команда |
+| `.b24-contacts`, `.b24-channels` > `a.b24-channel`, `a.b24-map` | контакты: каналы связи, реквизиты (`.b24-props`), карта-заглушка (или `iframe` внутри) |
+| `a.b24-video[data-b24-video]` | видео с постером: без JS ссылка на ролик, с JS плеер на месте (`data-embed` — iframe) |
+| `.b24-display-1/2/3`, `.b24-lead`, `.b24-measure`, `.b24-text-center` | крупные заголовки и утилиты текста |
+
 ## Приложение во фрейме портала
 
 `B24UI.bx24.autoFitFrame()` подгоняет высоту фрейма под контент в обе стороны, ширина остаётся 100%.
