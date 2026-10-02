@@ -25,7 +25,8 @@ export { EntityEditor, type EntityEditorProps, type EditorField, type EditorSect
 export { Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer, formatTimelineTime, type TimelineItemProps, type TimelineActivityProps, type TimelineComposerProps, type ComposerTab } from './Timeline';
 export { Chart, Sparkline, Kpi, Stepper, SettingRow, SaveBar, EmptyScreen, type ChartProps, type StepItem } from './Screens';
 export type { ChartOptions, ChartSeries, ChartType } from '../js/chart';
-export { KeyValueEditor, FieldMapper, type KeyValueEditorProps, type FieldMapperProps } from './Editors';
+export { KeyValueEditor, FieldMapper, LogViewer, CodeBlock, JsonView, type KeyValueEditorProps, type FieldMapperProps, type LogViewerProps } from './Editors';
+export type { LogEntry, LogLevel, LogPage } from '../js/logs';
 export type { FieldMapping, FieldTransform, UpdateRule, KeyValuePair, ComboItem } from '../js/index';
 export {
   Accordion, AccordionItem, RadioCards, CheckGroup, Segmented, Range, RangePair, ColorPicker, B24_COLORS, SecretInput, Tree,

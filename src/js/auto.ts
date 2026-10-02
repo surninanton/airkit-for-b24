@@ -18,6 +18,7 @@ import { createChart, sparkline, type ChartOptions } from './chart';
 import { initSettings, initWizard } from './screens';
 import { initRepeater } from './repeater';
 import { initCheckGroup, initColors, initRange, initSecret } from './controls';
+import { copyText } from './logs';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 
 /**
@@ -318,6 +319,13 @@ export function delegateGlobalEvents(): void {
     const dismiss = target.closest<HTMLElement>('[data-b24-dismiss]');
     if (dismiss) {
       dismiss.closest('.b24-alert, [data-b24-dismissible]')?.remove();
+      return;
+    }
+    // копирование блока кода: [data-b24-copy] внутри .b24-code или с текстом в атрибуте
+    const copyBtn = target.closest<HTMLElement>('[data-b24-copy]');
+    if (copyBtn) {
+      const text = copyBtn.dataset.b24Copy || copyBtn.closest('.b24-code')?.querySelector('pre')?.textContent || '';
+      void copyText(text).then((ok) => { copyBtn.classList.toggle('is-done', ok); setTimeout(() => copyBtn.classList.remove('is-done'), 1200); });
       return;
     }
     // раскрывающаяся строка таблицы: кнопка с aria-controls → строка .b24-table__details

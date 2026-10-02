@@ -79,6 +79,14 @@
     </section>
 
     <section class="b24-card">
+      <div class="b24-card__header"><div><h2 class="b24-card__title">Журнал синхронизации</h2><div class="b24-card__subtitle">Фильтр уровней, раскрытие контекста и стектрейса, копирование, «Загрузить ещё»</div></div></div>
+      <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+        <div id="logs"></div>
+        <div id="code"></div>
+      </div>
+    </section>
+
+    <section class="b24-card">
       <div class="b24-card__header"><div><h2 class="b24-card__title">Ключ → значение</h2><div class="b24-card__subtitle">Условия запуска: колонка Metabase → поле родительской сделки</div></div></div>
       <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
         <div id="kv"></div>
@@ -92,6 +100,7 @@
         <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
           <div class="b24-field"><label class="b24-field__label">Поле сделки (createCombobox)</label><div id="combo"></div><div class="b24-field__hint">Попробуйте найти «UF_» или «stage»</div></div>
           <div class="b24-field"><label class="b24-field__label">Справочник не загрузился — сохранено «сырое» значение</label><div id="combo-raw"></div></div>
+          <div class="b24-field"><label class="b24-field__label">Задача Битрикс24 (поиск на сервере, чип после выбора)</label><div id="combo-task"></div><div class="b24-field__hint">Введите часть названия или номер задачи, например 1207</div></div>
           <div class="b24-field"><label class="b24-field__label" for="chat">ID чата для уведомлений (select + data-creatable)</label>
             <select class="b24-select" id="chat" name="chat" data-b24-combobox data-creatable data-counter>
               <option value="">Выберите чат</option>
@@ -210,6 +219,42 @@
     B24UI.diffHtml(1250000, 1250000, { field: 'Сумма' }), B24UI.diffHtml('В работе', 'Сделка успешна', { field: 'Стадия' }), B24UI.diffHtml('', 'Екатеринбург', { field: 'Город' }),
   ].map((x) => `<li>${x}</li>`).join('');
   document.getElementById('diff-3').innerHTML = B24UI.diffHtml('Новая', 'signed_late', { field: 'Стадия' });
+
+  const tasks = [[1201, 'Выгрузить отчёт для бухгалтерии'], [1207, 'Проверить синхронизацию договоров'], [1213, 'Настроить воронку «Тендеры»'], [1220, 'Созвон с поддержкой Metabase'], [1302, 'Обновить шаблон счёта']]
+    .map(([id, title]) => ({ value: String(id), label: title, meta: `#${id}`, href: `/company/personal/user/1/tasks/task/view/${id}/` }));
+  const delay = (v, signal) => new Promise((res, rej) => { const t = setTimeout(() => res(v), 300); signal.addEventListener('abort', () => { clearTimeout(t); rej(new Error('abort')); }); });
+  B24UI.createCombobox(document.getElementById('combo-task'), {
+    display: 'chip', placeholder: 'Найти задачу',
+    items: [tasks[1]], value: '1207',
+    load: (q, signal) => delay(tasks.filter((t) => t.label.toLowerCase().includes(q.toLowerCase())).slice(0, 20), signal),
+    loadById: (id, signal) => delay(tasks.find((t) => t.value === id) ?? null, signal),
+  });
+
+  // журнал: 23 записи, страницы по 8, курсор — номер записи
+  const allLogs = Array.from({ length: 23 }, (_, i) => {
+    const level = ['info', 'info', 'debug', 'warning', 'error'][i % 5];
+    const at = new Date(Date.UTC(2026, 9, 2, 7, 30 - i, 5));
+    return {
+      id: i + 1, time: at.toISOString(), level,
+      message: level === 'error' ? `Не удалось обновить сделку #${4800 + i}: стадия не найдена` : level === 'warning' ? `Пачка ${i}: 2 строки пропущены (нет значения в словаре)` : level === 'debug' ? `crm.deal.list: 50 записей за 312 мс` : `Пачка ${i} обработана: создано 3, обновлено 12`,
+      context: level === 'debug' ? undefined : { batch: i, rows: 50, mapping: { STAGE_ID: 'signed_late' }, ok: level === 'info', duration_ms: 1840 + i * 7 },
+      trace: level === 'error' ? `App\\Exceptions\\SyncException: Stage not found\n#0 app/Services/DealWriter.php(118): App\\Services\\StageResolver->resolve('signed_late')\n#1 app/Jobs/SyncBatch.php(64): App\\Services\\DealWriter->write(Array)\n#2 vendor/laravel/framework/src/Illuminate/Bus/Dispatcher.php(128): App\\Jobs\\SyncBatch->handle()` : undefined,
+    };
+  });
+  B24UI.createLogViewer(document.getElementById('logs'), {
+    height: 340,
+    load: ({ cursor, levels, signal }) => delay((() => {
+      const rows = allLogs.filter((l) => levels.includes(l.level));
+      const from = cursor ?? 0;
+      return { items: rows.slice(from, from + 8), next: from + 8 < rows.length ? from + 8 : null };
+    })(), signal),
+  });
+  document.getElementById('code').innerHTML = B24UI.codeHtml([
+    'Поле            Metabase        Bitrix24',
+    { text: 'TITLE           Договор 114     Договор 114', tone: 'success' },
+    { text: 'OPPORTUNITY     1 250 000       1 200 000', tone: 'warning' },
+    { text: 'STAGE_ID        signed_late     —', tone: 'error' },
+  ]);
 
   const phonesJson = document.getElementById('phones-json');
   const showPhones = () => { phonesJson.textContent = [...new FormData(document.getElementById('phones-form'))].map(([k, v]) => `${k} = ${v}`).join('\n'); };

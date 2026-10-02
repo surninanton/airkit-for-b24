@@ -31,6 +31,7 @@ export {
   initCheckGroup, initRange, initColors, initSecret, createTree, popover, startTour, plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors,
   type TreeItem, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
 } from './controls';
+export { createLogViewer, jsonHtml, codeHtml, traceHtml, copyText, type LogEntry, type LogLevel, type LogPage, type LogViewerOptions, type LogViewerHandle, type CodeTone } from './logs';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';

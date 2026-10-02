@@ -171,10 +171,21 @@ export interface ComboItem {
   group?: string;
   avatar?: string;
   disabled?: boolean;
+  /** ссылка на карточку — в режиме display: 'chip' название становится ссылкой */
+  href?: string;
+  /** короткая метка в чипе, например «#4812» */
+  meta?: string;
 }
 
 export interface CreateComboboxOptions {
-  items: ComboItem[];
+  /** варианты; при load — уже известные (например, текущее значение с подписью) */
+  items?: ComboItem[];
+  /** поиск на сервере: вызывается при открытии и при вводе */
+  load?: (query: string, signal: AbortSignal) => Promise<ComboItem[]>;
+  /** ввод из одних цифр ищет ещё и по ID — найденное идёт первым */
+  loadById?: (id: string, signal: AbortSignal) => Promise<ComboItem | null>;
+  /** выбранное значение: текстом (по умолчанию) или чипом с аватаром, ссылкой, #id и крестиком */
+  display?: 'text' | 'chip';
   value?: string | string[] | null;
   multiple?: boolean;
   placeholder?: string;
@@ -213,7 +224,9 @@ export interface CreateComboboxHandle {
 
 export function createCombobox(host: HTMLElement, options: CreateComboboxOptions): CreateComboboxHandle {
   const o = { ...options };
-  let items = o.items;
+  let items = o.items ?? [];
+  /** подписи значений, найденных через load: после закрытия списка их нет в items */
+  const known = new Map<string, ComboItem>();
   let values: string[] = toList(o.value);
   let dialog: EntityDialogHandle | null = null;
   const trigger = h('div', {
@@ -225,9 +238,9 @@ export function createCombobox(host: HTMLElement, options: CreateComboboxOptions
   host.append(trigger);
   if (hidden) host.append(hidden);
 
-  const byValue = (v: string) => items.find((i) => i.value === v);
+  const byValue = (v: string) => items.find((i) => i.value === v) ?? known.get(v);
   const label = (v: string) => byValue(v)?.label ?? v;
-  const toDialog = (i: ComboItem): DialogItem => ({ id: i.value, title: i.label, subtitle: i.subtitle, group: i.group ?? o.groupBy?.(i), avatar: i.avatar, disabled: i.disabled });
+  const toDialog = (i: ComboItem): DialogItem => ({ id: i.value, title: i.label, subtitle: i.subtitle ?? i.meta, group: i.group ?? o.groupBy?.(i), avatar: i.avatar, disabled: i.disabled, data: i });
   const selectedDialog = (): DialogItem[] => values.map((v) => (byValue(v) ? toDialog(byValue(v)!) : { id: v, title: v }));
   const out = () => (o.multiple ? [...values] : values[0] ?? null);
 
@@ -238,9 +251,26 @@ export function createCombobox(host: HTMLElement, options: CreateComboboxOptions
     if (o.invalid) trigger.setAttribute('aria-invalid', 'true'); else trigger.removeAttribute('aria-invalid');
     if (hidden) hidden.value = values.join(',');
     if (!values.length) { trigger.append(h('span', { class: 'b24-combobox__placeholder' }, o.placeholder ?? 'Не выбрано')); return; }
+    if (!o.multiple && o.display === 'chip') {
+      const v = values[0];
+      const item = byValue(v);
+      const chip = h('span', { class: 'b24-chip b24-combobox__chip' });
+      if (item?.avatar) chip.append(h('img', { class: 'b24-avatar', src: item.avatar, alt: '' }));
+      if (item?.meta) chip.append(h('span', { class: 'b24-chip__id' }, item.meta));
+      if (item?.href) {
+        const a = h('a', { href: item.href, target: '_top', class: 'b24-combobox__chip-link' }, item?.label ?? v);
+        a.addEventListener('click', (e) => e.stopPropagation());
+        chip.append(a);
+      } else chip.append(h('span', {}, item?.label ?? v));
+      const x = h('button', { type: 'button', class: 'b24-chip__remove', 'aria-label': `Убрать ${item?.label ?? v}`, tabindex: '-1' }, html(icon('close')));
+      x.addEventListener('click', (e) => { e.stopPropagation(); values = []; emit(); trigger.focus(); });
+      chip.append(x);
+      trigger.append(chip);
+      return;
+    }
     if (!o.multiple) {
       const v = values[0];
-      const raw = !byValue(v);
+      const raw = !byValue(v) && !o.load;
       const val = h('span', { class: `b24-combobox__value${raw ? ' is-raw' : ''}` }, label(v));
       trigger.append(val);
       const sub = byValue(v)?.subtitle;
@@ -264,11 +294,21 @@ export function createCombobox(host: HTMLElement, options: CreateComboboxOptions
     if (dialog || o.disabled) return;
     trigger.classList.add('is-open');
     trigger.setAttribute('aria-expanded', 'true');
+    const load = o.load ? async (q: string, _tab: string | null, signal: AbortSignal) => {
+      const [found, byId] = await Promise.all([
+        o.load!(q, signal),
+        o.loadById && /^\d+$/.test(q.trim()) ? o.loadById(q.trim(), signal).catch(() => null) : Promise.resolve(null),
+      ]);
+      const list = byId ? [byId, ...found.filter((i) => i.value !== byId.value)] : found;
+      list.forEach((i) => known.set(i.value, i));
+      return list.map(toDialog);
+    } : undefined;
     dialog = openEntityDialog(trigger, {
-      items: items.map(toDialog),
+      items: load ? undefined : items.map(toDialog),
+      load,
       multiple: o.multiple,
       selected: selectedDialog(),
-      searchable: o.searchable ?? (o.creatable || items.length > 7),
+      searchable: o.searchable ?? (!!o.load || o.creatable || items.length > 7),
       creatable: o.creatable,
       createLabel: o.createLabel,
       counter: o.counter ?? items.length > 20,
@@ -276,7 +316,11 @@ export function createCombobox(host: HTMLElement, options: CreateComboboxOptions
       avatars: items.some((i) => i.avatar),
       compact: true,
       width: o.dialogWidth ?? Math.max(trigger.offsetWidth, 260),
-      onChange(sel) { values = sel.map((i) => String(i.id)); emit(); },
+      onChange(sel) {
+        sel.forEach((i) => { if (i.data && !isCreatedItem(i)) known.set(String(i.id), i.data as ComboItem); });
+        values = sel.map((i) => String(i.id));
+        emit();
+      },
       onClose() { dialog = null; trigger.classList.remove('is-open'); trigger.setAttribute('aria-expanded', 'false'); },
     });
   };

@@ -177,3 +177,54 @@ test.describe('таблица отчёта', () => {
     expect(bg).not.toBe('rgba(0, 0, 0, 0)');
   });
 });
+
+test.describe('асинхронный поиск', () => {
+  test('чип после выбора, поиск по номеру, крестик очищает', async ({ page }) => {
+    await open(page, '/editors.html');
+    const host = page.locator('#combo-task');
+    await expect(host.locator('.b24-combobox__chip')).toContainText('#1207');
+    await expect(host.locator('.b24-combobox__chip-link')).toHaveAttribute('href', /tasks\/task\/view\/1207\//);
+    await host.locator('.b24-chip__remove').click();
+    await expect(host.locator('.b24-combobox__placeholder')).toHaveText('Найти задачу');
+
+    await host.locator('.b24-combobox').click();
+    await page.locator('.b24-dialog__search input').fill('1302');
+    await expect(page.locator('.b24-dialog__item').first()).toContainText('Обновить шаблон счёта');
+    await page.keyboard.press('Enter');
+    await expect(host.locator('.b24-combobox__chip')).toContainText('#1302');
+    await expect(host.locator('.b24-combobox__chip')).toContainText('Обновить шаблон счёта');
+  });
+});
+
+test.describe('журнал', () => {
+  test('страницы по курсору, фильтр уровней, контекст и стектрейс', async ({ page }) => {
+    await open(page, '/editors.html');
+    const logs = page.locator('#logs');
+    const entries = logs.locator('.b24-logs__entry');
+    await expect(entries).toHaveCount(8);
+    await logs.locator('.b24-logs__more').click();
+    await expect(entries).toHaveCount(16);
+    await logs.locator('.b24-logs__more').click();
+    await expect(entries).toHaveCount(23);
+    await expect(logs.locator('.b24-logs__more')).toBeHidden();
+
+    // только ошибки: выключаем остальные уровни
+    for (const name of ['Отладка', 'Инфо', 'Предупреждения']) await logs.getByRole('button', { name }).click();
+    await expect(entries).toHaveCount(4);
+    await expect(logs.locator('.b24-logs__count')).toHaveText('Показано: 4');
+    // последний уровень не выключается
+    await logs.getByRole('button', { name: 'Ошибки' }).click();
+    await expect(logs.getByRole('button', { name: 'Ошибки' })).toHaveAttribute('aria-pressed', 'true');
+
+    const first = entries.first();
+    await first.locator('button.b24-logs__head').click();
+    await expect(first.locator('.b24-logs__json .b24-json__key').first()).toHaveText('"batch"');
+    await expect(first.locator('.b24-trace__file').first()).toHaveText('app/Services/DealWriter.php');
+  });
+
+  test('блок кода: тон строк', async ({ page }) => {
+    await open(page, '/editors.html');
+    await expect(page.locator('#code .b24-code__line.is-error')).toContainText('STAGE_ID');
+    await expect(page.locator('#code [data-b24-copy]')).toHaveCount(1);
+  });
+});

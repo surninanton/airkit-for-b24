@@ -315,13 +315,16 @@ React: `<Chart>`, `<Sparkline>`, `<Kpi>`, `<Stepper>`, `<SettingRow>`, `<SaveBar
 | `[data-b24-repeater]` + `<template>` + `[data-b24-repeater-add]` / `[data-b24-repeater-remove]` | повторитель для PHP-форм: имена `rows[0][key]` перенумеровываются, `data-max` — предел строк |
 | `createKeyValue(host, { pairs, key, value, onChange })` | пары «ключ → значение» со стрелкой. Колонка — список (`items`, своё значение разрешено) или текст (`items: null` — справочник не загрузился) |
 | `createFieldMapper(host, options)` | сопоставление полей: источник (колонка или шаблон `{{Имя}} {{Фамилия}}` со вставкой колонки) → поле Битрикс24 → правило обновления (`always`, `if_empty`, `if_changed`, `never`). Кнопка ⚙ открывает преобразование: словарь значений `{ type: 'value_map', map: { 'из': 'в' }, on_missing: 'pass' | 'default' | 'skip' | 'fail', default? }` (`dictionary(target)` — справочник с группами, например стадии по воронкам), сумма прописью `{ type: 'amount_words', currency?: 'рубль', fraction?: 'копейка' }`, склонение `{ type: 'inflect', case: 'genitive' }` (падежи полными английскими названиями). Пустой словарь с `pass` отдаётся как `null`. Конфиги всех типов помнятся, наружу уходит выбранный. `setErrors({ '3.target': '…' })` — ошибки сервера по пути. Для дочерней сущности — второй экземпляр со своим `targetFields` |
+| `createCombobox(host, { load, loadById, display: 'chip' })` | поиск на сервере (задачи, вопросы Metabase); число в поиске ищет ещё и по ID; выбранное — чипом с аватаром, ссылкой (`href`), `#id` (`meta`) и крестиком |
+| `createLogViewer(host, { load({ cursor, levels, signal }) })` | журнал в тёмной консоли: фильтр уровней, раскрытие контекста (JSON с подсветкой) и стектрейса, копирование записи, «Загрузить ещё» по курсору |
+| `codeHtml(lines)` / `jsonHtml(value)` / `traceHtml(trace)` | блок кода со строками разного тона и кнопкой копирования, подсветка JSON и стектрейса |
 | `tr.is-danger` / `is-warning` / `is-success` / `is-info` у `.b24-table` | тон строки: ошибка, расхождение, совпадение. В React — `rowTone={(row) => …}` у `DataTable` |
 | `.b24-table__expander[aria-controls]` + `tr.b24-table__details[hidden]` | раскрывающаяся строка с деталями. В React — `renderExpanded={(row) => …}` (`expanded` / `onExpandedChange` — контролируемо) |
 | `diffHtml(before, after, { field })` / `<DiffValue>` | «Поле: ~~было~~ → станет», одинаковые — «(без изменений)», пустые — «пусто» |
 | `chipHtml(title, { href, id })` / `<Chip>`, `.b24-chips` | ссылка-чип на карточку «#123 Название» |
 | `.b24-cell-choice` | выбор прямо в ячейке: заголовок, радиокнопки, кнопка |
 
-React: `<Combobox creatable counter groupBy>`, `<KeyValueEditor>`, `<FieldMapper>`, `<DiffValue>`, `<Chip>`; у `<DataTable>` — `rowTone`, `renderExpanded`.
+React: `<Combobox creatable counter groupBy>`, `<KeyValueEditor>`, `<FieldMapper>`, `<LogViewer>`, `<CodeBlock>`, `<JsonView>`, `<DiffValue>`, `<Chip>`; у `<DataTable>` — `rowTone`, `renderExpanded`.
 
 ```js
 const mapper = B24UI.createFieldMapper(el, {

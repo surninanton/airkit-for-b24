@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { createFieldMapper, type FieldMapperHandle, type FieldMapperOptions, type FieldMapping } from '../js/field-mapper';
 import { createKeyValue, type KeyValueHandle, type KeyValueOptions, type KeyValuePair } from '../js/repeater';
+import { codeHtml, createLogViewer, jsonHtml, type CodeTone, type LogViewerHandle, type LogViewerOptions } from '../js/logs';
 
 /* Обёртки над vanilla-редакторами: значение приходит в value, изменения — в onChange.
  * Редактор держит своё состояние; внешнее value применяется, только если отличается от последнего отданного
@@ -69,4 +70,28 @@ export function FieldMapper({ value, onChange, errors, className, ...options }: 
   }, [srcKey, tgtKey]);
   useEffect(() => { if (errors && Object.keys(errors).length) fm.current?.setErrors(errors); else fm.current?.clearErrors(); }, [JSON.stringify(errors ?? {})]);
   return <div ref={host} className={className} />;
+}
+
+/* ── Логи и код ── */
+export interface LogViewerProps<C> extends LogViewerOptions<C> { className?: string }
+/** Тёмная консоль логов; load меняется — список загружается заново */
+export function LogViewer<C>({ className, ...options }: LogViewerProps<C>) {
+  const host = useRef<HTMLDivElement>(null);
+  const lv = useRef<LogViewerHandle | null>(null);
+  const opts = useRef(options);
+  opts.current = options;
+  useEffect(() => {
+    lv.current = createLogViewer<C>(host.current!, { ...opts.current, load: (a) => opts.current.load(a) });
+    return () => lv.current?.destroy();
+  }, []);
+  const first = useRef(true);
+  useEffect(() => { if (first.current) { first.current = false; return; } lv.current?.reload(); }, [options.load]);
+  return <div ref={host} className={className} />;
+}
+
+export function CodeBlock({ lines, dark, copy }: { lines: Array<string | { text: string; tone?: CodeTone }>; dark?: boolean; copy?: boolean }) {
+  return <div dangerouslySetInnerHTML={{ __html: codeHtml(lines, { dark, copy }) }} />;
+}
+export function JsonView({ value }: { value: unknown }) {
+  return <pre className="b24-code"><code style={{ display: 'block', padding: '10px 12px', font: '12px/1.6 var(--b24-font-family-mono)', background: 'var(--b24-bg-surface-2)', borderRadius: 'var(--b24-radius-md)', overflow: 'auto' }} dangerouslySetInnerHTML={{ __html: jsonHtml(value) }} /></pre>;
 }
