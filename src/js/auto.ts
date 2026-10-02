@@ -14,7 +14,7 @@ import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
 import { createVendor, type VendorOptions } from './vendor';
 import { initGrid, type GridOptions } from './grid';
-import { initAnchorNav, initGallery, initSiteHeader, initTopnav, initVideo } from './site';
+import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -44,6 +44,9 @@ import { initAnchorNav, initGallery, initSiteHeader, initTopnav, initVideo } fro
  *   .b24-site-header[data-b24-site-header] — липкая шапка сайта: бургер на ≤960px, группы меню (details)
  *   .b24-anchor-nav[data-b24-anchor-nav]   — якорное меню: подсветка текущей секции
  *   a.b24-video[data-b24-video]    — видео: по клику плеер на месте постера (data-embed — iframe)
+ *   .b24-toc[data-b24-toc]         — оглавление статьи: подсветка раздела; пустой <ol> + data-source — собрать из h2/h3
+ *   [data-b24-cookie]              — уведомление о cookie (показывается, пока не принято)
+ *   [data-b24-theme-switch]        — переключатель светлой/тёмной темы (запоминается)
  *   table[data-b24-grid="ключ"]    — грид: ширина/порядок/видимость столбцов th[data-key] (сохраняются), меню ☰ строк,
  *                                    групповые действия; JSON-конфиг GridOptions в <script> внутри .b24-table-wrap
  *                                    или data-b24-grid-config="#id"; data-resizable / data-reorderable / data-settings="false"
@@ -230,6 +233,24 @@ export function init(root: ParentNode = document): void {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';
     initVideo(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('.b24-toc[data-b24-toc]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initToc(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-b24-cookie]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initCookieNotice(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-b24-theme-switch]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initThemeSwitch(el);
   });
 }
 

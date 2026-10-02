@@ -194,12 +194,10 @@ export function initSiteHeader(header: HTMLElement): () => void {
   };
 }
 
-/* ── Якорное меню: подсветка секции, которая сейчас на экране ──
- * Активна последняя секция, верх которой уже прошёл под шапкой и якорным меню.
+/* ── Подсветка текущего раздела (якорное меню, оглавление статьи) ──
+ * Активен последний раздел, верх которого уже прошёл под шапкой (и якорным меню, если оно есть).
  */
-export function initAnchorNav(nav: HTMLElement): () => void {
-  // только пункты меню: кнопки справа (например, «Установить» → #pricing) — не пункты
-  const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a.b24-anchor-nav__link[href^="#"], .b24-anchor-nav__list a[href^="#"]'));
+function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onActive?: (a: HTMLAnchorElement) => void): () => void {
   const pairs = links
     .map((a) => ({ a, t: document.getElementById(decodeURIComponent(a.hash.slice(1))) }))
     .filter((p): p is { a: HTMLAnchorElement; t: HTMLElement } => !!p.t);
@@ -213,22 +211,18 @@ export function initAnchorNav(nav: HTMLElement): () => void {
       p.a.classList.toggle('is-active', on);
       if (on) p.a.setAttribute('aria-current', 'true'); else p.a.removeAttribute('aria-current');
     }
-    // активный пункт — в видимую часть горизонтальной полосы
-    if (a) {
-      const list = a.closest<HTMLElement>('.b24-anchor-nav__list');
-      if (list) {
-        const lr = list.getBoundingClientRect(), ar = a.getBoundingClientRect();
-        if (ar.left < lr.left || ar.right > lr.right) list.scrollLeft += ar.left - lr.left - 16;
-      }
-    }
+    if (a) onActive?.(a);
   };
   let timer: ReturnType<typeof setTimeout> | undefined;
   const update = () => {
     timer = undefined;
-    const line = nav.getBoundingClientRect().bottom + 24;
+    const line = offset();
     let active: HTMLAnchorElement | null = null;
-    for (const p of pairs) if (p.t.getBoundingClientRect().top <= line) active = p.a;
-    // у самого низа страницы — последняя секция
+    // по клику заголовок встаёт на свой scroll-margin-top — он и есть линия, иначе подсветится предыдущий пункт
+    for (const p of pairs) {
+      const margin = parseFloat(getComputedStyle(p.t).scrollMarginTop) || 0;
+      if (p.t.getBoundingClientRect().top <= Math.max(line, margin) + 1) active = p.a;
+    }
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = pairs[pairs.length - 1].a;
     setActive(active);
   };
@@ -238,6 +232,95 @@ export function initAnchorNav(nav: HTMLElement): () => void {
   window.addEventListener('resize', onScroll);
   update();
   return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); clearTimeout(timer); };
+}
+
+const headerBottom = () => {
+  const header = document.querySelector<HTMLElement>('.b24-site-header');
+  const anchor = document.querySelector<HTMLElement>('.b24-anchor-nav');
+  const bottom = Math.max(header?.getBoundingClientRect().bottom ?? 0, anchor?.getBoundingClientRect().bottom ?? 0);
+  return bottom + 24;
+};
+
+/* ── Якорное меню: подсветка секции, которая сейчас на экране ── */
+export function initAnchorNav(nav: HTMLElement): () => void {
+  // только пункты меню: кнопки справа (например, «Установить» → #pricing) — не пункты
+  const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a.b24-anchor-nav__link[href^="#"], .b24-anchor-nav__list a[href^="#"]'));
+  return scrollSpy(links, () => nav.getBoundingClientRect().bottom + 24, (a) => {
+    const list = a.closest<HTMLElement>('.b24-anchor-nav__list');
+    if (!list) return;
+    const lr = list.getBoundingClientRect(), ar = a.getBoundingClientRect();
+    if (ar.left < lr.left || ar.right > lr.right) list.scrollLeft += ar.left - lr.left - 16;
+  });
+}
+
+/* ── Оглавление статьи ─────────────────────────────────────
+ * <nav class="b24-toc" data-b24-toc [data-source="#article-body"]><p class="b24-toc__title">Содержание</p><ol>…</ol></nav>
+ * Если <ol> пуст и задан data-source — оглавление собирается из h2/h3 текста (id проставляются).
+ */
+export function initToc(toc: HTMLElement): () => void {
+  let list = toc.querySelector<HTMLOListElement>('ol');
+  const src = toc.dataset.source ? document.querySelector<HTMLElement>(toc.dataset.source) : null;
+  if (src && (!list || !list.children.length)) {
+    if (!list) { list = h('ol', {}) as HTMLOListElement; toc.append(list); }
+    let sub: HTMLOListElement | null = null;
+    src.querySelectorAll<HTMLHeadingElement>('h2, h3').forEach((hd, i) => {
+      if (!hd.id) hd.id = `section-${i + 1}`;
+      const li = h('li', {}, h('a', { href: `#${hd.id}` }, hd.textContent?.trim() ?? ''));
+      if (hd.tagName === 'H2' || !list!.lastElementChild) { list!.append(li); sub = null; }
+      else { if (!sub) { sub = h('ol', {}) as HTMLOListElement; list!.lastElementChild!.append(sub); } sub.append(li); }
+    });
+  }
+  const links = Array.from(toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
+  return scrollSpy(links, headerBottom);
+}
+
+/* ── Уведомление о cookie ──────────────────────────────────
+ * <div class="b24-cookie" data-b24-cookie hidden>…<button data-b24-cookie-accept>Понятно</button></div>
+ * Показывается, пока не принято (localStorage); без JS остаётся скрытым и не мешает.
+ */
+const COOKIE_KEY = 'b24-cookie-accepted';
+export function initCookieNotice(el: HTMLElement): () => void {
+  const key = el.dataset.b24Cookie || COOKIE_KEY;
+  let accepted = false;
+  try { accepted = localStorage.getItem(key) === '1'; } catch { /* приватный режим */ }
+  if (accepted) { el.hidden = true; return () => {}; }
+  el.hidden = false;
+  const onClick = (e: MouseEvent) => {
+    if (!(e.target as HTMLElement).closest('[data-b24-cookie-accept]')) return;
+    try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
+    el.hidden = true;
+  };
+  el.addEventListener('click', onClick);
+  return () => el.removeEventListener('click', onClick);
+}
+
+/* ── Переключатель темы ────────────────────────────────────
+ * <button class="b24-btn b24-btn--glass b24-btn--icon b24-theme-switch" data-b24-theme-switch>…</button>
+ * Переключает data-b24-theme на <html> и запоминает выбор. Чтобы не было вспышки светлой темы,
+ * в <head> можно применить сохранённое значение заранее: B24UI.applyStoredTheme() или
+ * <script>try{var t=localStorage.getItem('b24-theme');if(t)document.documentElement.dataset.b24Theme=t}catch(e){}</script>
+ */
+const THEME_KEY = 'b24-theme';
+export function applyStoredTheme(): void {
+  try { const t = localStorage.getItem(THEME_KEY); if (t) document.documentElement.dataset.b24Theme = t; } catch { /* ignore */ }
+}
+export function initThemeSwitch(btn: HTMLElement): () => void {
+  applyStoredTheme();
+  const root = document.documentElement;
+  const isDark = () => root.dataset.b24Theme === 'dark' || (root.dataset.b24Theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const sync = () => {
+    btn.setAttribute('aria-pressed', String(isDark()));
+    if (!btn.getAttribute('aria-label') && !btn.textContent?.trim()) btn.setAttribute('aria-label', 'Тёмная тема');
+  };
+  const onClick = () => {
+    const next = isDark() ? 'light' : 'dark';
+    root.dataset.b24Theme = next;
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* ignore */ }
+    sync();
+  };
+  btn.addEventListener('click', onClick);
+  sync();
+  return () => btn.removeEventListener('click', onClick);
 }
 
 /* ── Видео с постером ──────────────────────────────────────

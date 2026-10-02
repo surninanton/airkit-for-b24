@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Блог — B24 UI</title>
+  <script>try{var t=localStorage.getItem('b24-theme');if(t)document.documentElement.dataset.b24Theme=t}catch(e){}</script>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-site">
+  <header class="b24-site-header" data-b24-site-header>
+    <div class="b24-container b24-site-header__row">
+      <a class="b24-brand" href="landing.html"><span class="b24-brand__mark" aria-hidden="true">b24</span><span class="b24-brand__text">Кедр Софт</span></a>
+      <nav class="b24-site-nav" aria-label="Основное меню">
+        <a class="b24-site-nav__link" href="landing.html">Приложения</a>
+        <a class="b24-site-nav__link" href="blog.html" aria-current="page">Блог</a>
+        <a class="b24-site-nav__link" href="about.html">О компании</a>
+        <a class="b24-site-nav__link" href="docs.html">Документы</a>
+      </nav>
+      <div class="b24-site-header__actions">
+        <nav class="b24-lang-switch" aria-label="Язык"><a href="#" aria-current="true">ru</a><a href="#" lang="en">en</a></nav>
+        <button class="b24-btn b24-btn--glass b24-btn--icon b24-theme-switch" type="button" data-b24-theme-switch aria-label="Тёмная тема"><span class="b24-theme-switch__light" aria-hidden="true">☾</span><span class="b24-theme-switch__dark" aria-hidden="true">☀</span></button>
+        <a class="b24-btn b24-btn--success" href="landing.html#pricing">Установить</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="b24-section b24-section--air b24-section--compact">
+    <div class="b24-container">
+      <div class="b24-section__head"><p class="b24-section__eyebrow">Блог</p><h1 class="b24-section__title">Статьи и новости</h1><p class="b24-section__lead">Как мы делаем приложения и что нового в них появляется.</p></div>
+      <ul class="b24-posts">
+        <li class="b24-post-card"><div class="b24-post-card__cover" style="background:linear-gradient(135deg,#c4e6ff,#edf7ff)"></div><div class="b24-post-card__body"><div class="b24-post-card__meta"><time datetime="2026-10-01">1 октября 2026</time><span class="b24-badge b24-badge--new b24-badge--sm">Новое</span></div><h2 class="b24-post-card__title"><a class="b24-post-card__link" href="article.html">Как запускать бизнес-процессы по расписанию</a></h2><p class="b24-post-card__excerpt">Зачем нужен регулярный запуск и как настроить его за пять минут.</p><div class="b24-post-card__footer"><span class="b24-arrow-link">Читать</span></div></div></li>
+        <li class="b24-post-card"><div class="b24-post-card__cover" style="background:linear-gradient(135deg,#caffe7,#e7fff5)"></div><div class="b24-post-card__body"><div class="b24-post-card__meta"><time>24 сентября 2026</time><span class="b24-badge b24-badge--free b24-badge--sm">Бесплатно</span></div><h2 class="b24-post-card__title"><a class="b24-post-card__link" href="#">Журнал БП стал бесплатным</a></h2><p class="b24-post-card__excerpt">Базовый тариф теперь без ограничения по времени.</p><div class="b24-post-card__footer"><span class="b24-arrow-link">Читать</span></div></div></li>
+        <li class="b24-post-card"><div class="b24-post-card__cover" style="background:linear-gradient(135deg,#f6ecff,#fbf6ff)"></div><div class="b24-post-card__body"><div class="b24-post-card__meta"><time>12 сентября 2026</time><span class="b24-badge b24-badge--soon b24-badge--sm">Скоро</span></div><h2 class="b24-post-card__title"><a class="b24-post-card__link" href="#">Поиск дублей: что будет в первой версии</a></h2><p class="b24-post-card__excerpt">Склеивание контактов и компаний по правилам.</p><div class="b24-post-card__footer"><span class="b24-arrow-link">Читать</span></div></div></li>
+      </ul>
+    </div>
+  </section>
+  <section class="b24-section b24-section--white b24-section--compact">
+    <div class="b24-container b24-container--narrow">
+      <div class="b24-section__head"><h2 class="b24-section__title">Новости</h2></div>
+      <ol class="b24-news">
+        <li class="b24-news__item"><time class="b24-news__date" datetime="2026-09-28">28.09.2026</time><div><h3 class="b24-news__title"><a href="#">Планировщик 1.4: до шести запусков в сутки</a></h3><p class="b24-news__text">Новое расписание и быстрый журнал.</p><div class="b24-news__tags"><span class="b24-badge b24-badge--sm">Релиз</span></div></div></li>
+        <li class="b24-news__item"><time class="b24-news__date" datetime="2026-09-15">15.09.2026</time><div><h3 class="b24-news__title"><a href="#">Приложения прошли модерацию Маркета</a></h3><p class="b24-news__text">Все три приложения опубликованы.</p></div></li>
+      </ol>
+      <nav class="b24-site-pagination" aria-label="Страницы" style="margin-top: 24px"><ol><li><span aria-current="page">1</span></li><li><a href="#">2</a></li><li><a class="b24-site-pagination__next" href="#">Вперёд<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></a></li></ol></nav>
+    </div>
+  </section>
+
+  <footer class="b24-container b24-site-footer">
+    <div class="b24-site-footer__row">
+      <div><div class="b24-site-footer__brand">Кедр Софт</div><div>ИП Примеров П. П.</div></div>
+      <div><h2 class="b24-site-footer__title">Подписка на новости</h2>
+        <form class="b24-subscribe b24-subscribe--glass" action="#" onsubmit="return false"><input class="b24-input" type="email" required placeholder="E-mail" aria-label="E-mail для подписки"><button class="b24-btn b24-btn--glass b24-btn--lg" type="submit">Подписаться</button></form></div>
+      <ul class="b24-site-footer__links"><li><a class="b24-site-footer__link" href="blog.html">Блог</a></li><li><a class="b24-site-footer__link" href="docs.html">Документы</a></li></ul>
+    </div>
+    <div class="b24-site-footer__bottom"><span>Сайт не является официальным ресурсом компании «1С-Битрикс».</span><span id="demo-credit"></span></div>
+  </footer>
+  <div class="b24-cookie" data-b24-cookie="demo-cookie" hidden role="region" aria-label="Уведомление о cookie">
+    <p class="b24-cookie__text">Мы используем cookie, чтобы сайт работал правильно. Подробнее — в <a href="docs.html">политике конфиденциальности</a>.</p>
+    <div class="b24-cookie__actions"><button class="b24-btn b24-btn--primary" type="button" data-b24-cookie-accept>Понятно</button></div>
+  </div>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+</script>
+</body>
+</html>

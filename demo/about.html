@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>О компании — B24 UI</title>
+  <script>try{var t=localStorage.getItem('b24-theme');if(t)document.documentElement.dataset.b24Theme=t}catch(e){}</script>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-site">
+  <header class="b24-site-header" data-b24-site-header>
+    <div class="b24-container b24-site-header__row">
+      <a class="b24-brand" href="landing.html"><span class="b24-brand__mark" aria-hidden="true">b24</span><span class="b24-brand__text">Кедр Софт</span></a>
+      <nav class="b24-site-nav" aria-label="Основное меню">
+        <a class="b24-site-nav__link" href="landing.html">Приложения</a>
+        <a class="b24-site-nav__link" href="blog.html">Блог</a>
+        <a class="b24-site-nav__link" href="about.html" aria-current="page">О компании</a>
+        <a class="b24-site-nav__link" href="docs.html">Документы</a>
+      </nav>
+      <div class="b24-site-header__actions">
+        <nav class="b24-lang-switch" aria-label="Язык"><a href="#" aria-current="true">ru</a><a href="#" lang="en">en</a></nav>
+        <button class="b24-btn b24-btn--glass b24-btn--icon b24-theme-switch" type="button" data-b24-theme-switch aria-label="Тёмная тема"><span class="b24-theme-switch__light" aria-hidden="true">☾</span><span class="b24-theme-switch__dark" aria-hidden="true">☀</span></button>
+        <a class="b24-btn b24-btn--success" href="landing.html#pricing">Установить</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="b24-section b24-section--air">
+    <div class="b24-container">
+      <div class="b24-section__head"><p class="b24-section__eyebrow">О компании</p><h1 class="b24-display-2">Делаем приложения, которые выглядят как часть Битрикс24</h1><p class="b24-section__lead">Небольшая команда из Екатеринбурга. Пишем приложения для CRM и бизнес-процессов с 2016 года.</p></div>
+      <ul class="b24-numbers b24-numbers--glass b24-numbers--divided"><li class="b24-number"><span class="b24-number__value">10 лет</span><span class="b24-number__label">с Битрикс24</span></li><li class="b24-number"><span class="b24-number__value">3</span><span class="b24-number__label">приложения в Маркете</span></li><li class="b24-number"><span class="b24-number__value">15 мин</span><span class="b24-number__label">первый ответ поддержки</span></li></ul>
+    </div>
+  </section>
+  <section class="b24-section b24-section--white" id="contacts">
+    <div class="b24-container">
+      <div class="b24-section__head"><h2 class="b24-section__title">Контакты</h2></div>
+      <div class="b24-contacts">
+        <div class="b24-stack" style="--b24-gap: var(--b24-space-md)">
+          <div class="b24-card"><div class="b24-card__body b24-stack">
+            <ul class="b24-channels"><li><a class="b24-channel" href="mailto:support@example.com"><span class="b24-channel__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4.5 7 7.5 6 7.5-6"/></svg></span><span class="b24-channel__text"><span class="b24-channel__label">Поддержка</span><span class="b24-channel__value">support@example.com</span></span></a></li></ul>
+            <div class="b24-props b24-props--columns"><div class="b24-prop"><span class="b24-prop__label">Правообладатель</span><span class="b24-prop__value">ИП Примеров П. П.</span></div><div class="b24-prop"><span class="b24-prop__label">ИНН / ОГРНИП</span><span class="b24-prop__value">000000000000 / 000000000000000</span></div></div>
+          </div></div>
+          <a class="b24-map" href="#" aria-label="Открыть адрес на карте"><span class="b24-map__pin"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg><span class="b24-map__address">Екатеринбург, ул. Примерная, 1</span></span></a>
+        </div>
+        <form class="b24-site-form" id="feedback" action="#" novalidate onsubmit="event.preventDefault(); if (this.checkValidity()) { this.classList.add('is-sent'); } else { this.querySelectorAll('input,textarea').forEach(i => i.reportValidity && i.dispatchEvent(new Event('blur'))); this.reportValidity(); }">
+          <h2 class="b24-site-form__title">Напишите нам</h2>
+          <p class="b24-site-form__text">Ответим в течение рабочего дня.</p>
+          <div class="b24-form-status b24-form-status--success b24-form-status--on-sent" role="status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.6-5"/></svg><div><strong>Сообщение отправлено.</strong><br>Мы ответим на указанный e-mail.</div></div>
+          <div class="b24-form-row">
+            <div class="b24-field"><label class="b24-field__label b24-field__label--required" for="f-name">Имя</label><input class="b24-input" id="f-name" name="name" required autocomplete="name"><span class="b24-field__error-hint">Укажите имя</span></div>
+            <div class="b24-field"><label class="b24-field__label b24-field__label--required" for="f-mail">E-mail</label><input class="b24-input" id="f-mail" name="email" type="email" required autocomplete="email"><span class="b24-field__error-hint">Нужен корректный e-mail</span></div>
+          </div>
+          <div class="b24-field"><label class="b24-field__label" for="f-msg">Сообщение</label><textarea class="b24-textarea" id="f-msg" name="message" rows="4"></textarea></div>
+          <label class="b24-check b24-consent"><input type="checkbox" name="consent" required><span>Согласен на обработку персональных данных по <a href="docs.html">политике конфиденциальности</a></span></label>
+          <div class="b24-site-form__actions"><button class="b24-btn b24-btn--primary b24-btn--lg" type="submit">Отправить</button></div>
+        </form>
+      </div>
+    </div>
+  </section>
+  <section class="b24-section b24-section--air b24-section--compact">
+    <div class="b24-container b24-container--narrow">
+      <form class="b24-site-form b24-site-form--glass" action="#" onsubmit="return false">
+        <h2 class="b24-site-form__title">Ошибка отправки — пример состояния</h2>
+        <div class="b24-form-status b24-form-status--error" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="m9 9 6 6M15 9l-6 6"/></svg><div>Не удалось отправить сообщение. Попробуйте ещё раз или напишите на support@example.com.</div></div>
+        <div class="b24-field"><label class="b24-field__label" for="g-mail">E-mail</label><input class="b24-input" id="g-mail" type="email" placeholder="you@example.com"></div>
+        <label class="b24-check b24-consent"><input type="checkbox" checked><span>Согласен на обработку персональных данных</span></label>
+        <div class="b24-site-form__actions"><button class="b24-btn b24-btn--success b24-btn--lg" type="submit">Отправить ещё раз</button></div>
+      </form>
+    </div>
+  </section>
+
+  <footer class="b24-container b24-site-footer">
+    <div class="b24-site-footer__row">
+      <div><div class="b24-site-footer__brand">Кедр Софт</div><div>ИП Примеров П. П.</div></div>
+      <div><h2 class="b24-site-footer__title">Подписка на новости</h2>
+        <form class="b24-subscribe b24-subscribe--glass" action="#" onsubmit="return false"><input class="b24-input" type="email" required placeholder="E-mail" aria-label="E-mail для подписки"><button class="b24-btn b24-btn--glass b24-btn--lg" type="submit">Подписаться</button></form></div>
+      <ul class="b24-site-footer__links"><li><a class="b24-site-footer__link" href="blog.html">Блог</a></li><li><a class="b24-site-footer__link" href="docs.html">Документы</a></li></ul>
+    </div>
+    <div class="b24-site-footer__bottom"><span>Сайт не является официальным ресурсом компании «1С-Битрикс».</span><span id="demo-credit"></span></div>
+  </footer>
+  <div class="b24-cookie" data-b24-cookie="demo-cookie" hidden role="region" aria-label="Уведомление о cookie">
+    <p class="b24-cookie__text">Мы используем cookie, чтобы сайт работал правильно. Подробнее — в <a href="docs.html">политике конфиденциальности</a>.</p>
+    <div class="b24-cookie__actions"><button class="b24-btn b24-btn--primary" type="button" data-b24-cookie-accept>Понятно</button></div>
+  </div>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+</script>
+</body>
+</html>

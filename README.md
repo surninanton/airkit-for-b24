@@ -312,6 +312,32 @@ import { B24Provider, App, Toolbar, SplitButton, SearchInput, DataTable, SidePan
 | `a.b24-video[data-b24-video]` | видео с постером: без JS ссылка на ролик, с JS плеер на месте (`data-embed` — iframe) |
 | `.b24-display-1/2/3`, `.b24-lead`, `.b24-measure`, `.b24-text-center` | крупные заголовки и утилиты текста |
 
+### Контент сайта: статьи, блог, формы, документы
+
+Страницы читаются без JS; скрипт нужен только для оглавления, cookie-уведомления и переключателя темы. Примеры — `demo/article.html`, `demo/blog.html`, `demo/about.html`, `demo/docs.html`.
+
+| Класс | Что это |
+|---|---|
+| `.b24-article-layout` > `article.b24-article` + `nav.b24-toc[data-b24-toc]` | статья с липким оглавлением справа. `__header`, `__tags`, `__title`, `__lead`, `__meta` (автор, дата, время чтения), `__cover`, `__footer`. Пустой `<ol>` в оглавлении собирается из h2/h3 блока `data-source`, текущий раздел подсвечивается |
+| `figure.b24-figure`, `.b24-table-scroll`, таблицы в `.b24-prose` | иллюстрации с подписью, таблицы с прокруткой на узком экране |
+| `.b24-callout` (`--tip`, `--warning`, `--danger`) + `__icon`, `__title` | врезки «совет / внимание» |
+| `.b24-posts` > `.b24-post-card` | карточки статей; ссылка `__link` растянута на всю карточку |
+| `ol.b24-news` > `.b24-news__item` | лента новостей: дата, заголовок, текст, теги |
+| `.b24-arrow-link` (`--glass`) | ссылка «Читать далее →» |
+| `.b24-badge--soon/--new/--free/--beta/--hit` (`--glass`) | бейджи «Скоро», «Новое», «Бесплатно» и др. |
+| `form.b24-site-form` (`--glass`) + `__title`, `__text`, `__actions` | форма обратной связи. Ошибки полей — `:user-invalid` и `.b24-field__error-hint`, без JS |
+| `.b24-consent` | чекбокс согласия на обработку данных |
+| `.b24-form-status` (`--success`, `--error`) | результат отправки, который отдаёт сервер. `.is-sent` на форме оставляет только заголовок и статус; статус с `--on-sent` можно положить в разметку заранее — он появится вместе с `.is-sent` |
+| `form.b24-subscribe` (`--glass`) | подписка: поле и кнопка в строку |
+| `.b24-cookie[data-b24-cookie]` + `[data-b24-cookie-accept]` | уведомление о cookie; согласие хранится в localStorage (ключ — значение атрибута) |
+| `nav.b24-lang-switch` | переключатель языка ссылками (`aria-current` у текущего) |
+| `button.b24-theme-switch[data-b24-theme-switch]` + `__light`, `__dark` | светлая/тёмная тема, выбор запоминается. Чтобы тема не мигала, до стилей вызовите `applyStoredTheme()` или прочитайте `b24-theme` из localStorage |
+| `.b24-page-bar` > `__title` + `__tabs` (`__full`/`__short`) | строка «заголовок + вкладки-пилюли» страницы приложения; на узком экране короткие подписи |
+| `.b24-app-intro` > `__icon` (72px), `__body`, `__text` | карточка-вступление приложения: иконка, статус, описание |
+| `.b24-props--columns` | реквизиты в колонки |
+| `ul.b24-doc-index` > `.b24-doc-index__item` | документы, сгруппированные по приложениям |
+| печать | `@media print`: у `.b24-document` и статьи убираются шапка, подвал, оглавление и подложка |
+
 ## Приложение во фрейме портала
 
 `B24UI.bx24.autoFitFrame()` подгоняет высоту фрейма под контент в обе стороны, ширина остаётся 100%.
