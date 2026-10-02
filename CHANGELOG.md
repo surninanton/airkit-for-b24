@@ -12,6 +12,12 @@
 - Степпер `.b24-stepper` и мастер `.b24-wizard[data-b24-wizard]` с асинхронной проверкой шага.
 - React: `Chart`, `Sparkline`, `Kpi`, `Stepper`, `SettingRow`, `SaveBar`, `EmptyScreen`.
 
+### Редакторы полей
+- `createCombobox`: выпадающий список без `<select>` с группами, поиском по коду, счётчиком «N из M» и свободным вводом; у `select[data-b24-combobox]` — `data-creatable`, `data-counter`.
+- `createRepeater` и `[data-b24-repeater]` для серверных форм; `createKeyValue` — пары «ключ → значение».
+- `createFieldMapper`: сопоставление полей с шаблонами, правилами обновления, словарём значений, суммой прописью, склонением ФИО и ошибками сервера по пути.
+- React: `KeyValueEditor`, `FieldMapper`; у `Combobox` — `creatable`, `counter`, `groupBy`.
+
 ### Исправлено
 - Подсветка раздела (якорное меню, оглавление, настройки) пересчитывается, когда раздел появляется без прокрутки, и не перескакивает на последний раздел после клика внизу страницы.
 

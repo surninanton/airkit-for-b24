@@ -303,6 +303,31 @@ React: `<Chart>`, `<Sparkline>`, `<Kpi>`, `<Stepper>`, `<SettingRow>`, `<SaveBar
 </div>
 ```
 
+## Редакторы полей
+
+Сложные поля форм настройки интеграций. Всё поведение доступно из vanilla JS, поэтому обёртки для Vue и других фреймворков получаются тонкими: создать виджет в `onMounted`, передать значение, слушать `onChange`, вызвать `destroy()` при размонтировании. Пример — `demo/editors.html`.
+
+| Функция / класс | Что это |
+|---|---|
+| `createCombobox(host, { items, value, creatable, counter, groupBy, onChange })` | выпадающий список без `<select>`: группы (например, «Системные / Пользовательские» по префиксу `UF_`), поиск по названию и коду (`subtitle`), счётчик «N из M», свободный ввод. Значение не из справочника показывается с пометкой «не из списка» и сохраняется |
+| `select[data-b24-combobox][data-creatable][data-counter]` | то же для серверной формы: своё значение добавляется новым `<option>` |
+| `createRepeater(host, { values, create, render, addLabel, emptyText, min, max, onChange })` | повторяющиеся строки: добавить, удалить, пустое состояние, фокус не теряется. Содержимое строки рисует `render(body, value, ctx)`, `ctx.update(patch)` меняет значение |
+| `[data-b24-repeater]` + `<template>` + `[data-b24-repeater-add]` / `[data-b24-repeater-remove]` | повторитель для PHP-форм: имена `rows[0][key]` перенумеровываются, `data-max` — предел строк |
+| `createKeyValue(host, { pairs, key, value, onChange })` | пары «ключ → значение» со стрелкой. Колонка — список (`items`, своё значение разрешено) или текст (`items: null` — справочник не загрузился) |
+| `createFieldMapper(host, options)` | сопоставление полей: источник (колонка или шаблон `{{Имя}} {{Фамилия}}` со вставкой колонки) → поле Битрикс24 → правило обновления (`always`, `if_empty`, `if_changed`, `never`). Кнопка ⚙ открывает преобразование: словарь значений (`dictionary(target)` — справочник с группами, например стадии по воронкам; `onMissing`: `pass`, `default`, `skip`, `fail`), сумма прописью, склонение ФИО. Конфиги всех типов помнятся, наружу уходит выбранный. `setErrors({ '3.target': '…' })` — ошибки сервера по пути. Для дочерней сущности — второй экземпляр со своим `targetFields` |
+
+React: `<Combobox creatable counter groupBy>`, `<KeyValueEditor>`, `<FieldMapper>`.
+
+```js
+const mapper = B24UI.createFieldMapper(el, {
+  sourceFields: [{ value: 'status', label: 'Статус' }],
+  targetFields: [{ value: 'STAGE_ID', label: 'Стадия', subtitle: 'STAGE_ID' }],
+  dictionary: (field) => (field === 'STAGE_ID' ? loadStages() : null), // можно Promise
+  value: savedMappings,
+  onChange: (mappings) => { form.mappings = mappings; },
+});
+```
+
 ## Сайт и лендинги приложений
 
 Для сайта разработчика и страниц приложений (витрина, описания, политики) есть отдельный набор компонентов. Они работают без JavaScript, так что документы видны и роботу кабинета Битрикс24. JS нужен только лайтбоксу галереи и мобильному меню. На Air-подложке текст белый, элементы «стеклянные». Для светлого фона есть модификаторы `--light` / `--dark`. Пример — `demo/site.html`.

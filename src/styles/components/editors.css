@@ -1,0 +1,127 @@
+/* ── Редакторы списков: повторяющиеся строки, «ключ → значение», сопоставление полей ── */
+
+/* ── Combobox: свободный ввод, код поля, счётчик ── */
+.b24-combobox__value.is-raw { font-style: italic; }
+.b24-combobox__code { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-combobox__raw {
+  flex: 0 0 auto; height: 18px; padding: 0 6px;
+  font-size: var(--b24-font-size-2xs); line-height: 18px; white-space: nowrap;
+  color: var(--b24-color-soft-text-orange); background: var(--b24-color-soft-orange-3);
+  border-radius: 999px;
+}
+.b24-combobox .b24-tag.is-raw { font-style: italic; }
+.b24-dialog__item--create .b24-dialog__item-title { color: var(--b24-color-link); }
+.b24-dialog__item--create .b24-dialog__item-icon { width: 24px; height: 24px; }
+.b24-dialog__item-subtitle mark { background: none; color: var(--b24-color-link); font-weight: var(--b24-font-weight-semibold); }
+.b24-dialog__counter { font-variant-numeric: tabular-nums; }
+
+/* ── Повторяющиеся строки ── */
+.b24-repeater { display: flex; flex-direction: column; gap: 8px; }
+.b24-repeater__list { display: flex; flex-direction: column; gap: 8px; }
+.b24-repeater__row { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.b24-repeater__body { flex: 1 1 auto; min-width: 0; }
+.b24-repeater__remove {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: var(--b24-size-sm); height: var(--b24-size-sm); padding: 0;
+  color: var(--b24-text-subtle); background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-repeater__remove svg { width: 16px; height: 16px; }
+.b24-repeater__remove:hover { color: var(--b24-color-danger); background: var(--b24-color-soft-red-3); }
+.b24-repeater__remove:focus-visible { outline: 2px solid var(--b24-color-primary); outline-offset: 1px; }
+.b24-repeater__empty {
+  padding: 14px; text-align: center;
+  font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle);
+  border: 1px dashed var(--b24-divider-accent); border-radius: var(--b24-radius-md);
+}
+.b24-repeater__add {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 10px 0 6px;
+  font: inherit; font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium);
+  color: var(--b24-color-link); background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-repeater__add svg { width: 16px; height: 16px; }
+.b24-repeater__add:hover { background: var(--b24-color-soft-blue-3); }
+/* серверный вариант без JS: кнопки добавления/удаления не работают — прячем */
+[data-b24-repeater]:not(.is-enhanced) [data-b24-repeater-add],
+[data-b24-repeater]:not(.is-enhanced) [data-b24-repeater-remove] { display: none; }
+.b24-repeater__row > .b24-repeater__fields { flex: 1 1 auto; min-width: 0; display: flex; gap: 8px; align-items: center; }
+.b24-repeater__row > .b24-repeater__fields > * { flex: 1 1 0; min-width: 0; }
+
+/* ── Ключ → значение ── */
+.b24-kv { display: flex; flex-direction: column; gap: 6px; }
+.b24-kv__head, .b24-kv__row { display: grid; grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr); gap: 8px; align-items: center; }
+.b24-kv__head { padding-right: calc(var(--b24-size-sm) + 6px); font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-kv__cell { min-width: 0; }
+.b24-kv__cell > .b24-input { width: 100%; }
+.b24-kv__arrow { display: grid; place-items: center; color: var(--b24-text-subtle); }
+.b24-kv__arrow svg { width: 16px; height: 16px; }
+@media (max-width: 560px) {
+  .b24-kv__head { display: none; }
+  .b24-kv__row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .b24-kv__arrow { justify-content: start; transform: rotate(90deg); width: 20px; }
+}
+
+/* ── Сопоставление полей ── */
+.b24-mapper { display: flex; flex-direction: column; gap: 6px; }
+.b24-mapper__head, .b24-mapper__line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--b24-size-sm) 20px minmax(0, 1fr) minmax(150px, 0.6fr) var(--b24-size-sm);
+  gap: 8px; align-items: start;
+}
+.b24-mapper__head { padding-right: calc(var(--b24-size-sm) + 6px); font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-mapper__rows > .b24-repeater__list { gap: 6px; }
+.b24-mapper__rows .b24-repeater__row { padding: 8px; margin: 0 -8px; border-radius: var(--b24-radius-md); }
+.b24-mapper__rows .b24-repeater__row:has(.b24-mapper__panel:not([hidden])) { background: var(--b24-bg-surface-2); }
+.b24-mapper__rows .b24-repeater__row.is-invalid, .b24-mapper__rows .b24-repeater__row.is-invalid:has(.b24-mapper__panel) { background: var(--b24-color-soft-red-3); }
+.b24-mapper__cell { min-width: 0; }
+.b24-mapper__cell > .b24-select { width: 100%; }
+.b24-mapper__template { min-height: var(--b24-size-sm); font-size: var(--b24-font-size-sm); font-family: var(--b24-font-family-mono); resize: vertical; }
+.b24-mapper__insert { margin-top: 4px; max-width: 180px; }
+.b24-mapper__arrow { display: grid; place-items: center; height: var(--b24-size-sm); color: var(--b24-text-subtle); }
+.b24-mapper__arrow svg { width: 16px; height: 16px; }
+.b24-mapper__mode, .b24-mapper__transform {
+  position: relative;
+  display: grid; place-items: center;
+  width: var(--b24-size-sm); height: var(--b24-size-sm); padding: 0;
+  font: inherit; font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-semibold); font-family: var(--b24-font-family-mono);
+  color: var(--b24-text-subtle); background: transparent;
+  border: 1px solid var(--b24-border-field); border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-mapper__mode svg, .b24-mapper__transform svg { width: 16px; height: 16px; }
+.b24-mapper__mode:hover, .b24-mapper__transform:hover { color: var(--b24-text-primary); border-color: var(--b24-text-disabled); }
+.b24-mapper__mode[aria-pressed="true"], .b24-mapper__transform[aria-expanded="true"] { color: var(--b24-color-primary); background: var(--b24-color-soft-blue-3); border-color: var(--b24-color-primary-light); }
+/* настроенное преобразование: точка в углу */
+.b24-mapper__transform.is-configured { color: var(--b24-color-primary); }
+.b24-mapper__transform.is-configured::after {
+  content: ""; position: absolute; top: -3px; right: -3px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--b24-color-primary); box-shadow: 0 0 0 2px var(--b24-bg-surface);
+}
+.b24-mapper__panel {
+  display: flex; flex-direction: column; gap: 12px;
+  margin-top: 8px; padding: 12px;
+  background: var(--b24-bg-surface); border: 1px solid var(--b24-divider); border-radius: var(--b24-radius-md);
+}
+.b24-mapper__panel[hidden] { display: none; }
+.b24-mapper__types { align-self: flex-start; flex-wrap: wrap; }
+.b24-mapper__config { display: flex; flex-direction: column; gap: 10px; }
+.b24-mapper__missing { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--b24-divider); }
+.b24-mapper__missing > .b24-select { width: auto; }
+.b24-mapper__missing-label { font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
+.b24-mapper__default { flex: 1 1 200px; min-width: 0; max-width: 320px; }
+.b24-mapper__default[hidden] { display: none; }
+.b24-mapper__note { margin: 0; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-mapper__loading { display: flex; align-items: center; gap: 8px; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-mapper__errors:empty { display: none; }
+.b24-mapper__errors { margin-top: 6px; font-size: var(--b24-font-size-sm); color: var(--b24-color-danger); }
+.b24-mapper__config .b24-row > .b24-select { width: auto; }
+
+@media (max-width: 760px) {
+  .b24-mapper__head { display: none; }
+  /* источник и переключатель; поле; правило и преобразование */
+  .b24-mapper__line { grid-template-columns: minmax(0, 1fr) var(--b24-size-sm); }
+  .b24-mapper__arrow { display: none; }
+  .b24-mapper__target { grid-column: 1 / -1; }
+  .b24-mapper__rule { grid-column: 1; }
+}

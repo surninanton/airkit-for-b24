@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Редакторы полей — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+  <style>
+    .demo-json { margin: 0; max-height: 260px; overflow: auto; padding: 10px 12px; font: 12px/1.5 var(--b24-font-family-mono); white-space: pre; color: var(--b24-text-secondary); background: var(--b24-bg-surface-2); border-radius: 8px; }
+  </style>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1100px">
+    <div class="b24-toolbar">
+      <div class="b24-toolbar__row">
+        <h1 class="b24-toolbar__title">Редакторы полей</h1>
+        <div class="b24-toolbar__right">
+          <div class="b24-tabs b24-tabs--pills b24-tabs--glass" id="theme-tabs">
+            <button class="b24-tabs__item is-active" data-theme="light">Светлая</button>
+            <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
+          </div>
+          <a class="b24-btn b24-btn--glass b24-btn--sm" href="index.html">← Все компоненты</a>
+        </div>
+      </div>
+    </div>
+
+    <section class="b24-card">
+      <div class="b24-card__header"><div><h2 class="b24-card__title">Сопоставление полей</h2><div class="b24-card__subtitle">Колонки Metabase → поля сделки. Кнопка { } — шаблон из нескольких колонок, ⚙ — преобразование значения</div></div>
+        <div class="b24-card__actions"><button class="b24-btn b24-btn--secondary b24-btn--sm" id="show-errors">Ошибки с сервера</button></div></div>
+      <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+        <div id="mapper"></div>
+        <h3 class="b24-section-title">Дочерняя сущность — контакт</h3>
+        <div id="mapper-child"></div>
+        <details><summary class="b24-text-sm">Значение (JSON)</summary><pre class="demo-json" id="mapper-json"></pre></details>
+      </div>
+    </section>
+
+    <section class="b24-card">
+      <div class="b24-card__header"><div><h2 class="b24-card__title">Ключ → значение</h2><div class="b24-card__subtitle">Условия запуска: колонка Metabase → поле родительской сделки</div></div></div>
+      <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+        <div id="kv"></div>
+        <pre class="demo-json" id="kv-json"></pre>
+      </div>
+    </section>
+
+    <section class="b24-grid" style="--b24-grid-min: min(420px, 100%); align-items: start">
+      <div class="b24-card">
+        <div class="b24-card__header"><div><h2 class="b24-card__title">Выпадающий список</h2><div class="b24-card__subtitle">Группы по префиксу UF_, поиск по коду, «N из M», своё значение</div></div></div>
+        <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+          <div class="b24-field"><label class="b24-field__label">Поле сделки (createCombobox)</label><div id="combo"></div><div class="b24-field__hint">Попробуйте найти «UF_» или «stage»</div></div>
+          <div class="b24-field"><label class="b24-field__label">Справочник не загрузился — сохранено «сырое» значение</label><div id="combo-raw"></div></div>
+          <div class="b24-field"><label class="b24-field__label" for="chat">ID чата для уведомлений (select + data-creatable)</label>
+            <select class="b24-select" id="chat" name="chat" data-b24-combobox data-creatable data-counter>
+              <option value="">Выберите чат</option>
+              <option value="chat101" data-subtitle="chat101">Продажи — общий</option>
+              <option value="chat204" data-subtitle="chat204">Интеграции</option>
+              <option value="chat377" data-subtitle="chat377">Руководители</option>
+            </select></div>
+        </div>
+      </div>
+      <form class="b24-card" action="#" id="phones-form">
+        <div class="b24-card__header"><div><h2 class="b24-card__title">Повторяющиеся строки в серверной форме</h2><div class="b24-card__subtitle">&lt;template&gt; + data-b24-repeater, имена rows[0][…] перенумеровываются</div></div></div>
+        <div class="b24-card__body">
+          <div class="b24-repeater" data-b24-repeater data-max="5">
+            <div class="b24-repeater__list">
+              <div class="b24-repeater__row">
+                <div class="b24-repeater__fields">
+                  <select class="b24-select b24-select--sm" name="phones[0][type]" aria-label="Тип"><option value="WORK" selected>Рабочий</option><option value="MOBILE">Мобильный</option></select>
+                  <input class="b24-input b24-input--sm" name="phones[0][value]" value="+7 900 000-00-01" aria-label="Телефон">
+                </div>
+                <button class="b24-repeater__remove" type="button" data-b24-repeater-remove aria-label="Удалить телефон"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>
+              </div>
+            </div>
+            <div class="b24-repeater__empty" hidden>Телефонов нет</div>
+            <template>
+              <div class="b24-repeater__row">
+                <div class="b24-repeater__fields">
+                  <select class="b24-select b24-select--sm" name="phones[__i__][type]" aria-label="Тип"><option value="WORK">Рабочий</option><option value="MOBILE" selected>Мобильный</option></select>
+                  <input class="b24-input b24-input--sm" name="phones[__i__][value]" placeholder="+7" aria-label="Телефон">
+                </div>
+                <button class="b24-repeater__remove" type="button" data-b24-repeater-remove aria-label="Удалить телефон"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg></button>
+              </div>
+            </template>
+            <button class="b24-repeater__add" type="button" data-b24-repeater-add><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Добавить телефон</span></button>
+          </div>
+          <pre class="demo-json" id="phones-json" style="margin-top: 12px"></pre>
+        </div>
+      </form>
+    </section>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  document.getElementById('theme-tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme]'); if (!b) return;
+    B24UI.setTheme(b.dataset.theme);
+    document.querySelectorAll('#theme-tabs .b24-tabs__item').forEach((x) => x.classList.toggle('is-active', x === b));
+  });
+
+  const columns = [
+    ['first_name', 'Имя'], ['last_name', 'Фамилия'], ['middle_name', 'Отчество'], ['phone', 'Телефон'], ['email', 'Email'],
+    ['amount', 'Сумма договора'], ['status', 'Статус'], ['manager', 'Менеджер'], ['city', 'Город'], ['contract_no', 'Номер договора'],
+  ].map(([value, label]) => ({ value, label, subtitle: value }));
+  const dealFields = [
+    ['TITLE', 'Название'], ['STAGE_ID', 'Стадия'], ['OPPORTUNITY', 'Сумма'], ['CURRENCY_ID', 'Валюта'], ['ASSIGNED_BY_ID', 'Ответственный'],
+    ['SOURCE_ID', 'Источник'], ['COMMENTS', 'Комментарий'], ['BEGINDATE', 'Дата начала'], ['CLOSEDATE', 'Дата завершения'],
+    ['UF_CRM_CITY', 'Город'], ['UF_CRM_CONTRACT_NO', 'Номер договора'], ['UF_CRM_SUM_WORDS', 'Сумма прописью'], ['UF_CRM_CLIENT_GEN', 'Клиент (родительный падеж)'],
+    ...Array.from({ length: 14 }, (_, i) => [`UF_CRM_FIELD_${i + 1}`, `Доп. поле ${i + 1}`]),
+  ].map(([value, label]) => ({ value, label, subtitle: value }));
+  const contactFields = [['NAME', 'Имя'], ['LAST_NAME', 'Фамилия'], ['SECOND_NAME', 'Отчество'], ['PHONE', 'Телефон'], ['EMAIL', 'E-mail'], ['UF_CRM_PASSPORT', 'Паспорт']]
+    .map(([value, label]) => ({ value, label, subtitle: value }));
+  const stages = [
+    ...[['NEW', 'Новая'], ['PREPARATION', 'Подготовка документов'], ['EXECUTING', 'В работе'], ['WON', 'Сделка успешна'], ['LOSE', 'Сделка провалена']].map(([v, l]) => ({ value: v, label: l, group: 'Продажи', subtitle: v })),
+    ...[['C1:NEW', 'Новая'], ['C1:EXECUTING', 'В работе'], ['C1:WON', 'Продлено']].map(([v, l]) => ({ value: v, label: l, group: 'Повторные продажи', subtitle: v })),
+  ];
+  const sources = [['CALL', 'Звонок'], ['WEB', 'Сайт'], ['EMAIL', 'Почта'], ['PARTNER', 'Партнёр']].map(([value, label]) => ({ value, label }));
+  const wait = (v) => new Promise((r) => setTimeout(() => r(v), 400));
+  const dictionary = (target) => wait(target === 'STAGE_ID' ? stages : target === 'SOURCE_ID' ? sources : null);
+  const sourceValues = (col) => (col === 'status' ? ['new', 'in_progress', 'signed', 'lost'].map((v) => ({ value: v, label: v })) : null);
+
+  const json = document.getElementById('mapper-json');
+  const show = () => { json.textContent = JSON.stringify({ deal: mapper.getValue(), contact: child.getValue() }, null, 2); };
+  const mapper = B24UI.createFieldMapper(document.getElementById('mapper'), {
+    sourceFields: columns, targetFields: dealFields, dictionary, sourceValues, name: 'field_mappings',
+    labels: { source: 'Колонка Metabase' },
+    value: [
+      { mode: 'template', source: '', template: 'Договор {{Номер договора}} — {{Фамилия}}', target: 'TITLE', rule: 'always' },
+      { mode: 'column', source: 'amount', template: '', target: 'OPPORTUNITY', rule: 'if_changed' },
+      { mode: 'column', source: 'status', template: '', target: 'STAGE_ID', rule: 'always', transform: { type: 'value_map', map: [{ from: 'new', to: 'NEW' }, { from: 'signed', to: 'WON' }], onMissing: 'default', default: 'EXECUTING' } },
+      { mode: 'column', source: 'amount', template: '', target: 'UF_CRM_SUM_WORDS', rule: 'always', transform: { type: 'amount_words', currency: 'RUB', withKopecks: true } },
+      { mode: 'column', source: 'city', template: '', target: 'UF_CRM_REGION_OLD', rule: 'if_empty' },
+    ],
+    onChange: show,
+  });
+  const child = B24UI.createFieldMapper(document.getElementById('mapper-child'), {
+    sourceFields: columns, targetFields: contactFields, transforms: ['inflect'],
+    value: [{ mode: 'column', source: 'first_name', template: '', target: 'NAME', rule: 'if_empty' }, { mode: 'column', source: 'last_name', template: '', target: 'LAST_NAME', rule: 'if_empty' }],
+    labels: { source: 'Колонка Metabase', target: 'Поле контакта', add: 'Добавить поле контакта' },
+    onChange: show,
+  });
+  show();
+  document.getElementById('show-errors').addEventListener('click', () => {
+    // ответ Laravel 422: ключи по пути field_mappings.N.поле — приложение отрезает префикс
+    mapper.setErrors({ '1.target': 'Поле «Сумма» уже сопоставлено в другой строке', '2.transform.map.0.to': 'Стадии NEW нет в воронке «Повторные продажи»' });
+  });
+
+  const kvJson = document.getElementById('kv-json');
+  const kv = B24UI.createKeyValue(document.getElementById('kv'), {
+    key: { label: 'Колонка Metabase', items: columns, placeholder: 'Колонка' },
+    value: { label: 'Поле сделки', items: dealFields, placeholder: 'Поле', groupBy: (i) => (i.value.startsWith('UF_') ? 'Пользовательские' : 'Системные') },
+    pairs: [{ key: 'contract_no', value: 'UF_CRM_CONTRACT_NO' }],
+    addLabel: 'Добавить условие', emptyText: 'Условий нет — запуск для всех строк',
+    onChange: (p) => { kvJson.textContent = JSON.stringify(p); },
+  });
+  kvJson.textContent = JSON.stringify(kv.getPairs());
+
+  B24UI.createCombobox(document.getElementById('combo'), {
+    items: dealFields, value: 'STAGE_ID', counter: true, creatable: true,
+    groupBy: (i) => (i.value.startsWith('UF_') ? 'Пользовательские' : 'Системные'),
+  });
+  B24UI.createCombobox(document.getElementById('combo-raw'), { items: [], value: 'UF_CRM_1712345678', creatable: true, placeholder: 'Поле' });
+
+  const phonesJson = document.getElementById('phones-json');
+  const showPhones = () => { phonesJson.textContent = [...new FormData(document.getElementById('phones-form'))].map(([k, v]) => `${k} = ${v}`).join('\n'); };
+  document.addEventListener('b24:repeater-change', showPhones);
+  document.getElementById('phones-form').addEventListener('input', showPhones);
+  showPhones();
+</script>
+</body>
+</html>

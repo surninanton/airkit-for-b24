@@ -1,0 +1,362 @@
+import { icon } from '../icons';
+import { createCombobox, type ComboItem, type CreateComboboxHandle } from './combobox';
+import { h, html } from './dom';
+import { createKeyValue, createRepeater, valueField, type KeyValueHandle, type RepeaterHandle } from './repeater';
+
+/* ── Редактор сопоставления полей ──────────────────────────
+ * Строка: источник (колонка или шаблон «{{Имя}} {{Фамилия}}») → поле Битрикс24 → правило обновления,
+ * кнопка преобразования и удаление. Под строкой — панель преобразования: словарь значений
+ * (пары «значение источника → значение Битрикс24», действие для значения не из словаря),
+ * сумма прописью или склонение ФИО. Конфиги всех типов помнятся, наружу уходит только выбранный.
+ * Для дочерней сущности — второй экземпляр со своим targetFields.
+ */
+export type UpdateRule = 'always' | 'if_empty' | 'if_changed' | 'never';
+export type MissingAction = 'pass' | 'default' | 'skip' | 'fail';
+export type InflectCase = 'gen' | 'dat' | 'acc' | 'ins' | 'pre';
+
+export interface ValueMapTransform { type: 'value_map'; map: Array<{ from: string; to: string }>; onMissing: MissingAction; default?: string }
+export interface AmountWordsTransform { type: 'amount_words'; currency: string; withKopecks: boolean }
+export interface InflectTransform { type: 'inflect'; case: InflectCase; short: boolean }
+export type FieldTransform = ValueMapTransform | AmountWordsTransform | InflectTransform;
+export type TransformType = FieldTransform['type'];
+
+export interface FieldMapping {
+  mode: 'column' | 'template';
+  /** код колонки источника (mode = column) */
+  source: string;
+  /** шаблон с {{Колонка}} (mode = template) */
+  template: string;
+  /** код поля Битрикс24 */
+  target: string;
+  rule: UpdateRule;
+  transform?: FieldTransform | null;
+}
+
+type Dict = ComboItem[] | null | undefined;
+
+export interface FieldMapperOptions {
+  value?: FieldMapping[];
+  /** колонки источника */
+  sourceFields: ComboItem[];
+  /** поля Битрикс24; subtitle — код поля (по нему тоже ищется) */
+  targetFields: ComboItem[];
+  /** группа поля Битрикс24; по умолчанию UF_* — «Пользовательские», остальные — «Системные» */
+  groupTarget?: (item: ComboItem) => string | undefined;
+  rules?: Array<{ value: UpdateRule; label: string }>;
+  defaultRule?: UpdateRule;
+  /** доступные преобразования (по умолчанию все) */
+  transforms?: TransformType[];
+  /** справочник значений поля Битрикс24 для словаря (стадии с group по воронкам, списки); null — свободный ввод */
+  dictionary?: (target: string) => Dict | Promise<Dict>;
+  /** подсказки значений источника для левой колонки словаря */
+  sourceValues?: (source: string) => Dict | Promise<Dict>;
+  /** режим «шаблон» (по умолчанию да) */
+  allowTemplate?: boolean;
+  labels?: { source?: string; target?: string; rule?: string; add?: string; empty?: string };
+  /** имя скрытого поля — сопоставление уходит JSON */
+  name?: string;
+  onChange?: (value: FieldMapping[]) => void;
+}
+
+export interface FieldMapperHandle {
+  element: HTMLElement;
+  getValue(): FieldMapping[];
+  setValue(value: FieldMapping[]): void;
+  setSourceFields(items: ComboItem[]): void;
+  setTargetFields(items: ComboItem[]): void;
+  /** ошибки по пути «индекс.поле»: «3.target», «0.source», «2.transform.map.1.to», «1» — вся строка */
+  setErrors(errors: Record<string, string | string[]>): void;
+  clearErrors(): void;
+  destroy(): void;
+}
+
+export const UPDATE_RULES: Array<{ value: UpdateRule; label: string }> = [
+  { value: 'always', label: 'Всегда перезаписывать' },
+  { value: 'if_empty', label: 'Только если поле пустое' },
+  { value: 'if_changed', label: 'Если значение изменилось' },
+  { value: 'never', label: 'Только при создании' },
+];
+const TRANSFORM_LABELS: Record<TransformType, string> = { value_map: 'Словарь значений', amount_words: 'Сумма прописью', inflect: 'Склонение ФИО' };
+const MISSING: Array<{ value: MissingAction; label: string }> = [
+  { value: 'pass', label: 'Передать как есть' },
+  { value: 'default', label: 'Подставить значение' },
+  { value: 'skip', label: 'Не заполнять поле' },
+  { value: 'fail', label: 'Остановить с ошибкой' },
+];
+const CASES: Array<{ value: InflectCase; label: string }> = [
+  { value: 'gen', label: 'Родительный (кого?)' },
+  { value: 'dat', label: 'Дательный (кому?)' },
+  { value: 'acc', label: 'Винительный (кого?)' },
+  { value: 'ins', label: 'Творительный (кем?)' },
+  { value: 'pre', label: 'Предложный (о ком?)' },
+];
+const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'BYN'];
+
+const defaultGroup = (i: ComboItem) => (/^UF_/i.test(i.value) ? 'Пользовательские' : 'Системные');
+const freshTransform = (type: TransformType): FieldTransform =>
+  type === 'value_map' ? { type, map: [], onMissing: 'pass' } : type === 'amount_words' ? { type, currency: 'RUB', withKopecks: true } : { type, case: 'gen', short: false };
+/** «настроено»: у словаря есть пары, у остальных — сам факт выбора */
+const configured = (t?: FieldTransform | null) => !!t && (t.type !== 'value_map' || t.map.length > 0);
+
+function nativeSelect(opts: Array<{ value: string; label: string }>, value: string, onChange: (v: string) => void, attrs: Record<string, string> = {}): HTMLSelectElement {
+  const sel = h('select', { class: 'b24-select b24-select--sm', ...attrs }) as HTMLSelectElement;
+  for (const o of opts) sel.add(new Option(o.label, o.value, false, o.value === value));
+  sel.addEventListener('change', () => onChange(sel.value));
+  return sel;
+}
+
+export function createFieldMapper(host: HTMLElement, options: FieldMapperOptions): FieldMapperHandle {
+  const o = options;
+  let sourceFields = o.sourceFields;
+  let targetFields = o.targetFields;
+  const rules = o.rules ?? UPDATE_RULES;
+  const available = o.transforms ?? (['value_map', 'amount_words', 'inflect'] as TransformType[]);
+  const L = { source: 'Колонка источника', target: 'Поле Битрикс24', rule: 'Обновление', add: 'Добавить поле', empty: 'Поля ещё не сопоставлены', ...o.labels };
+  const root = h('div', { class: 'b24-mapper' });
+  host.append(root);
+  const hidden = o.name ? h('input', { type: 'hidden', name: o.name }) as HTMLInputElement : null;
+  if (hidden) root.append(hidden);
+  root.append(h('div', { class: 'b24-mapper__head', 'aria-hidden': 'true' },
+    h('span', {}, L.source), h('span', {}), h('span', {}), h('span', {}, L.target), h('span', {}, L.rule), h('span', {})));
+
+  /** наружу — без кэша других типов преобразования */
+  type RowState = FieldMapping & { cache: Partial<Record<TransformType, FieldTransform>> };
+  const clean = (r: RowState): FieldMapping => ({ mode: r.mode, source: r.source, template: r.template, target: r.target, rule: r.rule, transform: r.transform ?? null });
+  const emit = (rows: RowState[]) => {
+    const v = rows.map(clean);
+    if (hidden) hidden.value = JSON.stringify(v);
+    o.onChange?.(v);
+  };
+  const toState = (m: FieldMapping): RowState => ({
+    mode: m.mode ?? 'column', source: m.source ?? '', template: m.template ?? '', target: m.target ?? '', rule: m.rule ?? o.defaultRule ?? 'always',
+    transform: m.transform ?? null, cache: m.transform ? { [m.transform.type]: m.transform } : {},
+  });
+
+  // строки и их элементы для ошибок
+  const rowApi: Array<{ row: HTMLElement; setError(field: string, msg: string): void; clear(): void }> = [];
+
+  const rep: RepeaterHandle<RowState> = createRepeater<RowState>(root, {
+    values: (o.value ?? []).map(toState),
+    create: () => toState({ mode: 'column', source: '', template: '', target: '', rule: o.defaultRule ?? 'always' }),
+    addLabel: L.add,
+    emptyText: L.empty,
+    className: 'b24-mapper__rows',
+    onChange: emit,
+    render(body, initial, ctx) {
+      const st = initial;
+      const set = (patch: Partial<RowState>) => { Object.assign(st, patch); ctx.update(patch); };
+      body.classList.add('b24-mapper__row');
+      const line = h('div', { class: 'b24-mapper__line' });
+      const panel = h('div', { class: 'b24-mapper__panel', hidden: '' });
+      const errorsEl = h('div', { class: 'b24-mapper__errors', role: 'alert' });
+      body.append(line, panel, errorsEl);
+
+      // источник: колонка или шаблон
+      const srcCell = h('div', { class: 'b24-mapper__cell b24-mapper__source' });
+      let srcCombo: CreateComboboxHandle | null = null;
+      let tplArea: HTMLTextAreaElement | null = null;
+      let insertCombo: CreateComboboxHandle | null = null;
+      const renderSource = () => {
+        srcCombo?.destroy(); insertCombo?.destroy(); srcCell.textContent = ''; srcCombo = null; tplArea = null; insertCombo = null;
+        if (st.mode === 'column') {
+          srcCombo = createCombobox(srcCell, { items: sourceFields, value: st.source, placeholder: 'Выберите колонку', creatable: true, size: 'sm', ariaLabel: L.source, onChange: (v) => { set({ source: (v as string) ?? '' }); refreshPanel(); } });
+        } else {
+          tplArea = h('textarea', { class: 'b24-textarea b24-mapper__template', rows: '2', placeholder: '{{Имя}} {{Фамилия}}', 'aria-label': 'Шаблон значения' }) as HTMLTextAreaElement;
+          tplArea.value = st.template;
+          tplArea.addEventListener('input', () => set({ template: tplArea!.value }));
+          const ins = h('div', { class: 'b24-mapper__insert' });
+          srcCell.append(tplArea, ins);
+          // вставка {{колонки}} в позицию курсора
+          insertCombo = createCombobox(ins, {
+            items: sourceFields, placeholder: '+ колонка', size: 'sm', ariaLabel: 'Вставить колонку в шаблон',
+            onChange: (v) => {
+              if (!v || !tplArea) return;
+              const col = sourceFields.find((f) => f.value === v)?.label ?? String(v);
+              const a = tplArea.selectionStart ?? tplArea.value.length;
+              const b = tplArea.selectionEnd ?? a;
+              const token = `{{${col}}}`;
+              tplArea.value = tplArea.value.slice(0, a) + token + tplArea.value.slice(b);
+              tplArea.selectionStart = tplArea.selectionEnd = a + token.length;
+              set({ template: tplArea.value });
+              insertCombo?.setValue(null);
+              tplArea.focus();
+            },
+          });
+        }
+      };
+      const modeBtn = h('button', { type: 'button', class: 'b24-mapper__mode', 'aria-pressed': 'false' }) as HTMLButtonElement;
+      const syncMode = () => {
+        const tpl = st.mode === 'template';
+        modeBtn.setAttribute('aria-pressed', String(tpl));
+        modeBtn.title = tpl ? 'Шаблон — переключить на колонку' : 'Колонка — переключить на шаблон';
+        modeBtn.setAttribute('aria-label', modeBtn.title);
+        modeBtn.innerHTML = tpl ? '<span aria-hidden="true">{ }</span>' : icon('list');
+      };
+      modeBtn.addEventListener('click', () => { set({ mode: st.mode === 'column' ? 'template' : 'column' }); syncMode(); renderSource(); (srcCell.querySelector('textarea, [tabindex="0"]') as HTMLElement | null)?.focus(); });
+
+      const tgtCell = h('div', { class: 'b24-mapper__cell b24-mapper__target' });
+      const tgtCombo = createCombobox(tgtCell, {
+        items: targetFields, value: st.target, placeholder: 'Выберите поле', size: 'sm', ariaLabel: L.target,
+        groupBy: o.groupTarget ?? defaultGroup, counter: true, creatable: true,
+        onChange: (v) => { set({ target: (v as string) ?? '' }); refreshPanel(); },
+      });
+      const ruleCell = h('div', { class: 'b24-mapper__cell b24-mapper__rule' });
+      ruleCell.append(nativeSelect(rules, st.rule, (v) => set({ rule: v as UpdateRule }), { 'aria-label': L.rule }));
+
+      const trBtn = h('button', { type: 'button', class: 'b24-mapper__transform', 'aria-expanded': 'false' }, html(icon('settings'))) as HTMLButtonElement;
+      const syncTrBtn = () => {
+        const on = configured(st.transform);
+        trBtn.classList.toggle('is-configured', on);
+        const name = st.transform ? TRANSFORM_LABELS[st.transform.type] : '';
+        trBtn.title = on ? `Преобразование: ${name}` : 'Преобразование значения';
+        trBtn.setAttribute('aria-label', trBtn.title);
+      };
+      trBtn.addEventListener('click', () => {
+        const open = panel.hidden;
+        panel.hidden = !open;
+        trBtn.setAttribute('aria-expanded', String(open));
+        if (open) refreshPanel(true);
+      });
+
+      line.append(srcCell);
+      if (o.allowTemplate !== false) line.append(modeBtn); else line.append(h('span'));
+      line.append(h('span', { class: 'b24-mapper__arrow', 'aria-hidden': 'true' }, html(icon('arrowRight'))), tgtCell, ruleCell);
+      if (available.length) line.append(trBtn);
+
+      // ── панель преобразования ──
+      let kv: KeyValueHandle | null = null;
+      let defField: { destroy(): void } | null = null;
+      let panelToken = 0;
+      const setTransform = (t: FieldTransform | null) => {
+        if (t) st.cache[t.type] = t;
+        set({ transform: t });
+        syncTrBtn();
+      };
+      const refreshPanel = async (force = false) => {
+        if (panel.hidden && !force) { syncTrBtn(); return; }
+        const token = ++panelToken;
+        kv?.destroy(); kv = null; defField?.destroy(); defField = null;
+        panel.textContent = '';
+        const types = h('div', { class: 'b24-tabs b24-tabs--pills b24-mapper__types', role: 'radiogroup', 'aria-label': 'Тип преобразования' });
+        const typeBtn = (type: TransformType | null, label: string) => {
+          const active = (st.transform?.type ?? null) === type;
+          const b = h('button', { type: 'button', class: `b24-tabs__item${active ? ' is-active' : ''}`, role: 'radio', 'aria-checked': String(active) }, label);
+          b.addEventListener('click', () => { setTransform(type ? st.cache[type] ?? freshTransform(type) : null); void refreshPanel(); });
+          return b;
+        };
+        types.append(typeBtn(null, 'Без преобразования'), ...available.map((t) => typeBtn(t, TRANSFORM_LABELS[t])));
+        panel.append(types);
+        const t = st.transform;
+        if (!t) return;
+        const box = h('div', { class: 'b24-mapper__config' });
+        panel.append(box);
+        if (t.type === 'value_map') {
+          if (!st.target) { box.append(h('p', { class: 'b24-mapper__note' }, 'Сначала выберите поле Битрикс24 — от него зависит список значений.')); return; }
+          box.append(h('div', { class: 'b24-mapper__loading' }, h('span', { class: 'b24-spinner b24-spinner--sm' }), 'Загрузка значений…'));
+          const [dict, srcVals] = await Promise.all([
+            Promise.resolve(o.dictionary?.(st.target) ?? null).catch(() => null),
+            Promise.resolve(st.mode === 'column' && st.source ? o.sourceValues?.(st.source) ?? null : null).catch(() => null),
+          ]);
+          if (token !== panelToken) return; // пока грузилось, панель перерисовали
+          box.textContent = '';
+          if (!dict) box.append(h('p', { class: 'b24-mapper__note' }, 'Справочника у поля нет — значения вводятся вручную.'));
+          const kvHost = h('div');
+          box.append(kvHost);
+          kv = createKeyValue(kvHost, {
+            pairs: t.map.map((p) => ({ key: p.from, value: p.to })),
+            key: { label: 'Значение источника', placeholder: 'Как в источнике', items: srcVals ?? null },
+            value: { label: 'Значение Битрикс24', placeholder: 'Выберите значение', items: dict ?? null },
+            addLabel: 'Добавить значение',
+            emptyText: 'Добавьте пары значений',
+            size: 'sm',
+            onChange: (pairs) => setTransform({ ...(st.transform as ValueMapTransform), map: pairs.map((p) => ({ from: p.key, to: p.value })) }),
+          });
+          const miss = h('div', { class: 'b24-mapper__missing' });
+          const missLabel = h('span', { class: 'b24-mapper__missing-label' }, 'Значения нет в словаре:');
+          const defHost = h('div', { class: 'b24-mapper__default' });
+          const renderDefault = () => {
+            defField?.destroy(); defField = null; defHost.textContent = '';
+            const cur = st.transform as ValueMapTransform;
+            defHost.hidden = cur.onMissing !== 'default';
+            if (cur.onMissing === 'default') {
+              defField = valueField(defHost, { items: dict ?? null, placeholder: 'Значение по умолчанию' }, cur.default ?? '', (v) => setTransform({ ...(st.transform as ValueMapTransform), default: v }), { size: 'sm', ariaLabel: 'Значение по умолчанию' });
+            }
+          };
+          miss.append(missLabel, nativeSelect(MISSING, t.onMissing, (v) => { setTransform({ ...(st.transform as ValueMapTransform), onMissing: v as MissingAction }); renderDefault(); }, { 'aria-label': 'Если значения нет в словаре' }), defHost);
+          box.append(miss);
+          renderDefault();
+        } else if (t.type === 'amount_words') {
+          const kop = h('label', { class: 'b24-check' }, h('input', { type: 'checkbox' }), h('span', {}, 'С копейками'));
+          const cb = kop.querySelector('input')!;
+          cb.checked = t.withKopecks;
+          cb.addEventListener('change', () => setTransform({ ...(st.transform as AmountWordsTransform), withKopecks: cb.checked }));
+          box.append(h('div', { class: 'b24-row' },
+            h('span', { class: 'b24-mapper__missing-label' }, 'Валюта'),
+            nativeSelect(CURRENCIES.map((c) => ({ value: c, label: c })), t.currency, (v) => setTransform({ ...(st.transform as AmountWordsTransform), currency: v }), { 'aria-label': 'Валюта' }),
+            kop), h('p', { class: 'b24-mapper__note' }, '1 250,50 → «одна тысяча двести пятьдесят рублей 50 копеек»'));
+        } else {
+          const short = h('label', { class: 'b24-check' }, h('input', { type: 'checkbox' }), h('span', {}, 'Кратко: Иванову И. И.'));
+          const cb = short.querySelector('input')!;
+          cb.checked = t.short;
+          cb.addEventListener('change', () => setTransform({ ...(st.transform as InflectTransform), short: cb.checked }));
+          box.append(h('div', { class: 'b24-row' },
+            h('span', { class: 'b24-mapper__missing-label' }, 'Падеж'),
+            nativeSelect(CASES, t.case, (v) => setTransform({ ...(st.transform as InflectTransform), case: v as InflectCase }), { 'aria-label': 'Падеж' }),
+            short));
+        }
+      };
+
+      renderSource();
+      syncMode();
+      syncTrBtn();
+
+      const api = {
+        row: ctx.row,
+        setError(field: string, msg: string) {
+          ctx.row.classList.add('is-invalid');
+          if (field === 'source') srcCombo?.setInvalid(true);
+          if (field === 'target') tgtCombo.setInvalid(true);
+          if (field === 'template') tplArea?.setAttribute('aria-invalid', 'true');
+          if (field.startsWith('transform') && panel.hidden) trBtn.click();
+          errorsEl.append(h('div', {}, msg));
+        },
+        clear() {
+          ctx.row.classList.remove('is-invalid');
+          srcCombo?.setInvalid(false);
+          tgtCombo.setInvalid(false);
+          tplArea?.removeAttribute('aria-invalid');
+          errorsEl.textContent = '';
+        },
+      };
+      rowApi.push(api);
+      return () => {
+        panelToken++;
+        srcCombo?.destroy(); insertCombo?.destroy(); tgtCombo.destroy(); kv?.destroy(); defField?.destroy();
+        rowApi.splice(rowApi.indexOf(api), 1);
+      };
+    },
+  });
+  if (hidden) hidden.value = JSON.stringify(rep.getValues().map(clean));
+
+  const apiFor = (i: number) => rowApi.find((a) => a.row === rep.rows()[i]);
+
+  return {
+    element: root,
+    getValue: () => rep.getValues().map(clean),
+    setValue: (v) => rep.setValues(v.map(toState)),
+    setSourceFields(items) { sourceFields = items; rep.setValues(rep.getValues()); },
+    setTargetFields(items) { targetFields = items; rep.setValues(rep.getValues()); },
+    setErrors(errors) {
+      rowApi.forEach((a) => a.clear());
+      for (const [path, msg] of Object.entries(errors)) {
+        const [i, ...rest] = path.split('.');
+        const api = apiFor(Number(i));
+        const list = Array.isArray(msg) ? msg : [msg];
+        list.forEach((m) => api?.setError(rest.join('.') || 'row', m));
+      }
+      root.querySelector<HTMLElement>('.b24-repeater__row.is-invalid')?.scrollIntoView({ block: 'nearest' });
+    },
+    clearErrors: () => rowApi.forEach((a) => a.clear()),
+    destroy: () => { rep.destroy(); root.remove(); },
+  };
+}

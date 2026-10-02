@@ -20,6 +20,12 @@ interface ComboBase {
   loadOptions?: (query: string, signal: AbortSignal) => Promise<ComboOption[]>;
   placeholder?: string;
   searchable?: boolean;
+  /** свободный ввод значения не из списка */
+  creatable?: boolean;
+  /** счётчик «N из M» внизу списка */
+  counter?: boolean;
+  /** группа варианта, если не задана в option.group */
+  groupBy?: (option: ComboOption) => string | undefined;
   size?: 'sm' | 'md';
   disabled?: boolean;
   id?: string;
@@ -37,7 +43,7 @@ const fromItem = (i: DialogItem): ComboOption => (i.data as ComboOption) ?? { va
 
 /** Выпадающий список с поиском и мультивыбором тегами. */
 export function Combobox(props: ComboboxProps) {
-  const { options = [], loadOptions, placeholder = 'Не выбрано', searchable, size = 'md', disabled, id, className, multiple } = props;
+  const { options = [], loadOptions, placeholder = 'Не выбрано', searchable, creatable, counter, groupBy, size = 'md', disabled, id, className, multiple } = props;
   const ref = useRef<HTMLDivElement>(null);
   const dialog = useRef<EntityDialogHandle | null>(null);
   const [open, setOpen] = useState(false);
@@ -68,7 +74,10 @@ export function Combobox(props: ComboboxProps) {
       load: loadOptions ? async (q, _t, signal) => (await loadOptions(q, signal)).map(toItem) : undefined,
       multiple,
       selected: selected.map(toItem),
-      searchable: searchable ?? (!!loadOptions || options.length > 7),
+      searchable: searchable ?? (!!loadOptions || creatable || options.length > 7),
+      creatable,
+      counter,
+      groupBy: groupBy ? (i) => groupBy(fromItem(i)) : undefined,
       avatars: options.some((o) => o.avatar),
       compact: true,
       width: Math.max(ref.current.offsetWidth, 220),
@@ -77,6 +86,8 @@ export function Combobox(props: ComboboxProps) {
     });
   };
 
+  // «сырое» значение: нет ни в options, ни среди загруженных
+  const isRaw = (v: string) => !loadOptions && !options.some((o) => o.value === v);
   const remove = (v: string) => emit(selected.filter((o) => o.value !== v).map(toItem));
 
   return (
@@ -99,7 +110,9 @@ export function Combobox(props: ComboboxProps) {
       }}
     >
       {!selected.length && <span className="b24-combobox__placeholder">{placeholder}</span>}
-      {!multiple && selected[0] && <span className="b24-combobox__value">{selected[0].label}</span>}
+      {!multiple && selected[0] && <span className={cx('b24-combobox__value', isRaw(selected[0].value) && 'is-raw')}>{selected[0].label}</span>}
+      {!multiple && selected[0]?.subtitle && <span className="b24-combobox__code">{selected[0].subtitle}</span>}
+      {!multiple && selected[0] && isRaw(selected[0].value) && <span className="b24-combobox__raw" title="Значения нет в справочнике — сохранится как введено">не из списка</span>}
       {multiple && selected.map((o) => (
         <span key={o.value} className="b24-tag">
           <span className="b24-tag__text">{o.label}</span>

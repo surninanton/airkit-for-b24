@@ -16,6 +16,7 @@ import { createVendor, type VendorOptions } from './vendor';
 import { initGrid, type GridOptions } from './grid';
 import { createChart, sparkline, type ChartOptions } from './chart';
 import { initSettings, initWizard } from './screens';
+import { initRepeater } from './repeater';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 
 /**
@@ -49,6 +50,9 @@ import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initTheme
  *   .b24-toc[data-b24-toc]         — оглавление статьи: подсветка раздела; пустой <ol> + data-source — собрать из h2/h3
  *   [data-b24-cookie]              — уведомление о cookie (показывается, пока не принято)
  *   [data-b24-theme-switch]        — переключатель светлой/тёмной темы (запоминается)
+ *   [data-b24-repeater]            — повторяющиеся строки серверной формы: <template> строки, [data-b24-repeater-add],
+ *                                    [data-b24-repeater-remove]; имена rows[0][key] перенумеровываются; data-max
+ *   select[data-b24-combobox][data-creatable][data-counter] — свободный ввод и счётчик «N из M»
  *   [data-b24-chart]               — график: JSON-конфиг ChartOptions внутри или data-b24-chart="#id"
  *   [data-b24-sparkline="3,5,4,8"] — спарклайн (data-color — свой цвет)
  *   .b24-settings[data-b24-settings] — страница настроек: подсветка раздела, панель сохранения, событие b24:settings-save
@@ -253,6 +257,11 @@ export function init(root: ParentNode = document): void {
     initCookieNotice(el);
   });
 
+  root.querySelectorAll<HTMLElement>('[data-b24-repeater]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initRepeater(el);
+  });
   root.querySelectorAll<HTMLElement>('[data-b24-chart]').forEach((el) => {
     if (el.dataset.b24Ready) return;
     const cfg = readJsonConfig<ChartOptions>(el, 'b24Chart');

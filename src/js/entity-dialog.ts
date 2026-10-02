@@ -38,6 +38,14 @@ export interface EntityDialogOptions {
   debounce?: number;
   /** футер «Выбрано: N · Готово» для multiple (по умолчанию true) */
   footer?: boolean | Content;
+  /** свободный ввод: при поиске без точного совпадения первым пунктом идёт «Использовать «…»» */
+  creatable?: boolean;
+  /** подпись пункта свободного ввода */
+  createLabel?: (query: string) => string;
+  /** счётчик «N из M» внизу списка (липкий) */
+  counter?: boolean;
+  /** группа пункта, если её нет в item.group (например, по префиксу кода UF_) */
+  groupBy?: (item: DialogItem) => string | undefined;
   onChange?: (selected: DialogItem[]) => void;
   onClose?: (selected: DialogItem[]) => void;
 }
@@ -51,6 +59,9 @@ export interface EntityDialogHandle {
 }
 
 export const itemKey = (i: Pick<DialogItem, 'id' | 'entityId'>): string => `${i.entityId ?? ''}:${i.id}`;
+
+/** Пункт свободного ввода: id и title — введённый текст */
+export const isCreatedItem = (i: DialogItem): boolean => (i.data as { __created?: boolean } | undefined)?.__created === true;
 
 function highlight(text: string, query: string): string {
   const safe = escapeHtml(text);
@@ -69,7 +80,8 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
     width, compact, avatars = true, placement = 'bottom-start', debounce = 250,
   } = options;
   let selected = [...(options.selected ?? [])];
-  let items: DialogItem[] = options.items ?? [];
+  const withGroups = (list: DialogItem[]) => (options.groupBy ? list.map((i) => ({ ...i, group: i.group ?? options.groupBy!(i) })) : list);
+  let items: DialogItem[] = withGroups(options.items ?? []);
   let query = '';
   let tab: string | null = tabs[0]?.id ?? null;
   let active = 0;
@@ -107,17 +119,29 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
   }
   root.append(list);
   const footerEl = h('div', { class: 'b24-dialog__footer' });
-  const showFooter = options.footer !== false && (multiple || (options.footer && options.footer !== true));
+  const showFooter = options.footer !== false && (multiple || !!options.counter || (options.footer && options.footer !== true));
   if (showFooter) root.append(footerEl);
 
   const isSelected = (i: DialogItem) => selected.some((s) => itemKey(s) === itemKey(i));
 
-  const visible = (): DialogItem[] => {
-    if (options.load) return items;
+  /** найденные пункты без пункта свободного ввода; группы идут подряд в порядке первого появления */
+  const found = (): DialogItem[] => {
     const q = query.trim().toLowerCase();
-    return items.filter((i) =>
+    const list = options.load ? items : items.filter((i) =>
       (!tab || !tabs.length || !i.tab || i.tab === tab) &&
-      (!q || i.title.toLowerCase().includes(q) || i.subtitle?.toLowerCase().includes(q)));
+      (!q || i.title.toLowerCase().includes(q) || i.subtitle?.toLowerCase().includes(q) || String(i.id).toLowerCase().includes(q)));
+    if (!list.some((i) => i.group)) return list;
+    const order = new Map<string, number>();
+    list.forEach((i) => { if (!order.has(i.group ?? '')) order.set(i.group ?? '', order.size); });
+    return [...list].sort((a, b) => order.get(a.group ?? '')! - order.get(b.group ?? '')!);
+  };
+  const visible = (): DialogItem[] => {
+    const list = found();
+    const q = query.trim();
+    if (!options.creatable || !q) return list;
+    const lower = q.toLowerCase();
+    const exact = items.some((i) => i.title.toLowerCase() === lower || String(i.id).toLowerCase() === lower);
+    return exact ? list : [{ id: q, title: q, data: { __created: true } }, ...list];
   };
 
   const renderTabs = () => {
@@ -139,10 +163,15 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
       footerEl.append(typeof options.footer === 'string' ? document.createTextNode(options.footer) : options.footer);
       return;
     }
-    footerEl.append(h('span', {}, `Выбрано: ${selected.length}`));
-    const done = h('button', { type: 'button', class: 'b24-btn b24-btn--primary b24-btn--sm' }, 'Готово');
-    done.addEventListener('click', () => handle.close());
-    footerEl.append(done);
+    const parts: string[] = [];
+    if (options.counter) parts.push(`${found().length} из ${items.length}`);
+    if (multiple) parts.push(`Выбрано: ${selected.length}`);
+    footerEl.append(h('span', { class: 'b24-dialog__counter' }, parts.join(' · ')));
+    if (multiple) {
+      const done = h('button', { type: 'button', class: 'b24-btn b24-btn--primary b24-btn--sm' }, 'Готово');
+      done.addEventListener('click', () => handle.close());
+      footerEl.append(done);
+    }
   };
 
   const renderList = () => {
@@ -152,6 +181,7 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
       return;
     }
     const data = visible();
+    renderFooter();
     if (!data.length) {
       list.append(h('div', { class: 'b24-dialog__empty' }, emptyText));
       return;
@@ -159,6 +189,15 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
     active = Math.min(active, data.length - 1);
     let group: string | undefined;
     data.forEach((item, index) => {
+      if (isCreatedItem(item)) {
+        const el = h('div', {
+          class: `b24-dialog__item b24-dialog__item--create${index === active ? ' is-active' : ''}`,
+          role: 'option', id: `${listId}-${index}`, 'aria-selected': 'false', 'data-index': String(index),
+        }, h('span', { class: 'b24-dialog__item-icon' }, html(icon('plus'))), h('span', { class: 'b24-dialog__item-text' },
+          h('span', { class: 'b24-dialog__item-title' }, options.createLabel?.(item.title) ?? `Использовать «${item.title}»`)));
+        list.append(el);
+        return;
+      }
       if (item.group && item.group !== group) {
         group = item.group;
         list.append(h('div', { class: 'b24-dialog__group', role: 'presentation' }, group));
@@ -179,7 +218,11 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
       const title = h('span', { class: 'b24-dialog__item-title' });
       title.innerHTML = highlight(item.title, query.trim());
       text.append(title);
-      if (item.subtitle) text.append(h('span', { class: 'b24-dialog__item-subtitle' }, item.subtitle));
+      if (item.subtitle) {
+        const sub = h('span', { class: 'b24-dialog__item-subtitle' });
+        sub.innerHTML = highlight(item.subtitle, query.trim());
+        text.append(sub);
+      }
       el.append(text);
       if (multiple) el.append(h('span', { class: 'b24-dialog__check' }, html(icon('check'))));
       list.append(el);
@@ -211,7 +254,7 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
     renderList();
     options.load(query.trim(), tab, signal).then((res) => {
       if (signal.aborted) return;
-      items = res;
+      items = withGroups(res);
       loading = false;
       renderList();
     }).catch((err) => {
