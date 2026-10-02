@@ -1,4 +1,5 @@
 import { escapeHtml } from './dom';
+import { intlLocale, t } from './i18n';
 
 /* ── Графики дашборда ─────────────────────────────────────
  * Линия, область, столбцы (рядом или стопкой), кольцо и спарклайн. SVG без зависимостей.
@@ -43,8 +44,8 @@ export interface ChartHandle {
 
 const NS = 'http://www.w3.org/2000/svg';
 const MAX_BAR = 24;
-const nf = new Intl.NumberFormat('ru-RU');
-const compact = new Intl.NumberFormat('ru-RU', { notation: 'compact', maximumFractionDigits: 1 });
+const nf = { format: (v: number) => new Intl.NumberFormat(intlLocale()).format(v) };
+const compact = { format: (v: number) => new Intl.NumberFormat(intlLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(v) };
 
 export const chartColor = (i: number, s?: ChartSeries) => s?.color ?? `var(--b24-chart-${(i % 6) + 1})`;
 
@@ -94,7 +95,7 @@ export function createChart(root: HTMLElement, initial: ChartOptions): ChartHand
   const fmt = (v: number) => (o.format ?? nf.format)(v);
 
   function renderTable() {
-    const head = o.type === 'donut' ? '<th>Доля</th><th>Значение</th>' : `<th></th>${o.series.map((s) => `<th>${escapeHtml(s.name)}</th>`).join('')}`;
+    const head = o.type === 'donut' ? `<th>${t('Доля')}</th><th>${t('Значение')}</th>` : `<th></th>${o.series.map((s) => `<th>${escapeHtml(s.name)}</th>`).join('')}`;
     const rows = o.type === 'donut'
       ? o.labels.map((l, i) => `<tr><th>${escapeHtml(l)}</th><td>${fmt(o.series[0]?.data[i] ?? 0)}</td></tr>`)
       : o.labels.map((l, i) => `<tr><th>${escapeHtml(l)}</th>${o.series.map((s) => `<td>${fmt(s.data[i] ?? 0)}</td>`).join('')}</tr>`);
@@ -136,7 +137,7 @@ export function createChart(root: HTMLElement, initial: ChartOptions): ChartHand
   function renderDonut(size: number) {
     const data = (o.series[0]?.data ?? []).map((v) => Math.max(0, v));
     const total = data.reduce((a, b) => a + b, 0);
-    svg = el('svg', { viewBox: `0 0 ${size} ${size}`, role: 'img', 'aria-label': o.title ?? 'Диаграмма' });
+    svg = el('svg', { viewBox: `0 0 ${size} ${size}`, role: 'img', 'aria-label': o.title ?? t('Диаграмма') });
     const c = size / 2;
     const R = size / 2 - 2;
     const r = R * 0.64;
@@ -197,7 +198,7 @@ export function createChart(root: HTMLElement, initial: ChartOptions): ChartHand
     // линии: точки от края до края; столбцы: по центру полосы
     const x = (i: number) => (o.type === 'bar' ? pad.l + band * i + band / 2 : pad.l + (n > 1 ? (pw * i) / (n - 1) : pw / 2));
 
-    svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': o.title ?? 'График' });
+    svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': o.title ?? t('График') });
     const gGrid = el('g', {}, svg);
     for (const t of ticks) {
       el('line', { x1: pad.l, x2: pad.l + pw, y1: y(t), y2: y(t), class: t === 0 ? 'b24-chart__baseline' : 'b24-chart__grid' }, gGrid);
@@ -268,7 +269,7 @@ export function createChart(root: HTMLElement, initial: ChartOptions): ChartHand
         hoverDots.forEach((dot, j) => { dot.setAttribute('cx', String(x(i))); dot.setAttribute('cy', String(y(o.series[j].data[i] ?? 0))); dot.setAttribute('visibility', 'visible'); });
       }
       let html = `<div class="b24-chart__tip-title">${escapeHtml(o.labels[i] ?? '')}</div>${o.series.map((s, j) => row(chartColor(j, s), s.name, fmt(s.data[i] ?? 0))).join('')}`;
-      if (stacked && o.series.length > 1) html += `<div class="b24-chart__tip-row">Всего<b>${fmt(o.series.reduce((a, s) => a + (s.data[i] ?? 0), 0))}</b></div>`;
+      if (stacked && o.series.length > 1) html += `<div class="b24-chart__tip-row">${t('Всего')}<b>${fmt(o.series.reduce((a, s) => a + (s.data[i] ?? 0), 0))}</b></div>`;
       const scale = box.width / W;
       const top = o.type === 'bar' ? y(Math.max(...o.series.map((s) => s.data[i] ?? 0))) : y(o.series[0].data[i] ?? 0);
       showTip(html, x(i) * scale, top * scale);

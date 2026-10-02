@@ -7,6 +7,7 @@ import { anchorOverlayInFrame, bringToFront, viewportHeight, focusFirst, lockScr
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx, usePresence } from './utils';
+import { t } from '../js/i18n';
 
 function useLayer(active: boolean, containerRef: React.RefObject<HTMLElement | null>, onClose?: () => void) {
   const onCloseRef = useRef(onClose);
@@ -63,7 +64,7 @@ export function Modal({ open, onClose, title, footer, size = 'md', width, closeO
       >
         <div className="b24-modal__header">
           <h2 className="b24-modal__title">{title}</h2>
-          <button type="button" className="b24-close" aria-label="Закрыть" onClick={onClose}><Icon name="close" /></button>
+          <button type="button" className="b24-close" aria-label={t('Закрыть')} onClick={onClose}><Icon name="close" /></button>
         </div>
         <div className="b24-modal__body">{children}</div>
         {footer && <div className="b24-modal__footer">{footer}</div>}
@@ -96,7 +97,7 @@ export function SidePanel({ open, onClose, title, headerActions, footer, width =
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div ref={ref} role="dialog" aria-modal="true" className={cx('b24-sidepanel', air && 'b24-sidepanel--air')} style={{ '--b24-panel-width': `${width}px` } as CSSProperties}>
-        <button type="button" className="b24-sidepanel__close" aria-label="Закрыть" onClick={onClose}><Icon name="close" /></button>
+        <button type="button" className="b24-sidepanel__close" aria-label={t('Закрыть')} onClick={onClose}><Icon name="close" /></button>
         {(title || headerActions) && (
           <div className="b24-sidepanel__header">
             <h2 className="b24-sidepanel__title">{title}</h2>

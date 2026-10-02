@@ -1,5 +1,6 @@
 import { icon } from '../icons';
 import { escapeHtml, h, html } from './dom';
+import { intlLocale, t as tr } from './i18n';
 
 /* ── Подсветка JSON ─────────────────────────────────────── */
 export function jsonHtml(value: unknown, indent = 2): string {
@@ -24,7 +25,7 @@ export type CodeTone = 'error' | 'warning' | 'success' | 'info' | 'muted';
 export function codeHtml(lines: Array<string | { text: string; tone?: CodeTone }>, options: { copy?: boolean; dark?: boolean } = {}): string {
   const body = lines.map((l) => (typeof l === 'string' ? { text: l } : l))
     .map((l) => `<span class="b24-code__line${l.tone ? ` is-${l.tone}` : ''}">${escapeHtml(l.text) || ' '}</span>`).join('');
-  const copy = options.copy !== false ? `<button type="button" class="b24-code__copy" data-b24-copy aria-label="Скопировать">${icon('copy')}</button>` : '';
+  const copy = options.copy !== false ? `<button type="button" class="b24-code__copy" data-b24-copy aria-label="${escapeHtml(tr('Скопировать'))}">${icon('copy')}</button>` : '';
   return `<div class="b24-code${options.dark ? ' b24-code--dark' : ''}">${copy}<pre>${body}</pre></div>`;
 }
 
@@ -85,17 +86,17 @@ export interface LogViewerHandle {
   destroy(): void;
 }
 
-const DEFAULT_LEVELS = [
-  { value: 'debug', label: 'Отладка' },
-  { value: 'info', label: 'Инфо' },
-  { value: 'warning', label: 'Предупреждения' },
-  { value: 'error', label: 'Ошибки' },
+const DEFAULT_LEVELS = () => [
+  { value: 'debug', label: tr('Отладка') },
+  { value: 'info', label: tr('Инфо') },
+  { value: 'warning', label: tr('Предупреждения') },
+  { value: 'error', label: tr('Ошибки') },
 ];
-const timeFmt = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const timeFmt = () => new Intl.DateTimeFormat(intlLocale(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 export function createLogViewer<C = unknown>(host: HTMLElement, options: LogViewerOptions<C>): LogViewerHandle {
   const o = options;
-  const levels = o.levels ?? DEFAULT_LEVELS;
+  const levels = o.levels ?? DEFAULT_LEVELS();
   let active = new Set<LogLevel>(o.selected ?? levels.map((l) => l.value));
   let cursor: C | null = null;
   let hasMore = false;
@@ -103,12 +104,12 @@ export function createLogViewer<C = unknown>(host: HTMLElement, options: LogView
   let count = 0;
 
   const root = h('div', { class: 'b24-logs' });
-  const bar = h('div', { class: 'b24-logs__bar', role: 'group', 'aria-label': 'Уровни' });
+  const bar = h('div', { class: 'b24-logs__bar', role: 'group', 'aria-label': tr('Уровни') });
   const counter = h('span', { class: 'b24-logs__count', 'aria-live': 'polite' });
   const list = h('div', { class: 'b24-logs__list', role: 'log', 'aria-live': 'off' });
   if (o.height) list.style.maxHeight = typeof o.height === 'number' ? `${o.height}px` : o.height;
-  const more = h('button', { type: 'button', class: 'b24-logs__more' }, 'Загрузить ещё') as HTMLButtonElement;
-  const empty = h('div', { class: 'b24-logs__empty' }, o.emptyText ?? 'Записей нет');
+  const more = h('button', { type: 'button', class: 'b24-logs__more' }, tr('Загрузить ещё')) as HTMLButtonElement;
+  const empty = h('div', { class: 'b24-logs__empty' }, o.emptyText ?? tr('Записей нет'));
   root.append(bar, list, more);
   host.append(root);
 
@@ -131,14 +132,14 @@ export function createLogViewer<C = unknown>(host: HTMLElement, options: LogView
 
   const entryEl = (e: LogEntry) => {
     const t = typeof e.time === 'string' ? new Date(e.time) : e.time;
-    const when = Number.isNaN(t.getTime()) ? String(e.time) : timeFmt.format(t).replace(',', '');
+    const when = Number.isNaN(t.getTime()) ? String(e.time) : timeFmt().format(t).replace(',', '');
     const details = e.context !== undefined || e.trace;
     const row = h('div', { class: `b24-logs__entry is-${e.level}` });
     const head = h(details ? 'button' : 'div', { class: 'b24-logs__head', ...(details ? { type: 'button', 'aria-expanded': 'false' } : {}) },
       h('time', { class: 'b24-logs__time' }, when),
       h('span', { class: 'b24-logs__lvl' }, String(e.level).toUpperCase()),
       h('span', { class: 'b24-logs__msg' }, e.message));
-    const copy = h('button', { type: 'button', class: 'b24-logs__copy', 'aria-label': 'Скопировать запись', title: 'Скопировать' }, html(icon('copy')));
+    const copy = h('button', { type: 'button', class: 'b24-logs__copy', 'aria-label': tr('Скопировать запись'), title: tr('Скопировать') }, html(icon('copy')));
     copy.addEventListener('click', async (ev) => {
       ev.stopPropagation();
       const ok = await copyText(JSON.stringify({ time: e.time, level: e.level, message: e.message, context: e.context, trace: e.trace }, null, 2));
@@ -161,7 +162,7 @@ export function createLogViewer<C = unknown>(host: HTMLElement, options: LogView
   };
 
   const sync = () => {
-    counter.textContent = count ? `Показано: ${count}` : '';
+    counter.textContent = count ? tr('Показано: {count}', { count }) : '';
     more.hidden = !hasMore;
     if (!count) list.replaceChildren(empty); else empty.remove();
   };
@@ -170,7 +171,7 @@ export function createLogViewer<C = unknown>(host: HTMLElement, options: LogView
     abort?.abort();
     abort = new AbortController();
     const signal = abort.signal;
-    if (reset) { cursor = null; count = 0; list.replaceChildren(h('div', { class: 'b24-logs__empty' }, h('span', { class: 'b24-spinner b24-spinner--sm' }), 'Загрузка…')); more.hidden = true; }
+    if (reset) { cursor = null; count = 0; list.replaceChildren(h('div', { class: 'b24-logs__empty' }, h('span', { class: 'b24-spinner b24-spinner--sm' }), tr('Загрузка…'))); more.hidden = true; }
     more.classList.add('b24-btn--loading');
     try {
       const page = await o.load({ cursor, levels: [...active], signal });
@@ -182,7 +183,7 @@ export function createLogViewer<C = unknown>(host: HTMLElement, options: LogView
       hasMore = page.next != null;
     } catch (err) {
       if (signal.aborted) return;
-      list.append(h('div', { class: 'b24-logs__empty is-error' }, `Не удалось загрузить: ${(err as Error)?.message ?? err}`));
+      list.append(h('div', { class: 'b24-logs__empty is-error' }, tr('Не удалось загрузить: {error}', { error: String((err as Error)?.message ?? err) })));
     } finally {
       if (!signal.aborted) { more.classList.remove('b24-btn--loading'); sync(); }
     }

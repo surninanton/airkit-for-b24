@@ -3,9 +3,23 @@
  * Используется и vanilla-календарём, и React-компонентами.
  */
 
-export const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-export const MONTHS_GENITIVE = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-export const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+import { t } from './i18n';
+
+export const months = (): string[] => [t('Январь'), t('Февраль'), t('Март'), t('Апрель'), t('Май'), t('Июнь'), t('Июль'), t('Август'), t('Сентябрь'), t('Октябрь'), t('Ноябрь'), t('Декабрь')];
+export const monthsGenitive = (): string[] => [t('января'), t('февраля'), t('марта'), t('апреля'), t('мая'), t('июня'), t('июля'), t('августа'), t('сентября'), t('октября'), t('ноября'), t('декабря')];
+export const weekdays = (): string[] => [t('Пн'), t('Вт'), t('Ср'), t('Чт'), t('Пт'), t('Сб'), t('Вс')];
+
+/** Массив, элементы которого вычисляются при каждом обращении (подписи следуют за setLocale) */
+const live = <T>(get: () => T[]): T[] => new Proxy([] as T[], {
+  get: (_, k) => { const a = get(); const v = Reflect.get(a, k); return typeof v === 'function' ? v.bind(a) : v; },
+  has: (_, k) => Reflect.has(get(), k),
+  ownKeys: () => Reflect.ownKeys(get()),
+  getOwnPropertyDescriptor: (_, k) => { const d = Reflect.getOwnPropertyDescriptor(get(), k); return d && k !== 'length' ? { ...d, configurable: true } : d; },
+});
+
+export const MONTHS: string[] = live(months);
+export const MONTHS_GENITIVE: string[] = live(monthsGenitive);
+export const WEEKDAYS: string[] = live(weekdays);
 
 export interface DateRange { from: Date | null; to: Date | null }
 
@@ -60,7 +74,7 @@ export function toISODate(d: Date | null | undefined): string {
 /** «24 сентября 2026» / «24 сентября», если текущий год */
 export function formatHuman(d: Date | null | undefined): string {
   if (!d) return '';
-  const base = `${d.getDate()} ${MONTHS_GENITIVE[d.getMonth()]}`;
+  const base = `${d.getDate()} ${monthsGenitive()[d.getMonth()]}`;
   return d.getFullYear() === new Date().getFullYear() ? base : `${base} ${d.getFullYear()}`;
 }
 
@@ -96,25 +110,26 @@ export type PeriodType =
 
 export interface PeriodValue { type: PeriodType; from?: string; to?: string }
 
-export const PERIOD_OPTIONS: Array<{ value: PeriodType; label: string }> = [
-  { value: 'any', label: 'Любая дата' },
-  { value: 'yesterday', label: 'Вчера' },
-  { value: 'today', label: 'Сегодня' },
-  { value: 'tomorrow', label: 'Завтра' },
-  { value: 'week', label: 'Текущая неделя' },
-  { value: 'lastWeek', label: 'Прошлая неделя' },
-  { value: 'nextWeek', label: 'Следующая неделя' },
-  { value: 'month', label: 'Текущий месяц' },
-  { value: 'lastMonth', label: 'Прошлый месяц' },
-  { value: 'nextMonth', label: 'Следующий месяц' },
-  { value: 'quarter', label: 'Текущий квартал' },
-  { value: 'year', label: 'Текущий год' },
-  { value: 'last7', label: 'Последние 7 дней' },
-  { value: 'last30', label: 'Последние 30 дней' },
-  { value: 'last90', label: 'Последние 90 дней' },
-  { value: 'exact', label: 'Точная дата' },
-  { value: 'range', label: 'Диапазон' },
+export const periodOptions = (): Array<{ value: PeriodType; label: string }> => [
+  { value: 'any', label: t('Любая дата') },
+  { value: 'yesterday', label: t('Вчера') },
+  { value: 'today', label: t('Сегодня') },
+  { value: 'tomorrow', label: t('Завтра') },
+  { value: 'week', label: t('Текущая неделя') },
+  { value: 'lastWeek', label: t('Прошлая неделя') },
+  { value: 'nextWeek', label: t('Следующая неделя') },
+  { value: 'month', label: t('Текущий месяц') },
+  { value: 'lastMonth', label: t('Прошлый месяц') },
+  { value: 'nextMonth', label: t('Следующий месяц') },
+  { value: 'quarter', label: t('Текущий квартал') },
+  { value: 'year', label: t('Текущий год') },
+  { value: 'last7', label: t('Последние 7 дней') },
+  { value: 'last30', label: t('Последние 30 дней') },
+  { value: 'last90', label: t('Последние 90 дней') },
+  { value: 'exact', label: t('Точная дата') },
+  { value: 'range', label: t('Диапазон') },
 ];
+export const PERIOD_OPTIONS: Array<{ value: PeriodType; label: string }> = live(periodOptions);
 
 /** Превращает период в конкретный интервал дат (включительно). any → null. */
 export function resolvePeriod(p: PeriodValue | null | undefined, now = new Date()): DateRange | null {
@@ -158,5 +173,5 @@ export function periodLabel(p: PeriodValue | null | undefined): string {
   if (!p || p.type === 'any') return '';
   if (p.type === 'exact') return p.from ?? '';
   if (p.type === 'range') return [p.from || '…', p.to || '…'].join(' – ');
-  return PERIOD_OPTIONS.find((o) => o.value === p.type)?.label ?? '';
+  return periodOptions().find((o) => o.value === p.type)?.label ?? '';
 }

@@ -1,5 +1,6 @@
 import { icon } from '../icons';
 import { anchorOverlayInFrame, animateOut, bringToFront, append, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
+import { t } from './i18n';
 
 export interface ModalButton {
   text: string;
@@ -52,7 +53,7 @@ export function modal(options: ModalOptions): ModalHandle {
     const header = h('div', { class: 'b24-modal__header' });
     header.append(h('h2', { class: 'b24-modal__title', id: titleId }, title ?? ''));
     if (closable) {
-      const x = h('button', { type: 'button', class: 'b24-close', 'aria-label': 'Закрыть' }, html(icon('close')));
+      const x = h('button', { type: 'button', class: 'b24-close', 'aria-label': t('Закрыть') }, html(icon('close')));
       x.addEventListener('click', () => void handle.close(undefined));
       header.append(x);
     }
@@ -130,12 +131,12 @@ export async function confirm(
   opts: { title?: string; okText?: string; cancelText?: string; danger?: boolean } = {},
 ): Promise<boolean> {
   const m = modal({
-    title: opts.title ?? 'Подтвердите действие',
+    title: opts.title ?? t('Подтвердите действие'),
     content: message,
     size: 'sm',
     buttons: [
-      { text: opts.okText ?? 'Продолжить', variant: opts.danger ? 'danger' : 'primary', value: true, autofocus: true },
-      { text: opts.cancelText ?? 'Отмена', variant: 'plain', value: false },
+      { text: opts.okText ?? t('Продолжить'), variant: opts.danger ? 'danger' : 'primary', value: true, autofocus: true },
+      { text: opts.cancelText ?? t('Отмена'), variant: 'plain', value: false },
     ],
   });
   return (await m.result) === true;
@@ -147,6 +148,6 @@ export async function alert(message: Content, opts: { title?: string; okText?: s
     title: opts.title,
     content: message,
     size: 'sm',
-    buttons: [{ text: opts.okText ?? 'Понятно', variant: 'primary', autofocus: true }],
+    buttons: [{ text: opts.okText ?? t('Понятно'), variant: 'primary', autofocus: true }],
   }).result;
 }

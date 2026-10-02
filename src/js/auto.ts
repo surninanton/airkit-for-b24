@@ -20,6 +20,7 @@ import { initRepeater } from './repeater';
 import { initCheckGroup, initColors, initRange, initSecret } from './controls';
 import { copyText } from './logs';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
+import { t } from './i18n';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -335,7 +336,7 @@ export function delegateGlobalEvents(): void {
       if (!row) return;
       const open = expander.getAttribute('aria-expanded') !== 'true';
       expander.setAttribute('aria-expanded', String(open));
-      expander.setAttribute('aria-label', open ? 'Скрыть подробности' : 'Показать подробности');
+      expander.setAttribute('aria-label', open ? t('Скрыть подробности') : t('Показать подробности'));
       row.hidden = !open;
       expander.dispatchEvent(new CustomEvent('b24:row-expand', { bubbles: true, detail: { open, row } }));
       return;

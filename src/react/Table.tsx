@@ -13,6 +13,7 @@ import {
 import { formatDate, parseDate } from '../js/date';
 import { DatePicker } from './DatePicker';
 import { confirm } from '../js/modal';
+import { t } from '../js/i18n';
 
 export type SortDir = 'ascending' | 'descending';
 export interface SortState { key: string; dir: SortDir }
@@ -232,7 +233,7 @@ export function DataTable<T>({
     };
     if (v === edit.original) { setEdit(null); goNext(); return; }
     if (c.editable!.type === 'number' && v !== '' && !Number.isFinite(Number(v.replace(/\s/g, '').replace(',', '.')))) {
-      setEdit({ ...edit, draft: value, error: 'Введите число' });
+      setEdit({ ...edit, draft: value, error: t('Введите число') });
       return;
     }
     setEdit({ ...edit, draft: value, saving: true, error: undefined });
@@ -241,7 +242,7 @@ export function DataTable<T>({
       setEdit(null);
       goNext();
     } catch (err) {
-      setEdit((e) => (e ? { ...e, saving: false, error: typeof err === 'string' ? err : (err as Error)?.message ?? 'Не удалось сохранить' } : e));
+      setEdit((e) => (e ? { ...e, saving: false, error: typeof err === 'string' ? err : (err as Error)?.message ?? t('Не удалось сохранить') } : e));
     }
   };
   const renderEditor = (row: T, c: Column<T>) => {
@@ -314,10 +315,10 @@ export function DataTable<T>({
   const settingsMenu = columnSettings ? (
     <Dropdown
       placement="bottom-start"
-      trigger={<button type="button" className="b24-table__settings" aria-label="Настройка столбцов" title="Настройка столбцов"><Icon name="settings" size={16} /></button>}
+      trigger={<button type="button" className="b24-table__settings" aria-label={t('Настройка столбцов')} title={t('Настройка столбцов')}><Icon name="settings" size={16} /></button>}
     >
       <div className="b24-grid-settings">
-        <div className="b24-menu__title">Столбцы</div>
+        <div className="b24-menu__title">{t('Столбцы')}</div>
         <div className="b24-grid-settings__list">
           {grid.order.map((k) => {
             const c = byKey.get(k);
@@ -338,8 +339,8 @@ export function DataTable<T>({
                   type="button"
                   className={cx('b24-grid-settings__pin', isPinned && 'is-pinned')}
                   aria-pressed={isPinned}
-                  aria-label={`${isPinned ? 'Открепить' : 'Закрепить'} столбец «${label}»`}
-                  title={isPinned ? 'Открепить' : 'Закрепить слева'}
+                  aria-label={isPinned ? t('Открепить столбец «{label}»', { label: String(label) }) : t('Закрепить столбец «{label}»', { label: String(label) })}
+                  title={isPinned ? t('Открепить') : t('Закрепить слева')}
                   onClick={() => setGrid((g) => togglePinned(g, k))}
                 >
                   <Icon name="pin" size={14} />
@@ -349,7 +350,7 @@ export function DataTable<T>({
           })}
         </div>
         <div className="b24-grid-settings__footer">
-          <Button variant="link" size="sm" onClick={() => { clearGridState(stateKey); setServiceW({}); setGrid(normalizeGridState(colKeys, null, defaultHidden, defaultPinned)); }}>Сбросить настройки</Button>
+          <Button variant="link" size="sm" onClick={() => { clearGridState(stateKey); setServiceW({}); setGrid(normalizeGridState(colKeys, null, defaultHidden, defaultPinned)); }}>{t('Сбросить настройки')}</Button>
         </div>
       </div>
     </Dropdown>
@@ -379,13 +380,13 @@ export function DataTable<T>({
             {cornerCol && (
               <th className={cx(selectable ? 'b24-table__cell-check' : 'b24-table__cell-menu', !gearInMenu && 'b24-datagrid__corner')} data-fixed="">
                 <span className="b24-datagrid__corner-inner">
-                  {selectable && <Checkbox aria-label="Выбрать все" checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />}
+                  {selectable && <Checkbox aria-label={t('Выбрать все')} checked={allChecked} indeterminate={someChecked} onChange={toggleAll} />}
                   {!gearInMenu && settingsMenu}
                 </span>
               </th>
             )}
             {rowActions && <th className="b24-table__cell-menu" data-fixed="">{gearInMenu && settingsMenu}</th>}
-            {renderExpanded && <th className="b24-table__cell-expand" aria-label="Подробности" />}
+            {renderExpanded && <th className="b24-table__cell-expand" aria-label={t('Подробности')} />}
             {visible.map((c) => (
               <th
                 key={c.key}
@@ -403,7 +404,7 @@ export function DataTable<T>({
                   <span
                     className="b24-table__resizer"
                     aria-hidden="true"
-                    title="Ширина столбца (двойной клик — по содержимому)"
+                    title={t('Ширина столбца (двойной клик — по содержимому)')}
                     onPointerDown={(e) => onResizeStart(e, c.key)}
                     onDoubleClick={(e) => { e.stopPropagation(); onAutofit(c.key); }}
                     onClick={(e) => e.stopPropagation()}
@@ -417,7 +418,7 @@ export function DataTable<T>({
           {loading && !rows.length ? (
             <tr><td colSpan={colSpan}><Loader /></td></tr>
           ) : !sorted.length ? (
-            <tr><td colSpan={colSpan} style={{ borderBottom: 0 }}>{empty ?? <EmptyState title="Ничего не найдено">Попробуйте изменить параметры фильтра</EmptyState>}</td></tr>
+            <tr><td colSpan={colSpan} style={{ borderBottom: 0 }}>{empty ?? <EmptyState title={t('Ничего не найдено')}>{t('Попробуйте изменить параметры фильтра')}</EmptyState>}</td></tr>
           ) : (
             sorted.map((row, i) => {
               const k = rowKey(row);
@@ -437,7 +438,7 @@ export function DataTable<T>({
                 >
                   {cornerCol && (
                     <td className={selectable ? 'b24-table__cell-check' : 'b24-table__cell-menu'}>
-                      {selectable && <Checkbox aria-label="Выбрать строку" checked={isSel} onChange={() => toggleOne(k)} />}
+                      {selectable && <Checkbox aria-label={t('Выбрать строку')} checked={isSel} onChange={() => toggleOne(k)} />}
                     </td>
                   )}
                   {rowActions && (
@@ -446,7 +447,7 @@ export function DataTable<T>({
                         <Dropdown
                           placement="bottom-start"
                           items={menu}
-                          trigger={<button type="button" className="b24-table__row-menu" aria-label="Действия со строкой"><Icon name="menu" size={16} /></button>}
+                          trigger={<button type="button" className="b24-table__row-menu" aria-label={t('Действия со строкой')}><Icon name="menu" size={16} /></button>}
                         />
                       )}
                     </td>
@@ -454,7 +455,7 @@ export function DataTable<T>({
                   {renderExpanded && (
                     <td className="b24-table__cell-expand">
                       {details != null && (
-                        <button type="button" className="b24-table__expander" aria-expanded={isOpen} aria-controls={detailsId} aria-label={isOpen ? 'Скрыть подробности' : 'Показать подробности'} onClick={() => toggleExpanded(k)} />
+                        <button type="button" className="b24-table__expander" aria-expanded={isOpen} aria-controls={detailsId} aria-label={isOpen ? t('Скрыть подробности') : t('Показать подробности')} onClick={() => toggleExpanded(k)} />
                       )}
                     </td>
                   )}
@@ -468,7 +469,7 @@ export function DataTable<T>({
                         style={alignStyle(c)}
                         className={cx(c.numeric && 'b24-table__num', editableCell && 'b24-cell-editable', isEditing && 'is-editing', isEditing && edit!.saving && 'is-saving', isEditing && edit!.error && 'is-error')}
                         tabIndex={editableCell && !isEditing ? 0 : undefined}
-                        title={editableCell && !isEditing ? 'Двойной клик или Enter — изменить' : undefined}
+                        title={editableCell && !isEditing ? t('Двойной клик или Enter — изменить') : undefined}
                         onDoubleClick={editableCell && !isEditing ? (ev) => { if ((ev.target as HTMLElement).closest('a,button,input,select,label')) return; ev.preventDefault(); startEdit(row, c); } : undefined}
                         onKeyDown={editableCell && !isEditing ? (ev) => { if ((ev.key === 'Enter' || ev.key === 'F2') && ev.target === ev.currentTarget) { ev.preventDefault(); startEdit(row, c); } } : undefined}
                       >
@@ -489,12 +490,12 @@ export function DataTable<T>({
         </tbody>
       </table>
       {groupActions && selected.length > 0 && (
-        <div className="b24-grid-actions" role="toolbar" aria-label="Действия с отмеченными">
-          <span className="b24-grid-actions__count">Отмечено: {selected.length} из {rows.length}</span>
+        <div className="b24-grid-actions" role="toolbar" aria-label={t('Действия с отмеченными')}>
+          <span className="b24-grid-actions__count">{t('Отмечено: {n} из {m}', { n: selected.length, m: rows.length })}</span>
           {groupActions.map((a) => (
             <Button key={a.id} size="sm" variant={a.variant ?? 'secondary'} icon={a.icon} onClick={() => void runGroup(a)}>{a.label}</Button>
           ))}
-          <Button variant="link" size="sm" className="b24-grid-actions__clear" onClick={() => onSelectionChange?.([])}>Снять выделение</Button>
+          <Button variant="link" size="sm" className="b24-grid-actions__clear" onClick={() => onSelectionChange?.([])}>{t('Снять выделение')}</Button>
         </div>
       )}
       {loading && rows.length > 0 && <div className="b24-loader-overlay"><span className="b24-spinner" /></div>}
@@ -516,14 +517,14 @@ export function Pagination({ page, pages, onChange }: PaginationProps) {
     else if (list[list.length - 1] !== '…') list.push('…');
   }
   return (
-    <nav className="b24-pagination" aria-label="Страницы">
-      <button type="button" className="b24-pagination__item" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="Назад"><Icon name="chevronLeft" size={16} /></button>
+    <nav className="b24-pagination" aria-label={t('Страницы')}>
+      <button type="button" className="b24-pagination__item" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label={t('Назад')}><Icon name="chevronLeft" size={16} /></button>
       {list.map((p, i) =>
         p === '…' ? <span key={`e${i}`} className="b24-pagination__item" aria-hidden>…</span> : (
           <button key={p} type="button" className="b24-pagination__item" aria-current={p === page ? 'page' : undefined} onClick={() => onChange(p)}>{p}</button>
         ),
       )}
-      <button type="button" className="b24-pagination__item" disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label="Вперёд"><Icon name="chevronRight" size={16} /></button>
+      <button type="button" className="b24-pagination__item" disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label={t('Вперёд')}><Icon name="chevronRight" size={16} /></button>
     </nav>
   );
 }

@@ -1,4 +1,5 @@
 import { bringToFront, viewportHeight, h, pushLayer } from './dom';
+import { t } from './i18n';
 
 /**
  * Выбор времени HH:MM: поле + попап с колонками часов и минут.
@@ -75,14 +76,14 @@ export function timepicker(input: HTMLInputElement, options: TimePickerOptions =
   input.value = committed;
   input.autocomplete = 'off';
   input.inputMode = 'numeric';
-  if (!input.placeholder) input.placeholder = options.placeholder ?? 'чч:мм';
+  if (!input.placeholder) input.placeholder = options.placeholder ?? t('чч:мм');
   input.setAttribute('role', 'combobox');
   input.setAttribute('aria-haspopup', 'listbox');
   input.setAttribute('aria-expanded', 'false');
 
-  const popup = h('div', { class: 'b24-popup b24-root b24-timepicker-popup', hidden: true, role: 'dialog', 'aria-label': 'Выбор времени', style: 'background:var(--b24-bg-surface)' });
-  const hoursCol = h('div', { class: 'b24-timepicker__col', role: 'listbox', 'aria-label': 'Часы' });
-  const minutesCol = h('div', { class: 'b24-timepicker__col', role: 'listbox', 'aria-label': 'Минуты' });
+  const popup = h('div', { class: 'b24-popup b24-root b24-timepicker-popup', hidden: true, role: 'dialog', 'aria-label': t('Выбор времени'), style: 'background:var(--b24-bg-surface)' });
+  const hoursCol = h('div', { class: 'b24-timepicker__col', role: 'listbox', 'aria-label': t('Часы') });
+  const minutesCol = h('div', { class: 'b24-timepicker__col', role: 'listbox', 'aria-label': t('Минуты') });
   popup.append(hoursCol, h('span', { class: 'b24-timepicker__sep', 'aria-hidden': 'true' }, ':'), minutesCol);
 
   function clamp(v: number): number {

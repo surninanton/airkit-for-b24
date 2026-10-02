@@ -3,6 +3,7 @@
  * конвертация в filter для REST Битрикс24 (crm.deal.list и т.п.).
  */
 import { periodLabel, resolvePeriod, toISODate, type PeriodValue } from './date';
+import { t } from './i18n';
 
 export type FilterFieldType = 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'checkbox';
 
@@ -72,10 +73,10 @@ export function valueLabel(field: FilterField, value: FilterValue): string {
     case 'number': {
       const { from, to } = value as NumberRange;
       if (from && to) return `${from} – ${to}`;
-      return from ? `от ${from}` : `до ${to}`;
+      return from ? t('от {n}', { n: from }) : t('до {n}', { n: to ?? '' });
     }
     case 'date': return periodLabel(value as PeriodValue);
-    case 'checkbox': return value === 'Y' ? 'Да' : 'Нет';
+    case 'checkbox': return value === 'Y' ? t('Да') : t('Нет');
     default: return String(value);
   }
 }

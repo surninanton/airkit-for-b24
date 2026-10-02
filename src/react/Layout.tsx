@@ -6,6 +6,7 @@ import { cx } from './utils';
 import { setTheme, setAirPreset, type AirPreset, type Theme } from '../js/theme';
 import { Vendor } from './Vendor';
 import type { VendorOptions } from '../js/vendor';
+import { t } from '../js/i18n';
 
 /** Корень приложения: подключает базовые стили и тему. */
 export function B24Provider({ theme = 'light', air = 'blue', children }: { theme?: Theme; air?: AirPreset; children: ReactNode }) {
@@ -76,7 +77,7 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
     <div className={cx('b24-shell b24-root', collapsed && 'is-collapsed', menuOpen && 'is-menu-open')}>
       <aside className="b24-shell__sidebar" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMenuOpen(false); }}>{sidebar}</aside>
       <header className="b24-shell__header">
-        <button type="button" className="b24-btn b24-btn--plain b24-btn--icon" style={{ color: '#fff' }} aria-label="Меню" onClick={toggle}>
+        <button type="button" className="b24-btn b24-btn--plain b24-btn--icon" style={{ color: '#fff' }} aria-label={t('Меню')} onClick={toggle}>
           <Icon name="menu" />
         </button>
         {header}
@@ -89,7 +90,7 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
 
 export function Sidebar({ brand, brandMark = '24', children }: { brand?: ReactNode; brandMark?: ReactNode; children: ReactNode }) {
   return (
-    <nav className="b24-sidebar" aria-label="Главное меню">
+    <nav className="b24-sidebar" aria-label={t('Главное меню')}>
       {brand && (
         <div className="b24-sidebar__brand">
           <span className="b24-sidebar__brand-mark">{brandMark}</span>

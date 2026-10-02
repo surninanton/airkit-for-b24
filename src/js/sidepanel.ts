@@ -1,5 +1,6 @@
 import { icon } from '../icons';
 import { animateOut, append, bringToFront, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
+import { t } from './i18n';
 
 export interface SidePanelOptions {
   title?: string;
@@ -25,14 +26,14 @@ const openPanels: SidePanelHandle[] = [];
 
 /** Слайдер справа — аналог BX.SidePanel.Instance.open(). Вложенные панели сдвигаются «лесенкой». */
 export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
-  const { title, content, url, width = 900, air = false, footer, closeLabel = 'Закрыть', onClose } = options;
+  const { title, content, url, width = 900, air = false, footer, closeLabel = t('Закрыть'), onClose } = options;
   const depth = openPanels.length;
   const overlay = h('div', { class: 'b24-sidepanel-overlay b24-root', style: `background-color:var(--b24-bg-overlay)` });
   const panel = h('div', {
     class: `b24-sidepanel${air ? ' b24-sidepanel--air' : ''}`,
     role: 'dialog',
     'aria-modal': 'true',
-    'aria-label': title ?? 'Панель',
+    'aria-label': title ?? t('Панель'),
     style: `--b24-panel-width:${Math.max(360, width - depth * 60)}px`,
   });
 

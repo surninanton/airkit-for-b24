@@ -6,6 +6,7 @@ import { formatDate, parseDate } from './date';
 import { escapeHtml, h, html } from './dom';
 import type { DialogItem, EntityDialogOptions } from './entity-dialog';
 import { createTagSelector } from './tag-selector';
+import { intlLocale, t } from './i18n';
 
 export type EditorFieldType =
   | 'text' | 'textarea' | 'number' | 'money' | 'email' | 'phone' | 'url'
@@ -69,7 +70,7 @@ const isEmpty = (v: unknown) => v == null || v === '' || (Array.isArray(v) && !v
 
 export function formatMoney(v: unknown, currency = '₽'): string {
   const n = Number(String(v).replace(/\s/g, '').replace(',', '.'));
-  return Number.isFinite(n) ? `${n.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ${currency}` : String(v);
+  return Number.isFinite(n) ? `${n.toLocaleString(intlLocale(), { maximumFractionDigits: 2 })} ${currency}` : String(v);
 }
 
 function viewValue(field: EditorField, value: unknown, values: EditorValues): Node | string {
@@ -77,11 +78,11 @@ function viewValue(field: EditorField, value: unknown, values: EditorValues): No
   const esc = (s: unknown) => escapeHtml(String(s));
   switch (field.type) {
     case 'money': return formatMoney(value, field.currency);
-    case 'number': return Number(value).toLocaleString('ru-RU');
+    case 'number': return Number(value).toLocaleString(intlLocale());
     case 'email': return html(`<a href="mailto:${esc(value)}">${esc(value)}</a>`);
     case 'phone': return html(`<a href="tel:${esc(String(value).replace(/[^\d+]/g, ''))}">${esc(value)}</a>`);
     case 'url': return html(`<a href="${esc(value)}" target="_blank" rel="noopener">${esc(String(value).replace(/^https?:\/\//, ''))}</a>`);
-    case 'boolean': return value ? 'Да' : 'Нет';
+    case 'boolean': return value ? t('Да') : t('Нет');
     case 'select': return field.options?.find((o) => o.value === value)?.label ?? String(value);
     case 'multiselect': return (value as string[]).map((v) => field.options?.find((o) => o.value === v)?.label ?? v).join(', ');
     case 'user':
@@ -97,7 +98,7 @@ function viewValue(field: EditorField, value: unknown, values: EditorValues): No
 
 /** Карточка сущности с просмотром и редактированием по секциям (аналог BX.UI.EntityEditor). */
 export function createEntityEditor(container: HTMLElement, options: EntityEditorOptions): EntityEditorHandle {
-  const { fields, sections, readonly, emptyText = 'не заполнено', saveText = 'Сохранить' } = options;
+  const { fields, sections, readonly, emptyText = t('не заполнено'), saveText = t('Сохранить') } = options;
   const byId = new Map(fields.map((f) => [f.id, f]));
   let values: EditorValues = structuredClone(options.values);
   const editing = new Set<string>();
@@ -112,7 +113,7 @@ export function createEntityEditor(container: HTMLElement, options: EntityEditor
   const bar = h('div', { class: 'b24-editor-bar', hidden: true });
   const barError = h('span', { class: 'b24-editor-bar__error' });
   const saveBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--success' }, saveText);
-  const cancelBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--link' }, 'Отменить');
+  const cancelBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--link' }, t('Отменить'));
   bar.append(saveBtn, cancelBtn, barError);
   root.append(sectionsEl, bar);
   container.append(root);
@@ -161,7 +162,7 @@ export function createEntityEditor(container: HTMLElement, options: EntityEditor
       case 'multiselect': {
         const multiple = field.type === 'multiselect';
         const sel = h('select', { id, class: 'b24-select', multiple: multiple || undefined });
-        if (!multiple) sel.append(h('option', { value: '' }, 'Не выбрано'));
+        if (!multiple) sel.append(h('option', { value: '' }, t('Не выбрано')));
         const current = new Set(multiple ? ((value as string[]) ?? []) : [String(value ?? '')]);
         for (const o of field.options ?? []) sel.append(h('option', { value: o.value, selected: current.has(o.value) }, o.label));
         const wrap = h('div', {}, sel);
@@ -192,7 +193,7 @@ export function createEntityEditor(container: HTMLElement, options: EntityEditor
     const el = h('section', { class: `b24-editor-section${section.columns === 2 ? ' b24-editor-section--2col' : ''}${isEditing ? ' is-editing' : ''}`, 'data-section': section.id });
     const header = h('header', { class: 'b24-editor-section__header' }, h('h3', { class: 'b24-editor-section__title' }, section.title));
     if (!readonly && !isEditing) {
-      const edit = h('button', { type: 'button', class: 'b24-editor-section__edit' }, 'изменить');
+      const edit = h('button', { type: 'button', class: 'b24-editor-section__edit' }, t('изменить'));
       edit.addEventListener('click', () => api.edit(section.id));
       header.append(edit);
     }
@@ -249,11 +250,11 @@ export function createEntityEditor(container: HTMLElement, options: EntityEditor
     for (const id of readers.keys()) {
       const f = byId.get(id)!;
       const v = next[id];
-      if (f.required && isEmpty(v)) { errs[id] = 'Обязательное поле'; continue; }
+      if (f.required && isEmpty(v)) { errs[id] = t('Обязательное поле'); continue; }
       if (isEmpty(v)) continue;
-      if ((f.type === 'number' || f.type === 'money') && !Number.isFinite(Number(String(v).replace(/\s/g, '').replace(',', '.')))) errs[id] = 'Введите число';
-      else if (f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v))) errs[id] = 'Некорректный e-mail';
-      else if ((f.type === 'date' || f.type === 'datetime') && !parseDate(String(v))) errs[id] = 'Некорректная дата';
+      if ((f.type === 'number' || f.type === 'money') && !Number.isFinite(Number(String(v).replace(/\s/g, '').replace(',', '.')))) errs[id] = t('Введите число');
+      else if (f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v))) errs[id] = t('Некорректный e-mail');
+      else if ((f.type === 'date' || f.type === 'datetime') && !parseDate(String(v))) errs[id] = t('Некорректная дата');
       const custom = f.validate?.(v, next);
       if (custom) errs[id] = custom;
     }
@@ -299,7 +300,7 @@ export function createEntityEditor(container: HTMLElement, options: EntityEditor
         errors = {};
         return true;
       } catch (err) {
-        barError.textContent = (err as Error)?.message ?? 'Не удалось сохранить';
+        barError.textContent = (err as Error)?.message ?? t('Не удалось сохранить');
         return false;
       } finally {
         saving = false;

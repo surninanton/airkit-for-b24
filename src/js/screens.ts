@@ -1,4 +1,5 @@
 import { scrollSpy } from './site';
+import { t } from './i18n';
 
 /* ── Страница настроек ─────────────────────────────────────
  * .b24-settings[data-b24-settings] с формой внутри (или внутри формы):
@@ -143,7 +144,7 @@ export function initWizard(root: HTMLElement): WizardHandle {
     if (back) back.hidden = index === 0;
     if (next) next.hidden = last;
     if (finish) finish.hidden = !last;
-    if (counter) counter.textContent = `Шаг ${index + 1} из ${steps.length}`;
+    if (counter) counter.textContent = t('Шаг {n} из {m}', { n: index + 1, m: steps.length });
     if (focus) {
       const title = steps[index]?.querySelector<HTMLElement>('.b24-wizard__title, h2, h3');
       if (title) { title.tabIndex = -1; title.focus({ preventScroll: true }); }

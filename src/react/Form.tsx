@@ -5,6 +5,7 @@ import {
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 type Size = 'sm' | 'md' | 'lg';
 
@@ -69,7 +70,7 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
       {icon && <span className="b24-input-group__icon"><Icon name={icon} /></span>}
       <Input ref={ref} value={value} {...rest} />
       {onClear && value ? (
-        <button type="button" className="b24-input-group__icon" style={{ background: 'none', border: 0, cursor: 'pointer' }} aria-label="Очистить" onClick={onClear}>
+        <button type="button" className="b24-input-group__icon" style={{ background: 'none', border: 0, cursor: 'pointer' }} aria-label={t('Очистить')} onClick={onClear}>
           <Icon name="close" size={16} />
         </button>
       ) : null}
@@ -80,7 +81,7 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
 });
 
 export const SearchInput = forwardRef<HTMLInputElement, Omit<InputGroupProps, 'icon'>>(function SearchInput(props, ref) {
-  return <InputGroup ref={ref} type="search" icon="search" placeholder="Поиск" {...props} />;
+  return <InputGroup ref={ref} type="search" icon="search" placeholder={t('Поиск')} {...props} />;
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {

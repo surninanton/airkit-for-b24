@@ -2,6 +2,7 @@ import { icon } from '../icons';
 import { avatarHtml } from './avatar';
 import { h, html } from './dom';
 import { itemKey, openEntityDialog, type DialogItem, type EntityDialogHandle, type EntityDialogOptions } from './entity-dialog';
+import { t } from './i18n';
 
 export interface TagSelectorOptions extends Omit<EntityDialogOptions, 'selected' | 'onChange' | 'onClose'> {
   selected?: DialogItem[];
@@ -27,7 +28,7 @@ export interface TagSelectorHandle {
 
 /** Поле с тегами + диалог выбора (аналог BX.UI.EntitySelector.TagSelector). */
 export function createTagSelector(container: HTMLElement, options: TagSelectorOptions): TagSelectorHandle {
-  const { name, valueFormat = 'id', multiple = false, plain, readonly, addLabel = multiple ? 'Добавить' : 'Выбрать', changeLabel = 'Сменить', ...dialogOptions } = options;
+  const { name, valueFormat = 'id', multiple = false, plain, readonly, addLabel = multiple ? t('Добавить') : t('Выбрать'), changeLabel = t('Сменить'), ...dialogOptions } = options;
   let selected = [...(options.selected ?? [])];
   let dialog: EntityDialogHandle | null = null;
   const root = h('div', { class: `b24-tag-selector${plain ? ' b24-tag-selector--plain' : ''}`, role: 'group' });
@@ -41,7 +42,7 @@ export function createTagSelector(container: HTMLElement, options: TagSelectorOp
       if (item.entityId === 'user' || item.avatar) tag.append(html(avatarHtml(item.title, item.avatar, 'xs')));
       tag.append(h('span', { class: 'b24-tag__text' }, item.title));
       if (!readonly) {
-        const remove = h('button', { type: 'button', class: 'b24-tag__remove', 'aria-label': `Убрать ${item.title}` }, html(icon('close')));
+        const remove = h('button', { type: 'button', class: 'b24-tag__remove', 'aria-label': t('Убрать {name}', { name: item.title }) }, html(icon('close')));
         remove.addEventListener('click', (e) => { e.stopPropagation(); setSelected(selected.filter((s) => itemKey(s) !== itemKey(item)), true); });
         tag.append(remove);
       }

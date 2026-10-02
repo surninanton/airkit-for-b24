@@ -3,6 +3,7 @@ import { itemKey, openEntityDialog, type DialogItem, type DialogTab, type Entity
 import { Avatar } from './Display';
 import { Icon } from './Icon';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 /* ── Combobox ────────────────────────────────────────── */
 export interface ComboOption {
@@ -43,7 +44,7 @@ const fromItem = (i: DialogItem): ComboOption => (i.data as ComboOption) ?? { va
 
 /** Выпадающий список с поиском и мультивыбором тегами. */
 export function Combobox(props: ComboboxProps) {
-  const { options = [], loadOptions, placeholder = 'Не выбрано', searchable, creatable, counter, groupBy, size = 'md', disabled, id, className, multiple } = props;
+  const { options = [], loadOptions, placeholder = t('Не выбрано'), searchable, creatable, counter, groupBy, size = 'md', disabled, id, className, multiple } = props;
   const ref = useRef<HTMLDivElement>(null);
   const dialog = useRef<EntityDialogHandle | null>(null);
   const [open, setOpen] = useState(false);
@@ -112,11 +113,11 @@ export function Combobox(props: ComboboxProps) {
       {!selected.length && <span className="b24-combobox__placeholder">{placeholder}</span>}
       {!multiple && selected[0] && <span className={cx('b24-combobox__value', isRaw(selected[0].value) && 'is-raw')}>{selected[0].label}</span>}
       {!multiple && selected[0]?.subtitle && <span className="b24-combobox__code">{selected[0].subtitle}</span>}
-      {!multiple && selected[0] && isRaw(selected[0].value) && <span className="b24-combobox__raw" title="Значения нет в справочнике — сохранится как введено">не из списка</span>}
+      {!multiple && selected[0] && isRaw(selected[0].value) && <span className="b24-combobox__raw" title={t('Значения нет в справочнике — сохранится как введено')}>{t('не из списка')}</span>}
       {multiple && selected.map((o) => (
         <span key={o.value} className="b24-tag">
           <span className="b24-tag__text">{o.label}</span>
-          <button type="button" tabIndex={-1} className="b24-tag__remove" aria-label={`Убрать ${o.label}`} onClick={(e) => { e.stopPropagation(); remove(o.value); }}>
+          <button type="button" tabIndex={-1} className="b24-tag__remove" aria-label={t('Убрать {label}', { label: String(o.label) })} onClick={(e) => { e.stopPropagation(); remove(o.value); }}>
             <Icon name="close" />
           </button>
         </span>
@@ -145,8 +146,8 @@ export type EntitySelectorProps = EntitySelectorSingleProps | EntitySelectorMult
 
 /** Выбор сотрудников / отделов / сущностей CRM (аналог TagSelector + EntitySelector.Dialog). */
 export function EntitySelector(props: EntitySelectorProps) {
-  const { items, load, tabs, placeholder = 'Поиск', plain, readonly, dialogWidth, id, className, multiple } = props;
-  const addLabel = props.addLabel ?? (multiple ? 'Добавить' : 'Выбрать');
+  const { items, load, tabs, placeholder = t('Поиск'), plain, readonly, dialogWidth, id, className, multiple } = props;
+  const addLabel = props.addLabel ?? (multiple ? t('Добавить') : t('Выбрать'));
   const ref = useRef<HTMLDivElement>(null);
   const dialog = useRef<EntityDialogHandle | null>(null);
   const [open, setOpen] = useState(false);
@@ -186,7 +187,7 @@ export function EntitySelector(props: EntitySelectorProps) {
           {(item.entityId === 'user' || item.avatar) && <Avatar name={item.title} src={item.avatar} size="xs" />}
           <span className="b24-tag__text">{item.title}</span>
           {!readonly && (
-            <button type="button" className="b24-tag__remove" aria-label={`Убрать ${item.title}`} onClick={(e) => { e.stopPropagation(); emit(selected.filter((s) => itemKey(s) !== itemKey(item))); }}>
+            <button type="button" className="b24-tag__remove" aria-label={t('Убрать {label}', { label: String(item.title) })} onClick={(e) => { e.stopPropagation(); emit(selected.filter((s) => itemKey(s) !== itemKey(item))); }}>
               <Icon name="close" />
             </button>
           )}
@@ -195,7 +196,7 @@ export function EntitySelector(props: EntitySelectorProps) {
       {!readonly && (
         <button type="button" className="b24-tag-selector__add" aria-haspopup="dialog" onClick={(e) => { e.stopPropagation(); openDialog(); }}>
           {(multiple || !selected.length) && <Icon name="plus" size={14} />}
-          <span>{!multiple && selected.length ? props.changeLabel ?? 'Сменить' : addLabel}</span>
+          <span>{!multiple && selected.length ? props.changeLabel ?? t('Сменить') : addLabel}</span>
         </button>
       )}
     </div>

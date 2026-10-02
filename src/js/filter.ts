@@ -7,6 +7,7 @@ import {
   chips, cleanValues, countActive, toBitrixFilter, toQuery,
   type FilterField, type FilterPreset, type FilterState, type FilterValues, type NumberRange,
 } from './filter-model';
+import { t } from './i18n';
 
 export interface FilterOptions {
   fields: FilterField[];
@@ -37,7 +38,7 @@ export interface FilterHandle {
 
 /** Фильтр в духе main.ui.filter: строка с чипами + попап с пресетами и полями. */
 export function createFilter(container: HTMLElement, options: FilterOptions): FilterHandle {
-  const { fields, placeholder = 'Фильтр и поиск', glass, submit = 'event', queryPrefix = 'filter', searchDebounce = 400 } = options;
+  const { fields, placeholder = t('Фильтр и поиск'), glass, submit = 'event', queryPrefix = 'filter', searchDebounce = 400 } = options;
   let presets = [...(options.presets ?? [])];
   let state: FilterState = { presetId: null, values: {}, search: '', ...options.state };
   // черновик значений в попапе, применяется по «Найти»
@@ -50,20 +51,20 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
   /* ── Bar ── */
   const bar = h('div', { class: `b24-filter${glass ? ' b24-filter--glass' : ''}`, role: 'search' });
   const chipsEl = h('div', { class: 'b24-filter__chips' });
-  const input = h('input', { class: 'b24-filter__input', type: 'search', placeholder, 'aria-label': 'Поиск' });
-  const filterBtn = h('button', { type: 'button', class: 'b24-filter__icon', 'aria-label': 'Открыть фильтр', 'aria-haspopup': 'dialog' }, html(icon('filter')));
-  const clearBtn = h('button', { type: 'button', class: 'b24-filter__icon', 'aria-label': 'Сбросить фильтр' }, html(icon('close')));
+  const input = h('input', { class: 'b24-filter__input', type: 'search', placeholder, 'aria-label': t('Поиск') });
+  const filterBtn = h('button', { type: 'button', class: 'b24-filter__icon', 'aria-label': t('Открыть фильтр'), 'aria-haspopup': 'dialog' }, html(icon('filter')));
+  const clearBtn = h('button', { type: 'button', class: 'b24-filter__icon', 'aria-label': t('Сбросить фильтр') }, html(icon('close')));
   bar.append(chipsEl, input, filterBtn, clearBtn);
   container.append(bar);
 
   /* ── Popup ── */
-  const popup = h('div', { class: 'b24-popup b24-root b24-filter-popup', hidden: true, role: 'dialog', 'aria-label': 'Фильтр', style: 'background:var(--b24-bg-surface)' });
+  const popup = h('div', { class: 'b24-popup b24-root b24-filter-popup', hidden: true, role: 'dialog', 'aria-label': t('Фильтр'), style: 'background:var(--b24-bg-surface)' });
   const presetsEl = h('div', { class: 'b24-filter-popup__presets' });
   const fieldsEl = h('div', { class: 'b24-filter-popup__fields' });
   const main = h('div', { class: 'b24-filter-popup__main' }, fieldsEl);
   const footer = h('div', { class: 'b24-filter-popup__footer' });
-  const applyBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--primary' }, html(icon('search')), h('span', {}, 'Найти'));
-  const resetBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--link' }, 'Сбросить');
+  const applyBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--primary' }, html(icon('search')), h('span', {}, t('Найти')));
+  const resetBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--link' }, t('Сбросить'));
   footer.append(applyBtn, resetBtn);
   main.append(footer);
   popup.append(presetsEl, main);
@@ -73,7 +74,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     const list = chips(fields, state, presets);
     const shown = list.slice(0, 2);
     for (const c of shown) {
-      const remove = h('button', { type: 'button', class: 'b24-filter__chip-remove', 'aria-label': `Убрать ${c.label}` }, html(icon('close')));
+      const remove = h('button', { type: 'button', class: 'b24-filter__chip-remove', 'aria-label': t('Убрать {name}', { name: c.label }) }, html(icon('close')));
       remove.addEventListener('click', (e) => {
         e.stopPropagation();
         if (c.key.startsWith('preset:')) setState({ presetId: null, values: {} }, true);
@@ -84,7 +85,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
       chipsEl.append(chip);
     }
     if (list.length > shown.length) {
-      const more = h('span', { class: 'b24-filter__chip b24-filter__chip--more' }, `ещё ${list.length - shown.length}`);
+      const more = h('span', { class: 'b24-filter__chip b24-filter__chip--more' }, t('ещё {n}', { n: list.length - shown.length }));
       more.addEventListener('click', () => open());
       chipsEl.append(more);
     }
@@ -98,7 +99,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     for (const p of presets) {
       const btn = h('button', { type: 'button', class: `b24-filter-popup__preset${draft.presetId === p.id ? ' is-active' : ''}` }, h('span', {}, p.name));
       if (!p.system) {
-        const del = h('span', { class: 'b24-filter__chip-remove b24-filter-popup__preset-remove', role: 'button', 'aria-label': `Удалить пресет ${p.name}` }, html(icon('close')));
+        const del = h('span', { class: 'b24-filter__chip-remove b24-filter-popup__preset-remove', role: 'button', 'aria-label': t('Удалить пресет {name}', { name: p.name }) }, html(icon('close')));
         del.addEventListener('click', (e) => {
           e.stopPropagation();
           presets = presets.filter((x) => x.id !== p.id);
@@ -116,16 +117,16 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
       });
       presetsEl.append(btn);
     }
-    const save = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm b24-filter-popup__save' }, html(icon('plus')), h('span', {}, 'Сохранить фильтр'));
+    const save = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm b24-filter-popup__save' }, html(icon('plus')), h('span', {}, t('Сохранить фильтр')));
     save.addEventListener('click', async () => {
-      const nameInput = h('input', { class: 'b24-input', value: 'Мой фильтр', 'aria-label': 'Название фильтра', autofocus: true });
+      const nameInput = h('input', { class: 'b24-input', value: t('Мой фильтр'), 'aria-label': t('Название фильтра'), autofocus: true });
       const m = modal({
-        title: 'Сохранить фильтр',
+        title: t('Сохранить фильтр'),
         size: 'sm',
         content: nameInput,
         buttons: [
-          { text: 'Сохранить', variant: 'primary', value: true },
-          { text: 'Отмена', variant: 'link', value: false },
+          { text: t('Сохранить'), variant: 'primary', value: true },
+          { text: t('Отмена'), variant: 'link', value: false },
         ],
       });
       nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') void m.close(true); });
@@ -164,8 +165,8 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
         }
         case 'select':
         case 'checkbox': {
-          const opts = f.type === 'checkbox' ? [{ value: 'Y', label: 'Да' }, { value: 'N', label: 'Нет' }] : f.options ?? [];
-          const el = h('select', { id, class: 'b24-select' }, h('option', { value: '' }, 'Не выбрано'));
+          const opts = f.type === 'checkbox' ? [{ value: 'Y', label: t('Да') }, { value: 'N', label: t('Нет') }] : f.options ?? [];
+          const el = h('select', { id, class: 'b24-select' }, h('option', { value: '' }, t('Не выбрано')));
           for (const o of opts) el.append(h('option', { value: o.value, selected: o.value === v }, o.label));
           el.addEventListener('change', () => setDraft(f.id, el.value));
           wrap.append(el);
@@ -187,8 +188,8 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
         }
         case 'number': {
           const r = (v as NumberRange) ?? {};
-          const from = h('input', { id, class: 'b24-input', inputmode: 'decimal', placeholder: 'от', value: r.from ?? '' });
-          const to = h('input', { class: 'b24-input', inputmode: 'decimal', placeholder: 'до', value: r.to ?? '', 'aria-label': `${f.label} до` });
+          const from = h('input', { id, class: 'b24-input', inputmode: 'decimal', placeholder: t('от'), value: r.from ?? '' });
+          const to = h('input', { class: 'b24-input', inputmode: 'decimal', placeholder: t('до'), value: r.to ?? '', 'aria-label': `${f.label} ${t('до')}` });
           const upd = () => setDraft(f.id, { from: from.value, to: to.value });
           from.addEventListener('input', upd);
           to.addEventListener('input', upd);
@@ -211,8 +212,8 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
               },
             }));
           };
-          if (p.type === 'exact') addPicker('from', 'дата');
-          if (p.type === 'range') { addPicker('from', 'с'); row.append(h('span', { class: 'b24-filter-popup__sep' }, '—')); addPicker('to', 'по'); }
+          if (p.type === 'exact') addPicker('from', t('дата'));
+          if (p.type === 'range') { addPicker('from', t('с')); row.append(h('span', { class: 'b24-filter-popup__sep' }, '—')); addPicker('to', t('по')); }
           sel.addEventListener('change', () => {
             setDraft(f.id, { type: sel.value as PeriodType });
             renderFields();
@@ -227,12 +228,12 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     const hidden = fields.filter((f) => !visibleFields.has(f.id) && draft.values[f.id] == null);
     const links = h('div', { class: 'b24-filter-popup__links' });
     if (hidden.length) {
-      const add = h('select', { class: 'b24-select b24-select--sm', 'aria-label': 'Добавить поле', style: 'width:auto' }, h('option', { value: '' }, '+ Добавить поле'));
+      const add = h('select', { class: 'b24-select b24-select--sm', 'aria-label': t('Добавить поле'), style: 'width:auto' }, h('option', { value: '' }, t('+ Добавить поле')));
       hidden.forEach((f) => add.append(h('option', { value: f.id }, f.label)));
       add.addEventListener('change', () => { visibleFields.add(add.value); renderFields(); });
       links.append(add);
     }
-    const restore = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm' }, 'Вернуть поля по умолчанию');
+    const restore = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm' }, t('Вернуть поля по умолчанию'));
     restore.addEventListener('click', () => { visibleFields = new Set(fields.filter((f) => f.default !== false).map((f) => f.id)); renderFields(); });
     links.append(restore);
     fieldsEl.append(links);

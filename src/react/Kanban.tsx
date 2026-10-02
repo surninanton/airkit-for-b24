@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { enableKanbanDnd, readableTextColor, type KanbanMove } from '../js/kanban';
 import { Icon } from './Icon';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 export interface KanbanColumn {
   id: string;
@@ -72,7 +73,7 @@ export function Kanban<T>({
       className={cx('b24-kanban', light && 'b24-kanban--light', className)}
       style={{ height, ...(columnWidth ? { ['--b24-kanban-column-width' as string]: `${columnWidth}px` } : null) }}
       role="list"
-      aria-label="Канбан"
+      aria-label={t('Канбан')}
     >
       {columns.map((col) => {
         const list = items[col.id] ?? [];
@@ -85,7 +86,7 @@ export function Kanban<T>({
             </header>
             {col.total !== undefined && <div className="b24-kanban__total"><span>{col.total}</span></div>}
             {onAdd && (
-              <button type="button" className="b24-kanban__add" aria-label="Добавить" onClick={() => onAdd(col.id)}>
+              <button type="button" className="b24-kanban__add" aria-label={t('Добавить')} onClick={() => onAdd(col.id)}>
                 <Icon name="plus" />
               </button>
             )}
@@ -113,7 +114,7 @@ function KanbanCardShell({ id, accent, onClick, children }: { id: string; accent
       style={accent ? ({ '--card-accent': accent } as CSSProperties) : undefined}
       tabIndex={0}
       role="button"
-      aria-roledescription="Перетаскиваемая карточка. Alt+стрелки — переместить"
+      aria-roledescription={t('Перетаскиваемая карточка. Alt+стрелки — переместить')}
       onClick={onClick}
       onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ') && !e.altKey) { e.preventDefault(); onClick(); } }}
     >

@@ -1,5 +1,6 @@
 import { icon } from '../icons';
 import { escapeHtml, h, html } from './dom';
+import { intlLocale, t } from './i18n';
 
 export type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
 
@@ -66,11 +67,11 @@ export interface UploaderHandle {
 
 export function formatSize(bytes: number): string {
   if (!bytes) return '';
-  const units = ['Б', 'КБ', 'МБ', 'ГБ'];
+  const units = [t('Б'), t('КБ'), t('МБ'), t('ГБ')];
   let i = 0;
   let n = bytes;
   while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-  return `${n >= 10 || i === 0 ? Math.round(n) : n.toFixed(1).replace('.', ',')} ${units[i]}`;
+  return `${n >= 10 || i === 0 ? Math.round(n) : n.toLocaleString(intlLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[i]}`;
 }
 
 const EXT_COLORS: Record<string, string> = {
@@ -97,10 +98,10 @@ function xhrUpload(url: string, file: File, opts: UploaderOptions, ctx: UploadCo
     for (const [k, v] of Object.entries(opts.headers ?? {})) xhr.setRequestHeader(k, v);
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) ctx.onProgress(Math.round((e.loaded / e.total) * 100)); };
     xhr.onload = () => {
-      if (xhr.status < 200 || xhr.status >= 300) return reject(new Error(`Ошибка ${xhr.status}`));
+      if (xhr.status < 200 || xhr.status >= 300) return reject(new Error(t('Ошибка {status}', { status: xhr.status })));
       try { resolve(JSON.parse(xhr.responseText || '{}')); } catch { resolve({}); }
     };
-    xhr.onerror = () => reject(new Error('Сеть недоступна'));
+    xhr.onerror = () => reject(new Error(t('Сеть недоступна')));
     ctx.signal.addEventListener('abort', () => xhr.abort());
     xhr.send(form);
   });
@@ -110,7 +111,7 @@ function xhrUpload(url: string, file: File, opts: UploaderOptions, ctx: UploadCo
 export function createUploader(container: HTMLElement, options: UploaderOptions = {}): UploaderHandle {
   const {
     multiple = true, accept, maxSize, maxFiles, name, view = 'list', compact, disabled,
-    title = multiple ? 'Перетащите файлы сюда' : 'Перетащите файл сюда',
+    title = multiple ? t('Перетащите файлы сюда') : t('Перетащите файл сюда'),
     hint,
   } = options;
   const remote = !!(options.url || options.upload);
@@ -131,8 +132,8 @@ export function createUploader(container: HTMLElement, options: UploaderOptions 
     'aria-disabled': disabled ? 'true' : undefined,
   });
   zone.append(html(icon('cloudUpload', { className: 'b24-dropzone__icon' })));
-  zone.append(h('span', { class: 'b24-dropzone__title' }, html(`${escapeHtml(title)} или <b>выберите</b>`)));
-  const limits = [accept && accept.replace(/,/g, ', '), maxSize && `до ${formatSize(maxSize)}`, maxFiles && `не больше ${maxFiles} шт.`].filter(Boolean).join(' · ');
+  zone.append(h('span', { class: 'b24-dropzone__title' }, html(t('{title} или <b>выберите</b>', { title: escapeHtml(title) }))));
+  const limits = [accept && accept.replace(/,/g, ', '), maxSize && t('до {size}', { size: formatSize(maxSize) }), maxFiles && t('не больше {n} шт.', { n: maxFiles })].filter(Boolean).join(' · ');
   if (hint || limits) zone.append(h('span', { class: 'b24-dropzone__hint' }, hint ?? limits));
   zone.append(input);
   const list = h('ul', { class: `b24-file-list${view === 'grid' ? ' b24-file-list--grid' : ''}`, 'aria-live': 'polite' });
@@ -169,19 +170,19 @@ export function createUploader(container: HTMLElement, options: UploaderOptions 
       info.append(f.url && f.status === 'done'
         ? h('a', { class: 'b24-file__name', href: f.url, target: '_blank', rel: 'noopener', title: f.name }, f.name)
         : h('span', { class: 'b24-file__name', title: f.name }, f.name));
-      const meta = f.status === 'error' ? f.error ?? 'Ошибка' : f.status === 'uploading' ? `${f.progress}% · ${formatSize(f.size)}` : formatSize(f.size);
+      const meta = f.status === 'error' ? f.error ?? t('Ошибка') : f.status === 'uploading' ? `${f.progress}% · ${formatSize(f.size)}` : formatSize(f.size);
       info.append(h('span', { class: 'b24-file__meta' }, meta));
       if (f.status === 'uploading' || f.status === 'pending') {
         info.append(h('span', { class: 'b24-progress b24-file__progress', style: `--_value:${f.progress}%`, role: 'progressbar', 'aria-valuenow': String(f.progress) }));
       }
       const actions = h('span', { class: 'b24-file__actions' });
       if (f.status === 'error' && f.file && remote) {
-        const retry = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--xs b24-btn--icon', 'aria-label': 'Повторить' }, html(icon('refresh')));
+        const retry = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--xs b24-btn--icon', 'aria-label': t('Повторить') }, html(icon('refresh')));
         retry.addEventListener('click', () => void start(f));
         actions.append(retry);
       }
       if (!disabled) {
-        const del = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--xs b24-btn--icon', 'aria-label': `Удалить ${f.name}` }, html(icon('close')));
+        const del = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--xs b24-btn--icon', 'aria-label': t('Удалить {name}', { name: f.name }) }, html(icon('close')));
         del.addEventListener('click', () => remove(f.uid));
         actions.append(del);
       }
@@ -218,7 +219,7 @@ export function createUploader(container: HTMLElement, options: UploaderOptions 
       update(f.uid, { status: 'done', progress: 100, id: res?.id, url: res?.url ?? f.url });
     } catch (err) {
       if (ctrl.signal.aborted) return;
-      update(f.uid, { status: 'error', error: (err as Error)?.message ?? 'Ошибка загрузки' });
+      update(f.uid, { status: 'error', error: (err as Error)?.message ?? t('Ошибка загрузки') });
     } finally {
       controllers.delete(f.uid);
       syncForm();
@@ -239,8 +240,8 @@ export function createUploader(container: HTMLElement, options: UploaderOptions 
         status: remote ? 'pending' : 'done', progress: remote ? 0 : 100,
         preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
       };
-      if (!matchesAccept(file, accept)) { f.status = 'error'; f.error = 'Недопустимый тип файла'; }
-      else if (maxSize && file.size > maxSize) { f.status = 'error'; f.error = `Больше ${formatSize(maxSize)}`; }
+      if (!matchesAccept(file, accept)) { f.status = 'error'; f.error = t('Недопустимый тип файла'); }
+      else if (maxSize && file.size > maxSize) { f.status = 'error'; f.error = t('Больше {size}', { size: formatSize(maxSize) }); }
       added.push(f);
     }
     files = [...files, ...added];

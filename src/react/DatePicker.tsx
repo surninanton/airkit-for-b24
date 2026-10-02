@@ -8,6 +8,7 @@ import { Select } from './Form';
 import { Icon } from './Icon';
 import { Popover } from './Overlay';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 /* ── Calendar ────────────────────────────────────────── */
 export interface CalendarProps {
@@ -65,23 +66,23 @@ export function Calendar({ mode = 'single', value = null, onChange, range = { fr
     <div className="b24-calendar">
       <div className="b24-calendar__head">
         <button type="button" className="b24-calendar__title" aria-live="polite" onClick={() => setView(view === 'days' ? 'months' : 'days')}>
-          {view === 'days' ? `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}` : cursor.getFullYear()}
+          {view === 'days' ? `${t(MONTHS[cursor.getMonth()])} ${cursor.getFullYear()}` : cursor.getFullYear()}
         </button>
-        <button type="button" className="b24-calendar__nav" aria-label="Назад" onClick={() => setCursor(addMonths(cursor, view === 'days' ? -1 : -12))}><Icon name="chevronLeft" /></button>
-        <button type="button" className="b24-calendar__nav" aria-label="Вперёд" onClick={() => setCursor(addMonths(cursor, view === 'days' ? 1 : 12))}><Icon name="chevronRight" /></button>
+        <button type="button" className="b24-calendar__nav" aria-label={t('Назад')} onClick={() => setCursor(addMonths(cursor, view === 'days' ? -1 : -12))}><Icon name="chevronLeft" /></button>
+        <button type="button" className="b24-calendar__nav" aria-label={t('Вперёд')} onClick={() => setCursor(addMonths(cursor, view === 'days' ? 1 : 12))}><Icon name="chevronRight" /></button>
       </div>
 
       {view === 'months' ? (
         <div className="b24-calendar__months">
           {MONTHS.map((m, i) => (
             <button key={m} type="button" className={cx('b24-calendar__month', i === cursor.getMonth() && 'is-selected')} onClick={() => { setCursor(new Date(cursor.getFullYear(), i, 1)); setView('days'); }}>
-              {m.slice(0, 3)}
+              {t(m).slice(0, 3)}
             </button>
           ))}
         </div>
       ) : (
         <div ref={gridRef} className="b24-calendar__grid" role="grid" onKeyDown={onKey} onMouseLeave={() => setHover(null)}>
-          {WEEKDAYS.map((d) => <span key={d} className="b24-calendar__weekday" role="columnheader">{d}</span>)}
+          {WEEKDAYS.map((d) => <span key={d} className="b24-calendar__weekday" role="columnheader">{t(d)}</span>)}
           {days.map((day) => {
             const start = mode === 'range' && isSameDay(day, ra);
             const end = mode === 'range' && isSameDay(day, rb ?? ra);
@@ -117,11 +118,11 @@ export function Calendar({ mode = 'single', value = null, onChange, range = { fr
 
       {withTime && mode === 'single' && (
         <div className="b24-calendar__time">
-          Время
+          {t('Время')}
           <input
             type="time"
             className="b24-input b24-input--sm"
-            aria-label="Время"
+            aria-label={t('Время')}
             value={value ? formatDate(value, true).slice(11) : ''}
             onChange={(e) => {
               const [hh, mm] = e.target.value.split(':').map(Number);
@@ -138,8 +139,8 @@ export function Calendar({ mode = 'single', value = null, onChange, range = { fr
             const t = startOfDay(new Date());
             setCursor(new Date(t.getFullYear(), t.getMonth(), 1));
             if (mode === 'single') onChange?.(t); else onRangeChange?.({ from: t, to: t });
-          }}>Сегодня</Button>
-          <Button variant="plain" size="sm" onClick={() => (mode === 'single' ? onChange?.(null) : onRangeChange?.({ from: null, to: null }))}>Очистить</Button>
+          }}>{t('Сегодня')}</Button>
+          <Button variant="plain" size="sm" onClick={() => (mode === 'single' ? onChange?.(null) : onRangeChange?.({ from: null, to: null }))}>{t('Очистить')}</Button>
         </div>
       )}
     </div>
@@ -164,7 +165,7 @@ export interface DatePickerProps {
   className?: string;
 }
 
-export function DatePicker({ value, onChange, min, max, withTime, placeholder = 'дд.мм.гггг', disabled, size = 'md', autoFocus, className, ...inputProps }: DatePickerProps) {
+export function DatePicker({ value, onChange, min, max, withTime, placeholder = t('дд.мм.гггг'), disabled, size = 'md', autoFocus, className, ...inputProps }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const anchor = useRef<HTMLDivElement>(null);
@@ -205,7 +206,7 @@ export function DatePicker({ value, onChange, min, max, withTime, placeholder = 
       <span className="b24-input-group__icon" onMouseDown={(e) => { e.preventDefault(); if (!disabled) { setOpen((v) => !v); inputRef.current?.focus(); } }}>
         <Icon name="calendar" />
       </span>
-      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} className="b24-datepicker-popup" role="dialog" aria-label="Выбор даты">
+      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} className="b24-datepicker-popup" role="dialog" aria-label={t('Выбор даты')}>
         <Calendar
           value={value}
           min={min}
@@ -233,7 +234,7 @@ export interface DateRangePickerProps {
 
 const RANGE_PRESETS: PeriodType[] = ['today', 'yesterday', 'week', 'lastWeek', 'month', 'lastMonth', 'quarter', 'last7', 'last30'];
 
-export function DateRangePicker({ value, onChange, min, max, presets = true, placeholder = 'Период', disabled, className }: DateRangePickerProps) {
+export function DateRangePicker({ value, onChange, min, max, presets = true, placeholder = t('Период'), disabled, className }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLDivElement>(null);
   const label = value.from ? `${formatDate(value.from)} – ${value.to ? formatDate(value.to) : '…'}` : '';
@@ -241,14 +242,14 @@ export function DateRangePicker({ value, onChange, min, max, presets = true, pla
     <div ref={anchor} className={cx('b24-input-group b24-datepicker', className)}>
       <input className="b24-input" readOnly value={label} placeholder={placeholder} disabled={disabled} onClick={() => setOpen(true)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'ArrowDown') setOpen(true); }} />
       <span className="b24-input-group__icon" onMouseDown={(e) => { e.preventDefault(); if (!disabled) setOpen((v) => !v); }}><Icon name="calendar" /></span>
-      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} className={cx('b24-datepicker-popup', presets && 'b24-datepicker-popup--with-presets')} role="dialog" aria-label="Выбор периода">
+      <Popover open={open} onClose={() => setOpen(false)} anchorRef={anchor} className={cx('b24-datepicker-popup', presets && 'b24-datepicker-popup--with-presets')} role="dialog" aria-label={t('Выбор периода')}>
         {presets && (
           <div className="b24-datepicker-presets">
             {RANGE_PRESETS.map((p) => (
               <button key={p} type="button" className="b24-menu__item" onClick={() => {
                 const r = resolvePeriodSafe(p);
                 if (r) { onChange(r); setOpen(false); }
-              }}>{PERIOD_OPTIONS.find((o) => o.value === p)!.label}</button>
+              }}>{t(PERIOD_OPTIONS.find((o) => o.value === p)!.label)}</button>
             ))}
           </div>
         )}
@@ -273,15 +274,15 @@ export function PeriodPicker({ value, onChange, options, id }: PeriodPickerProps
   const list = options ? PERIOD_OPTIONS.filter((o) => options.includes(o.value)) : PERIOD_OPTIONS;
   return (
     <div className="b24-filter-popup__field-row">
-      <Select id={id} value={value.type} onChange={(e) => onChange({ type: e.target.value as PeriodType })} options={list.map((o) => ({ value: o.value, label: o.label }))} />
+      <Select id={id} value={value.type} onChange={(e) => onChange({ type: e.target.value as PeriodType })} options={list.map((o) => ({ value: o.value, label: t(o.label) }))} />
       {value.type === 'exact' && (
         <DatePicker value={parseDate(value.from)} onChange={(d) => onChange({ ...value, from: formatDate(d) })} />
       )}
       {value.type === 'range' && (
         <>
-          <DatePicker value={parseDate(value.from)} onChange={(d) => onChange({ ...value, from: formatDate(d) })} placeholder="с" />
+          <DatePicker value={parseDate(value.from)} onChange={(d) => onChange({ ...value, from: formatDate(d) })} placeholder={t('с')} />
           <span className="b24-filter-popup__sep">—</span>
-          <DatePicker value={parseDate(value.to)} onChange={(d) => onChange({ ...value, to: formatDate(d) })} placeholder="по" />
+          <DatePicker value={parseDate(value.to)} onChange={(d) => onChange({ ...value, to: formatDate(d) })} placeholder={t('по')} />
         </>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
 import { bringToFront, viewportHeight, escapeHtml, h, html, pushLayer, type Content } from './dom';
+import { t } from './i18n';
 
 export interface DialogItem {
   id: string | number;
@@ -76,7 +77,7 @@ const ENTITY_ICONS: Record<string, IconName> = { department: 'department', compa
 /** Диалог выбора (аналог BX.UI.EntitySelector.Dialog): поиск, вкладки, мультивыбор, асинхронная загрузка. */
 export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptions): EntityDialogHandle {
   const {
-    tabs = [], multiple = false, searchable = true, placeholder = 'Поиск', emptyText = 'Ничего не найдено',
+    tabs = [], multiple = false, searchable = true, placeholder = t('Поиск'), emptyText = t('Ничего не найдено'),
     width, compact, avatars = true, placement = 'bottom-start', debounce = 250,
   } = options;
   let selected = [...(options.selected ?? [])];
@@ -164,11 +165,11 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
       return;
     }
     const parts: string[] = [];
-    if (options.counter) parts.push(`${found().length} из ${items.length}`);
-    if (multiple) parts.push(`Выбрано: ${selected.length}`);
+    if (options.counter) parts.push(t('{n} из {total}', { n: found().length, total: items.length }));
+    if (multiple) parts.push(t('Выбрано: {n}', { n: selected.length }));
     footerEl.append(h('span', { class: 'b24-dialog__counter' }, parts.join(' · ')));
     if (multiple) {
-      const done = h('button', { type: 'button', class: 'b24-btn b24-btn--primary b24-btn--sm' }, 'Готово');
+      const done = h('button', { type: 'button', class: 'b24-btn b24-btn--primary b24-btn--sm' }, t('Готово'));
       done.addEventListener('click', () => handle.close());
       footerEl.append(done);
     }
@@ -177,7 +178,7 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
   const renderList = () => {
     list.textContent = '';
     if (loading && !items.length) {
-      list.append(h('div', { class: 'b24-dialog__loading' }, h('span', { class: 'b24-spinner b24-spinner--sm' }), 'Загрузка…'));
+      list.append(h('div', { class: 'b24-dialog__loading' }, h('span', { class: 'b24-spinner b24-spinner--sm' }), t('Загрузка…')));
       return;
     }
     const data = visible();
@@ -194,7 +195,7 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
           class: `b24-dialog__item b24-dialog__item--create${index === active ? ' is-active' : ''}`,
           role: 'option', id: `${listId}-${index}`, 'aria-selected': 'false', 'data-index': String(index),
         }, h('span', { class: 'b24-dialog__item-icon' }, html(icon('plus'))), h('span', { class: 'b24-dialog__item-text' },
-          h('span', { class: 'b24-dialog__item-title' }, options.createLabel?.(item.title) ?? `Использовать «${item.title}»`)));
+          h('span', { class: 'b24-dialog__item-title' }, options.createLabel?.(item.title) ?? t('Использовать «{name}»', { name: item.title }))));
         list.append(el);
         return;
       }
@@ -262,7 +263,7 @@ export function openEntityDialog(anchor: HTMLElement, options: EntityDialogOptio
       loading = false;
       items = [];
       list.textContent = '';
-      list.append(h('div', { class: 'b24-dialog__empty' }, `Ошибка загрузки: ${err?.message ?? err}`));
+      list.append(h('div', { class: 'b24-dialog__empty' }, t('Ошибка загрузки: {error}', { error: String(err?.message ?? err) })));
     });
   };
 

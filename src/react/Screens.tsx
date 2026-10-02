@@ -3,6 +3,7 @@ import { createChart, sparkline, type ChartHandle, type ChartOptions } from '../
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 /* ── Графики ─────────────────────────────────────────────
  * Обёртки над createChart / sparkline: данные меняются — график перерисовывается.
@@ -111,13 +112,13 @@ export function SettingRow({ label, hint, htmlFor, block, danger, children }: {
   );
 }
 
-export function SaveBar({ open, saving, onSave, onCancel, text = 'Есть несохранённые изменения', saveText = 'Сохранить', cancelText = 'Отменить' }: {
+export function SaveBar({ open, saving, onSave, onCancel, text = t('Есть несохранённые изменения'), saveText = t('Сохранить'), cancelText = t('Отменить') }: {
   open: boolean; saving?: boolean; onSave?: () => void; onCancel?: () => void;
   text?: ReactNode; saveText?: ReactNode; cancelText?: ReactNode;
 }) {
   if (!open) return null;
   return (
-    <div className="b24-savebar" role="region" aria-label="Несохранённые изменения">
+    <div className="b24-savebar" role="region" aria-label={t('Несохранённые изменения')}>
       <span className="b24-savebar__text">{text}</span>
       {onCancel && <button className="b24-btn b24-btn--secondary" type="button" onClick={onCancel} disabled={saving}>{cancelText}</button>}
       <button className={cx('b24-btn b24-btn--success', saving && 'b24-btn--loading')} type={onSave ? 'button' : 'submit'} onClick={onSave}>{saveText}</button>

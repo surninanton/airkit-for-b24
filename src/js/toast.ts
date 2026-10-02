@@ -1,5 +1,6 @@
 import { icon, type IconName } from '../icons';
 import { animateOut, frameAnchorY, h, html, isInFrame } from './dom';
+import { t } from './i18n';
 
 export type ToastType = 'default' | 'success' | 'danger' | 'warning' | 'primary';
 
@@ -74,7 +75,7 @@ export function toast(message: string, options: ToastOptions = {}): ToastHandle 
     el.append(btn);
   }
   if (closable) {
-    const btn = h('button', { type: 'button', class: 'b24-toast__close', 'aria-label': 'Закрыть' }, html(icon('close')));
+    const btn = h('button', { type: 'button', class: 'b24-toast__close', 'aria-label': t('Закрыть') }, html(icon('close')));
     btn.addEventListener('click', () => void close());
     el.append(btn);
   }

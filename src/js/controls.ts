@@ -1,5 +1,6 @@
 import { icon, type IconName } from '../icons';
 import { bringToFront, h, html, pushLayer } from './dom';
+import { intlLocale, t as tr } from './i18n';
 
 /* ── Группа чекбоксов ──────────────────────────────────────
  * .b24-check-group[data-b24-check-group]: счётчик .b24-check-group__count («Выбрано 2 из 7»),
@@ -10,7 +11,7 @@ export function initCheckGroup(root: HTMLElement): () => void {
   const count = root.querySelector<HTMLElement>('.b24-check-group__count');
   const sync = () => {
     const all = boxes();
-    if (count) count.textContent = `Выбрано ${all.filter((b) => b.checked).length} из ${all.length}`;
+    if (count) count.textContent = tr('Выбрано {n} из {total}', { n: all.filter((b) => b.checked).length, total: all.length });
   };
   const set = (on: boolean) => {
     for (const b of boxes()) if (b.checked !== on) { b.checked = on; b.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -73,7 +74,7 @@ export function initColors(root: HTMLElement): () => void {
     radio = h('input', { type: 'radio', name, hidden: '', tabindex: '-1' }) as HTMLInputElement;
     custom.append(radio);
   }
-  picker.setAttribute('aria-label', picker.getAttribute('aria-label') ?? 'Свой цвет');
+  picker.setAttribute('aria-label', picker.getAttribute('aria-label') ?? tr('Свой цвет'));
   const onPick = () => {
     radio!.value = picker.value;
     radio!.checked = true;
@@ -99,16 +100,16 @@ export function initSecret(root: HTMLElement): () => void {
   if (root.dataset.saved !== undefined && root.dataset.saved !== 'false') {
     root.classList.add('is-saved');
     input.placeholder = root.dataset.mask ?? '••••••••••••';
-    input.title = 'Значение сохранено. Введите новое, чтобы заменить';
+    input.title = tr('Значение сохранено. Введите новое, чтобы заменить');
     const hint = root.parentElement?.querySelector<HTMLElement>('.b24-field__hint');
-    if (hint && !hint.textContent?.trim()) hint.textContent = 'Сохранено. Введите новое значение, чтобы заменить';
+    if (hint && !hint.textContent?.trim()) hint.textContent = tr('Сохранено. Введите новое значение, чтобы заменить');
   }
-  const btn = h('button', { type: 'button', class: 'b24-secret__toggle', 'aria-pressed': 'false', 'aria-label': 'Показать значение' }, html(icon('eye'))) as HTMLButtonElement;
+  const btn = h('button', { type: 'button', class: 'b24-secret__toggle', 'aria-pressed': 'false', 'aria-label': tr('Показать значение') }, html(icon('eye'))) as HTMLButtonElement;
   btn.addEventListener('click', () => {
     const show = input.type === 'password';
     input.type = show ? 'text' : 'password';
     btn.setAttribute('aria-pressed', String(show));
-    btn.setAttribute('aria-label', show ? 'Скрыть значение' : 'Показать значение');
+    btn.setAttribute('aria-label', show ? tr('Скрыть значение') : tr('Показать значение'));
     input.focus();
   });
   root.append(btn);
@@ -301,7 +302,7 @@ export function popover(anchor: HTMLElement, options: PopoverOptions): PopoverHa
     el.append(row);
   }
   if (o.closable !== false) {
-    const x = h('button', { type: 'button', class: 'b24-popover__close', 'aria-label': 'Закрыть' }, html(icon('close')));
+    const x = h('button', { type: 'button', class: 'b24-popover__close', 'aria-label': tr('Закрыть') }, html(icon('close')));
     x.addEventListener('click', () => handle.close());
     el.append(x);
   }
@@ -396,10 +397,10 @@ export function startTour(steps: TourStep[], options: { onFinish?: (completed: b
     reflow();
     const last = index === steps.length - 1;
     pop = popover(t, {
-      title: step.title, text: step.text, placement: step.placement, step: `${index + 1} из ${steps.length}`, closeOnOutside: false,
+      title: step.title, text: step.text, placement: step.placement, step: tr('{n} из {total}', { n: index + 1, total: steps.length }), closeOnOutside: false,
       actions: [
-        ...(index > 0 ? [{ label: 'Назад', variant: 'plain' as const, onClick: () => { show(index - 1); return false; } }] : []),
-        { label: last ? (options.doneLabel ?? 'Готово') : 'Далее', onClick: () => { if (last) finish(true); else show(index + 1); return false; } },
+        ...(index > 0 ? [{ label: tr('Назад'), variant: 'plain' as const, onClick: () => { show(index - 1); return false; } }] : []),
+        { label: last ? (options.doneLabel ?? tr('Готово')) : tr('Далее'), onClick: () => { if (last) finish(true); else show(index + 1); return false; } },
       ],
       onClose: () => { if (pop) finish(false); },
     });
@@ -421,7 +422,7 @@ export function plural(n: number, forms: [string, string, string]): string {
   return forms[2];
 }
 /** «5 записей», с разделителем тысяч */
-export const formatCount = (n: number, forms: [string, string, string]) => `${new Intl.NumberFormat('ru-RU').format(n)} ${plural(n, forms)}`;
+export const formatCount = (n: number, forms: [string, string, string]) => `${new Intl.NumberFormat(intlLocale()).format(n)} ${plural(n, forms)}`;
 
 /* ── Ссылки на CRM ─────────────────────────────────────────
  * crmEntityUrl('deal', 15) → /crm/deal/details/15/; смарт-процесс: crmEntityUrl('dynamic', 7, 128) → /crm/type/128/details/7/.

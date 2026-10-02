@@ -1,6 +1,7 @@
 import { icon } from '../icons';
 import { createCombobox, type ComboItem, type CreateComboboxHandle } from './combobox';
 import { h, html } from './dom';
+import { t } from './i18n';
 
 /* ── Повторяющиеся строки ──────────────────────────────────
  * Список строк одного вида: добавить, удалить, пустое состояние. Содержимое строки рисует render(),
@@ -52,7 +53,7 @@ export function createRepeater<T>(host: HTMLElement, options: RepeaterOptions<T>
   const root = h('div', { class: `b24-repeater${o.className ? ` ${o.className}` : ''}` });
   const list = h('div', { class: 'b24-repeater__list' });
   const empty = h('div', { class: 'b24-repeater__empty' }, o.emptyText ?? '');
-  const add = h('button', { type: 'button', class: 'b24-repeater__add' }, html(icon('plus')), h('span', {}, o.addLabel ?? 'Добавить'));
+  const add = h('button', { type: 'button', class: 'b24-repeater__add' }, html(icon('plus')), h('span', {}, o.addLabel ?? t('Добавить')));
   root.append(list, empty, add);
   host.append(root);
 
@@ -67,7 +68,7 @@ export function createRepeater<T>(host: HTMLElement, options: RepeaterOptions<T>
   const build = (value: T): Row => {
     const el = h('div', { class: 'b24-repeater__row' });
     const body = h('div', { class: 'b24-repeater__body' });
-    const del = h('button', { type: 'button', class: 'b24-repeater__remove', 'aria-label': o.removeLabel ?? 'Удалить строку', title: o.removeLabel ?? 'Удалить' }, html(icon('trash')));
+    const del = h('button', { type: 'button', class: 'b24-repeater__remove', 'aria-label': o.removeLabel ?? t('Удалить строку'), title: o.removeLabel ?? t('Удалить') }, html(icon('trash')));
     el.append(body, del);
     const row: Row = { value, el };
     const ctx: RepeaterRowContext<T> = {
@@ -256,8 +257,8 @@ export function createKeyValue(host: HTMLElement, options: KeyValueOptions): Key
   const rep = createRepeater<KeyValuePair>(root, {
     values: o.pairs ?? [],
     create: () => ({ key: '', value: '' }),
-    addLabel: o.addLabel ?? 'Добавить',
-    emptyText: o.emptyText === undefined ? 'Пока ничего не добавлено' : o.emptyText,
+    addLabel: o.addLabel ?? t('Добавить'),
+    emptyText: o.emptyText === undefined ? t('Пока ничего не добавлено') : o.emptyText,
     max: o.max,
     className: 'b24-kv__rows',
     onChange: sync,
@@ -266,8 +267,8 @@ export function createKeyValue(host: HTMLElement, options: KeyValueOptions): Key
       const k = h('div', { class: 'b24-kv__cell' });
       const v = h('div', { class: 'b24-kv__cell' });
       body.append(k, h('span', { class: 'b24-kv__arrow', 'aria-hidden': 'true' }, html(icon('arrowRight'))), v);
-      const fk = valueField(k, o.key, pair.key, (key) => ctx.update({ key }), { size: o.size, ariaLabel: o.key.label ?? 'Ключ' });
-      const fv = valueField(v, o.value, pair.value, (value) => ctx.update({ value }), { size: o.size, ariaLabel: o.value.label ?? 'Значение' });
+      const fk = valueField(k, o.key, pair.key, (key) => ctx.update({ key }), { size: o.size, ariaLabel: o.key.label ?? t('Ключ') });
+      const fv = valueField(v, o.value, pair.value, (value) => ctx.update({ value }), { size: o.size, ariaLabel: o.value.label ?? t('Значение') });
       return () => { fk.destroy(); fv.destroy(); };
     },
   });

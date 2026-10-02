@@ -3,6 +3,7 @@ import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
 import { avatarColor as colorFor, initials } from '../js/avatar';
+import { t } from '../js/i18n';
 
 export type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'violet' | 'gray';
 
@@ -113,7 +114,7 @@ export function Tag({ children, onRemove, style }: { children: ReactNode; onRemo
   return (
     <span className="b24-tag" style={style}>
       <span className="b24-tag__text">{children}</span>
-      {onRemove && <button type="button" className="b24-tag__remove" aria-label="Удалить" onClick={onRemove}><Icon name="close" /></button>}
+      {onRemove && <button type="button" className="b24-tag__remove" aria-label={t('Удалить')} onClick={onRemove}><Icon name="close" /></button>}
     </span>
   );
 }
@@ -142,7 +143,7 @@ export function Alert({ tone = 'primary', title, icon, outline, onClose, classNa
         {title && <p className="b24-alert__title">{title}</p>}
         {children}
       </div>
-      {onClose && <button type="button" className="b24-alert__close" aria-label="Закрыть" onClick={onClose}><Icon name="close" /></button>}
+      {onClose && <button type="button" className="b24-alert__close" aria-label={t('Закрыть')} onClick={onClose}><Icon name="close" /></button>}
     </div>
   );
 }
@@ -186,10 +187,10 @@ export function User({ name, meta, src, href, size = 'sm', onClick }: { name: st
 }
 
 /* ── Feedback ────────────────────────────────────────── */
-export function Spinner({ size = 'md', label = 'Загрузка' }: { size?: 'sm' | 'md' | 'lg'; label?: string }) {
+export function Spinner({ size = 'md', label = t('Загрузка') }: { size?: 'sm' | 'md' | 'lg'; label?: string }) {
   return <span className={cx('b24-spinner', size !== 'md' && `b24-spinner--${size}`)} role="status" aria-label={label} />;
 }
-export function Loader({ children = 'Загрузка…' }: { children?: ReactNode }) {
+export function Loader({ children = t('Загрузка…') }: { children?: ReactNode }) {
   return <div className="b24-loader"><Spinner />{children}</div>;
 }
 export function Skeleton({ width, height, circle, className }: { width?: number | string; height?: number | string; circle?: boolean; className?: string }) {
@@ -257,7 +258,7 @@ export function StageMini({ total, done, color, label }: { total: number; done: 
 
 /* ── Богатые ячейки ── */
 /** «Поле: ~~было~~ → станет»; одинаковые значения — «(без изменений)», пустые — «пусто» */
-export function DiffValue({ field, before, after, emptyText = 'пусто' }: { field?: ReactNode; before: ReactNode; after: ReactNode; emptyText?: string }) {
+export function DiffValue({ field, before, after, emptyText = t('пусто') }: { field?: ReactNode; before: ReactNode; after: ReactNode; emptyText?: string }) {
   const empty = (v: ReactNode) => v == null || v === '';
   const val = (v: ReactNode) => (empty(v) ? <span className="b24-diff__empty">{emptyText}</span> : v);
   const same = (empty(before) && empty(after)) || (typeof before !== 'object' && typeof after !== 'object' && String(before ?? '') === String(after ?? ''));
@@ -265,7 +266,7 @@ export function DiffValue({ field, before, after, emptyText = 'пусто' }: { 
   return (
     <span className="b24-diff">
       {field && <span className="b24-diff__field">{field}</span>}
-      {empty(before) ? val(before) : <del>{before}</del>}<span className="b24-diff__arrow" aria-label="станет">→</span>{empty(after) ? val(after) : <ins>{after}</ins>}
+      {empty(before) ? val(before) : <del>{before}</del>}<span className="b24-diff__arrow" aria-label={t('станет')}>→</span>{empty(after) ? val(after) : <ins>{after}</ins>}
     </span>
   );
 }
@@ -277,7 +278,7 @@ export function Chip({ children, href, id, avatar, onRemove }: { children: React
       {avatar && <Avatar name={typeof children === 'string' ? children : ''} src={avatar} size="xs" />}
       {id != null && <span className="b24-chip__id">#{id}</span>}
       <span>{children}</span>
-      {onRemove && <button type="button" className="b24-chip__remove" aria-label="Убрать" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}><Icon name="close" /></button>}
+      {onRemove && <button type="button" className="b24-chip__remove" aria-label={t('Убрать')} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}><Icon name="close" /></button>}
     </>
   );
   return href ? <a className="b24-chip" href={href} target="_top">{inner}</a> : <span className="b24-chip">{inner}</span>;

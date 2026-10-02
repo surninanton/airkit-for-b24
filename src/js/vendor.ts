@@ -1,6 +1,7 @@
 import { icon, type IconName } from '../icons';
 import { dropdown, type DropdownHandle } from './dropdown';
 import { escapeHtml, h, html } from './dom';
+import { t } from './i18n';
 
 /**
  * Блок разработчика — стандарт кита для каждого стороннего приложения.
@@ -82,8 +83,8 @@ export function createVendor(container: HTMLElement, options: VendorOptions): Ve
   const trigger = h('button', {
     type: 'button',
     class: `b24-vendor${onDark ? ' b24-vendor--on-dark' : ''}`,
-    title: `Разработчик: ${options.name}`,
-    'aria-label': `Разработчик приложения: ${options.name}. Поддержка и контакты`,
+    title: t('Разработчик: {name}', { name: options.name }),
+    'aria-label': t('Разработчик приложения: {name}. Поддержка и контакты', { name: options.name }),
   });
   const logoSrc = onDark && options.logoOnDark ? options.logoOnDark : options.logo;
   if (logoSrc) {
@@ -99,21 +100,21 @@ export function createVendor(container: HTMLElement, options: VendorOptions): Ve
   const popup = h('div', { class: 'b24-popup b24-vendor-menu', hidden: true });
   const menu = h('div', { class: 'b24-menu', role: 'menu' });
   const head = h('div', { class: 'b24-vendor-menu__head' });
-  head.append(html(`<span class="b24-vendor-menu__app">${escapeHtml(options.app?.name ?? 'Приложение')}${options.app?.version ? ` <span class="b24-vendor-menu__version">v${escapeHtml(options.app.version)}</span>` : ''}</span><span class="b24-vendor-menu__by">Разработчик: ${escapeHtml(options.name)}</span>`));
+  head.append(html(`<span class="b24-vendor-menu__app">${escapeHtml(options.app?.name ?? t('Приложение'))}${options.app?.version ? ` <span class="b24-vendor-menu__version">v${escapeHtml(options.app.version)}</span>` : ''}</span><span class="b24-vendor-menu__by">${t('Разработчик: {name}', { name: escapeHtml(options.name) })}</span>`));
   menu.append(head);
 
   const L = options.links;
   if (L.support || L.newTicket) {
-    menu.append(h('div', { class: 'b24-menu__title' }, 'Поддержка'));
-    if (L.support) menu.append(menuItem('Мои обращения', L.support, 'ticket'));
-    if (L.newTicket) menu.append(menuItem('Новое обращение', L.newTicket, 'plus'));
+    menu.append(h('div', { class: 'b24-menu__title' }, t('Поддержка')));
+    if (L.support) menu.append(menuItem(t('Мои обращения'), L.support, 'ticket'));
+    if (L.newTicket) menu.append(menuItem(t('Новое обращение'), L.newTicket, 'plus'));
     menu.append(h('div', { class: 'b24-menu__divider' }));
   }
-  if (L.privacy) menu.append(menuItem('Политика конфиденциальности', L.privacy, 'shield'));
-  if (L.contacts) menu.append(menuItem('Контакты', L.contacts, 'phone'));
+  if (L.privacy) menu.append(menuItem(t('Политика конфиденциальности'), L.privacy, 'shield'));
+  if (L.contacts) menu.append(menuItem(t('Контакты'), L.contacts, 'phone'));
   if (L.site || L.marketplace || options.extra?.length) menu.append(h('div', { class: 'b24-menu__divider' }));
-  if (L.site) menu.append(menuItem('Сайт разработчика', L.site, 'link', true));
-  if (L.marketplace) menu.append(menuItem('Приложение в Маркетплейсе', L.marketplace, 'apps', true));
+  if (L.site) menu.append(menuItem(t('Сайт разработчика'), L.site, 'link', true));
+  if (L.marketplace) menu.append(menuItem(t('Приложение в Маркетплейсе'), L.marketplace, 'apps', true));
   for (const x of options.extra ?? []) menu.append(menuItem(x.label, x.link, x.icon ?? 'link'));
   popup.append(menu);
   container.append(trigger, popup);

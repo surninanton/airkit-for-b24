@@ -38,5 +38,6 @@ export { B24Provider, App, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem
 
 // Императивные API общие с vanilla-версией
 export { plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors, popover, startTour, type TourStep } from '../js/index';
+export { t, setLocale, getLocale, addMessages } from '../js/index';
 export { toast, confirm, alert, modal, openSidePanel, setTheme, setAirPreset, bx24, toBitrixFilter, toQuery, resolvePeriod, formatDate, parseDate, bx24UserLoader, openEntityDialog, formatSize, formatMoney, type DateRange, type PeriodValue } from '../js/index';
 export type { IconName } from '../icons';

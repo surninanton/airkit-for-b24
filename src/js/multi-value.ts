@@ -2,6 +2,7 @@ import { icon } from '../icons';
 import { h, html } from './dom';
 import { openEntityDialog, type EntityDialogHandle } from './entity-dialog';
 import { parseTime, timepicker, type TimePickerHandle } from './timepicker';
+import { t } from './i18n';
 
 /**
  * Поле из нескольких значений на тегах: «09:00 ✕  14:30 ✕  + Добавить».
@@ -46,7 +47,7 @@ export function multiValue(container: HTMLElement, options: MultiValueOptions = 
   const unique = options.unique !== false;
   const sortValues = options.sort ?? (type === 'time');
   const max = options.max && options.max > 0 ? options.max : Infinity;
-  const addLabel = options.addLabel ?? 'Добавить';
+  const addLabel = options.addLabel ?? t('Добавить');
   const opts = options.options ?? [];
   const labelOf = (v: string) => (type === 'select' ? opts.find((o) => o.value === v)?.label ?? v : v);
   const inputName = options.name ? (options.name.endsWith('[]') ? options.name : `${options.name}[]`) : null;
@@ -104,7 +105,7 @@ export function multiValue(container: HTMLElement, options: MultiValueOptions = 
       const chip = h('span', { class: 'b24-tag b24-multi__chip', tabindex: '0', 'data-index': String(i), title: label });
       chip.append(h('span', { class: 'b24-tag__text' }, label));
       if (!options.disabled) {
-        const del = h('button', { type: 'button', class: 'b24-tag__remove', tabindex: '-1', 'aria-label': `Удалить ${label}` }, html(icon('close')));
+        const del = h('button', { type: 'button', class: 'b24-tag__remove', tabindex: '-1', 'aria-label': t('Удалить {label}', { label }) }, html(icon('close')));
         del.addEventListener('click', (e) => { e.stopPropagation(); removeAt(i); });
         chip.append(del);
       }
@@ -117,7 +118,7 @@ export function multiValue(container: HTMLElement, options: MultiValueOptions = 
         root.append(add);
         if (focusAdd || hadEditor) requestAnimationFrame(() => add.focus());
       } else if (Number.isFinite(max)) {
-        root.append(h('span', { class: 'b24-multi__limit' }, `не больше ${max}`));
+        root.append(h('span', { class: 'b24-multi__limit' }, t('не больше {max}', { max })));
       }
     }
     syncHidden();
@@ -147,7 +148,7 @@ export function multiValue(container: HTMLElement, options: MultiValueOptions = 
         searchable: available.length > 7,
         avatars: false,
         compact: true,
-        emptyText: 'Все варианты уже выбраны',
+        emptyText: t('Все варианты уже выбраны'),
         onChange: (sel) => {
           const v = sel[0] ? String(sel[0].id) : null;
           if (v != null && add(v)) { render(true); emit(); }
@@ -157,7 +158,7 @@ export function multiValue(container: HTMLElement, options: MultiValueOptions = 
       return;
     }
     // time: поле-редактор на месте «+»
-    const input = h('input', { class: 'b24-input b24-input--sm b24-multi__editor', 'aria-label': 'Новое время', placeholder: options.placeholder ?? 'чч:мм' });
+    const input = h('input', { class: 'b24-input b24-input--sm b24-multi__editor', 'aria-label': t('Новое время'), placeholder: options.placeholder ?? t('чч:мм') });
     addBtn.replaceWith(input);
     editor = input;
     let done = false;

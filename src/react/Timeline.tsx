@@ -4,6 +4,7 @@ import { Button } from './Button';
 import { Badge } from './Display';
 import { Icon } from './Icon';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'violet' | 'gray' | 'outline';
 
@@ -53,7 +54,7 @@ export function TimelineActivity({ done, onToggle, deadline, overdue, icon = 'ph
       <span className={cx('b24-timeline__icon', done ? 'b24-timeline__icon--success' : overdue ? 'b24-timeline__icon--danger' : 'b24-timeline__icon--warning')} aria-hidden><Icon name={icon} /></span>
       <div className="b24-timeline__card">
         <header className="b24-timeline__header">
-          <button type="button" role="checkbox" aria-checked={!!done} aria-label={done ? 'Вернуть в работу' : 'Выполнить'} className="b24-timeline__complete" onClick={() => onToggle?.(!done)}>
+          <button type="button" role="checkbox" aria-checked={!!done} aria-label={done ? t('Вернуть в работу') : t('Выполнить')} className="b24-timeline__complete" onClick={() => onToggle?.(!done)}>
             <Icon name={done ? 'checkCircle' : 'circle'} />
           </button>
           <span className="b24-timeline__title">{title}</span>
@@ -64,7 +65,7 @@ export function TimelineActivity({ done, onToggle, deadline, overdue, icon = 'ph
         {deadline && (
           <div className="b24-timeline__meta">
             <span className="b24-timeline__deadline">
-              Срок: <Badge size="sm" tone={done ? 'gray' : overdue ? 'danger' : 'warning'}>{deadline}</Badge>
+              {t('Срок:')} <Badge size="sm" tone={done ? 'gray' : overdue ? 'danger' : 'warning'}>{deadline}</Badge>
             </span>
           </div>
         )}
@@ -88,7 +89,7 @@ export interface TimelineComposerProps {
   tools?: ReactNode;
   className?: string;
 }
-export function TimelineComposer({ tabs = [{ id: 'comment', label: 'Комментарий', placeholder: 'Оставьте комментарий' }], onSubmit, submitText = 'Отправить', tools, className }: TimelineComposerProps) {
+export function TimelineComposer({ tabs = [{ id: 'comment', label: t('Комментарий'), placeholder: t('Оставьте комментарий') }], onSubmit, submitText = t('Отправить'), tools, className }: TimelineComposerProps) {
   const [tab, setTab] = useState(tabs[0].id);
   const [text, setText] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -133,8 +134,8 @@ export function TimelineComposer({ tabs = [{ id: 'comment', label: 'Коммен
           ref={input}
           rows={1}
           className="b24-composer__input"
-          placeholder={current.placeholder ?? 'Напишите…'}
-          aria-label={typeof current.label === 'string' ? current.label : 'Сообщение'}
+          placeholder={current.placeholder ?? t('Напишите…')}
+          aria-label={typeof current.label === 'string' ? current.label : t('Сообщение')}
           value={text}
           onFocus={() => setExpanded(true)}
           onBlur={() => { if (!text.trim()) setExpanded(false); }}
@@ -143,8 +144,8 @@ export function TimelineComposer({ tabs = [{ id: 'comment', label: 'Коммен
         />
         <div className="b24-composer__footer">
           <Button variant="primary" size="sm" loading={busy} disabled={!text.trim()} onMouseDown={(e) => e.preventDefault()} onClick={submit}>{submitText}</Button>
-          <Button variant="link" size="sm" onMouseDown={(e) => e.preventDefault()} onClick={() => { setText(''); setExpanded(false); input.current?.blur(); }}>Отменить</Button>
-          <span className="b24-composer__hint">Ctrl+Enter — отправить</span>
+          <Button variant="link" size="sm" onMouseDown={(e) => e.preventDefault()} onClick={() => { setText(''); setExpanded(false); input.current?.blur(); }}>{t('Отменить')}</Button>
+          <span className="b24-composer__hint">{t('Ctrl+Enter — отправить')}</span>
           {tools && <span className="b24-composer__footer-right">{tools}</span>}
         </div>
       </div>

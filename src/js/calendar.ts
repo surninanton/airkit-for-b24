@@ -1,10 +1,11 @@
 import { icon } from '../icons';
 import {
-  MONTHS, WEEKDAYS, addMonths, formatDate, inRange, isDisabled, isSameDay, isWeekend, monthGrid, parseDate,
+  months, weekdays, addMonths, formatDate, inRange, isDisabled, isSameDay, isWeekend, monthGrid, parseDate,
   startOfDay, toISODate, type DateRange,
 } from './date';
 import { bringToFront, viewportHeight, h, html, pushLayer } from './dom';
 import { timepicker, type TimePickerHandle } from './timepicker';
+import { t } from './i18n';
 
 export interface CalendarOptions {
   mode?: 'single' | 'range';
@@ -48,9 +49,9 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
     root.textContent = '';
     const head = h('div', { class: 'b24-calendar__head' });
     const title = h('button', { type: 'button', class: 'b24-calendar__title', 'aria-live': 'polite' },
-      view === 'days' ? `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}` : String(cursor.getFullYear()));
-    const prev = h('button', { type: 'button', class: 'b24-calendar__nav', 'aria-label': view === 'days' ? 'Предыдущий месяц' : 'Предыдущий год' }, html(icon('chevronLeft')));
-    const next = h('button', { type: 'button', class: 'b24-calendar__nav', 'aria-label': view === 'days' ? 'Следующий месяц' : 'Следующий год' }, html(icon('chevronRight')));
+      view === 'days' ? `${months()[cursor.getMonth()]} ${cursor.getFullYear()}` : String(cursor.getFullYear()));
+    const prev = h('button', { type: 'button', class: 'b24-calendar__nav', 'aria-label': view === 'days' ? t('Предыдущий месяц') : t('Предыдущий год') }, html(icon('chevronLeft')));
+    const next = h('button', { type: 'button', class: 'b24-calendar__nav', 'aria-label': view === 'days' ? t('Следующий месяц') : t('Следующий год') }, html(icon('chevronRight')));
     title.addEventListener('click', () => { view = view === 'days' ? 'months' : 'days'; render(); });
     prev.addEventListener('click', () => { cursor = addMonths(cursor, view === 'days' ? -1 : -12); render(); });
     next.addEventListener('click', () => { cursor = addMonths(cursor, view === 'days' ? 1 : 12); render(); });
@@ -59,7 +60,7 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
 
     if (view === 'months') {
       const grid = h('div', { class: 'b24-calendar__months' });
-      MONTHS.forEach((name, i) => {
+      months().forEach((name, i) => {
         const b = h('button', { type: 'button', class: `b24-calendar__month${i === cursor.getMonth() ? ' is-selected' : ''}` }, name.slice(0, 3));
         b.addEventListener('click', () => { cursor = new Date(cursor.getFullYear(), i, 1); view = 'days'; render(); });
         grid.append(b);
@@ -69,7 +70,7 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
     }
 
     const grid = h('div', { class: 'b24-calendar__grid', role: 'grid' });
-    WEEKDAYS.forEach((d) => grid.append(h('span', { class: 'b24-calendar__weekday', role: 'columnheader' }, d)));
+    weekdays().forEach((d) => grid.append(h('span', { class: 'b24-calendar__weekday', role: 'columnheader' }, d)));
     const today = new Date();
     const rangeEnd = mode === 'range' ? range.to ?? (range.from ? hover : null) : null;
     for (const day of monthGrid(cursor.getFullYear(), cursor.getMonth())) {
@@ -101,7 +102,7 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
     focusDay?.setAttribute('tabindex', '0');
 
     if (withTime && mode === 'single') {
-      const time = h('input', { class: 'b24-input b24-input--sm', value: value ? formatDate(value, true).slice(11) : '', 'aria-label': 'Время' });
+      const time = h('input', { class: 'b24-input b24-input--sm', value: value ? formatDate(value, true).slice(11) : '', 'aria-label': t('Время') });
       timeHandle = timepicker(time, { step: 5, strict: false });
       time.addEventListener('change', () => {
         const [hh, mm] = time.value.split(':').map(Number);
@@ -109,18 +110,18 @@ export function createCalendar(container: HTMLElement, options: CalendarOptions 
         value = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh || 0, mm || 0);
         options.onSelect?.(value);
       });
-      root.append(h('div', { class: 'b24-calendar__time' }, 'Время', time));
+      root.append(h('div', { class: 'b24-calendar__time' }, t('Время'), time));
     }
 
     if (footer) {
       const f = h('div', { class: 'b24-calendar__footer' });
-      const todayBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm' }, 'Сегодня');
+      const todayBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm' }, t('Сегодня'));
       todayBtn.addEventListener('click', () => {
         const t = startOfDay(new Date());
         if (mode === 'single') selectSingle(t);
         else { range = { from: t, to: t }; options.onRangeSelect?.(range); cursor = new Date(t.getFullYear(), t.getMonth(), 1); render(); }
       });
-      const clear = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm' }, 'Очистить');
+      const clear = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm' }, t('Очистить'));
       clear.addEventListener('click', () => {
         if (mode === 'single') { value = null; options.onSelect?.(null); }
         else { range = { from: null, to: null }; options.onRangeSelect?.(range); }
@@ -215,7 +216,7 @@ export function datepicker(input: HTMLInputElement, options: DatePickerOptions =
     return { from: parseDate(a), to: parseDate(b) };
   };
 
-  const popup = h('div', { class: 'b24-popup b24-root b24-datepicker-popup', hidden: true, role: 'dialog', 'aria-label': 'Выбор даты', style: 'background:var(--b24-bg-surface)' });
+  const popup = h('div', { class: 'b24-popup b24-root b24-datepicker-popup', hidden: true, role: 'dialog', 'aria-label': t('Выбор даты'), style: 'background:var(--b24-bg-surface)' });
   let cal: CalendarHandle | null = null;
   let releaseLayer = () => {};
   let opened = false;
@@ -307,7 +308,7 @@ export function datepicker(input: HTMLInputElement, options: DatePickerOptions =
   };
 
   input.autocomplete = 'off';
-  if (!input.placeholder) input.placeholder = mode === 'range' && !inputTo ? 'дд.мм.гггг – дд.мм.гггг' : 'дд.мм.гггг';
+  if (!input.placeholder) input.placeholder = mode === 'range' && !inputTo ? t('дд.мм.гггг – дд.мм.гггг') : t('дд.мм.гггг');
   input.addEventListener('focus', onFocus);
   input.addEventListener('click', onFocus);
   input.addEventListener('keydown', onKey);

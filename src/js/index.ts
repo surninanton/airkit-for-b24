@@ -32,6 +32,7 @@ export {
   type TreeItem, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
 } from './controls';
 export { createLogViewer, jsonHtml, codeHtml, traceHtml, copyText, type LogEntry, type LogLevel, type LogPage, type LogViewerOptions, type LogViewerHandle, type CodeTone } from './logs';
+export { t, setLocale, getLocale, addMessages, intlLocale, type Messages } from './i18n';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';

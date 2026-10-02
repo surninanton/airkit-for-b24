@@ -2,6 +2,7 @@ import { icon } from '../icons';
 import { h, html } from './dom';
 import { dropdown, type DropdownHandle } from './dropdown';
 import { modal, type ModalHandle } from './modal';
+import { t } from './i18n';
 
 /* ── Галерея скриншотов + лайтбокс ──────────────────────────
  * <ul class="b24-gallery" data-b24-gallery>
@@ -26,8 +27,8 @@ export function openLightbox(items: GalleryItem[], start = 0): ModalHandle {
   const counter = h('div', { class: 'b24-lightbox__counter' });
   const stage = h('div', { class: 'b24-lightbox__stage' }, img);
   const multi = items.length > 1;
-  const prev = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--prev', 'aria-label': 'Предыдущий скриншот' }, html(icon('chevronLeft')));
-  const next = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--next', 'aria-label': 'Следующий скриншот' }, html(icon('chevronRight')));
+  const prev = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--prev', 'aria-label': t('Предыдущий скриншот') }, html(icon('chevronLeft')));
+  const next = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--next', 'aria-label': t('Следующий скриншот') }, html(icon('chevronRight')));
   if (multi) stage.append(prev, next);
   const content = h('div', { class: 'b24-lightbox__content' }, stage, caption);
   if (multi) content.append(counter);
@@ -39,7 +40,7 @@ export function openLightbox(items: GalleryItem[], start = 0): ModalHandle {
     img.alt = it.alt || it.caption;
     caption.textContent = it.caption;
     caption.hidden = !it.caption;
-    counter.textContent = `${index + 1} из ${items.length}`;
+    counter.textContent = t('{n} из {m}', { n: index + 1, m: items.length });
     // предзагрузка соседних
     if (multi) for (const j of [index - 1, index + 1]) { const n = items[(j + items.length) % items.length]; new Image().src = n.src; }
   };
@@ -48,7 +49,7 @@ export function openLightbox(items: GalleryItem[], start = 0): ModalHandle {
 
   const m = modal({ title: '', content, size: 'lg', closeOnOverlay: true });
   m.element.classList.add('b24-lightbox');
-  m.element.setAttribute('aria-label', 'Просмотр скриншота');
+  m.element.setAttribute('aria-label', t('Просмотр скриншота'));
   const onKey = (e: KeyboardEvent) => {
     if (!multi) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); show(index - 1); }
@@ -96,8 +97,8 @@ export function initTopnav(nav: HTMLElement): () => void {
   const toggle = h('button', {
     type: 'button',
     class: 'b24-btn b24-btn--glass b24-btn--sm b24-topnav__toggle',
-    'aria-label': 'Меню разделов',
-  }, html(icon('menu', { size: 16 })), h('span', {}, current?.textContent?.trim() || 'Меню'));
+    'aria-label': t('Меню разделов'),
+  }, html(icon('menu', { size: 16 })), h('span', {}, current?.textContent?.trim() || t('Меню')));
   nav.append(toggle);
   const popup = h('div', { class: 'b24-popup b24-topnav-menu', hidden: true });
   const menu = h('div', { class: 'b24-menu', role: 'menu' });
@@ -133,11 +134,11 @@ export function initSiteHeader(header: HTMLElement): () => void {
   const groups = () => Array.from(header.querySelectorAll<HTMLDetailsElement>('details.b24-site-nav__group'));
   let burger = header.querySelector<HTMLButtonElement>('.b24-site-header__burger');
   if (!burger) {
-    burger = h('button', { type: 'button', class: 'b24-btn b24-btn--glass b24-btn--icon b24-site-header__burger', 'aria-label': 'Открыть меню', 'aria-expanded': 'false' }, html(icon('menu'))) as HTMLButtonElement;
+    burger = h('button', { type: 'button', class: 'b24-btn b24-btn--glass b24-btn--icon b24-site-header__burger', 'aria-label': t('Открыть меню'), 'aria-expanded': 'false' }, html(icon('menu'))) as HTMLButtonElement;
     row.append(burger);
   }
   // подпись и состояние — и у кнопки из разметки, и у созданной китом
-  if (!burger.getAttribute('aria-label') && !burger.textContent?.trim()) burger.setAttribute('aria-label', 'Открыть меню');
+  if (!burger.getAttribute('aria-label') && !burger.textContent?.trim()) burger.setAttribute('aria-label', t('Открыть меню'));
   burger.setAttribute('aria-expanded', 'false');
   burger.setAttribute('type', 'button');
   const nav = header.querySelector<HTMLElement>('.b24-site-nav');
@@ -148,7 +149,7 @@ export function initSiteHeader(header: HTMLElement): () => void {
   const setMenu = (open: boolean) => {
     header.classList.toggle('is-menu-open', open);
     burger!.setAttribute('aria-expanded', String(open));
-    burger!.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+    burger!.setAttribute('aria-label', open ? t('Закрыть меню') : t('Открыть меню'));
     burger!.innerHTML = icon(open ? 'close' : 'menu');
     document.body.classList.toggle('b24-menu-open', open);
     if (!open) closeGroups();
@@ -382,7 +383,7 @@ export function initThemeSwitch(btn: HTMLElement): () => void {
   const isDark = () => root.dataset.b24Theme === 'dark' || (root.dataset.b24Theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
   const sync = () => {
     btn.setAttribute('aria-pressed', String(isDark()));
-    if (!btn.getAttribute('aria-label') && !btn.textContent?.trim()) btn.setAttribute('aria-label', 'Тёмная тема');
+    if (!btn.getAttribute('aria-label') && !btn.textContent?.trim()) btn.setAttribute('aria-label', t('Тёмная тема'));
   };
   const onClick = () => {
     const next = isDark() ? 'light' : 'dark';
@@ -407,7 +408,7 @@ export function initVideo(el: HTMLAnchorElement): () => void {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
     const embed = el.dataset.embed;
-    const title = el.getAttribute('aria-label') ?? el.querySelector('.b24-video__caption')?.textContent ?? 'Видео';
+    const title = el.getAttribute('aria-label') ?? el.querySelector('.b24-video__caption')?.textContent ?? t('Видео');
     el.textContent = '';
     if (embed) {
       const src = embed + (embed.includes('?') ? '&' : '?') + 'autoplay=1';

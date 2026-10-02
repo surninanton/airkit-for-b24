@@ -5,6 +5,7 @@
  *   [data-b24-composer-submit], [data-b24-composer-cancel]
  * Событие b24:composer-submit { text, tab } (cancelable: preventDefault — не очищать поле).
  */
+import { getLocale, intlLocale, t } from './i18n';
 export interface ComposerHandle { focus(): void; clear(): void; destroy(): void }
 
 export function autoResize(textarea: HTMLTextAreaElement): () => void {
@@ -90,7 +91,11 @@ export function formatTimelineTime(date: Date, now = new Date()): string {
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const diff = Math.round((day(now) - day(date)) / 86400000);
   if (diff === 0) return time;
-  if (diff === 1) return `вчера, ${time}`;
+  if (diff === 1) return t('вчера, {time}', { time });
+  if (getLocale() !== 'ru') {
+    const sameYear = date.getFullYear() === now.getFullYear();
+    return `${date.toLocaleDateString(intlLocale(), { day: 'numeric', month: 'long', year: sameYear ? undefined : 'numeric' })}, ${time}`;
+  }
   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
   return `${date.getDate()} ${months[date.getMonth()]}${date.getFullYear() !== now.getFullYear() ? ` ${date.getFullYear()}` : ''}, ${time}`;
 }

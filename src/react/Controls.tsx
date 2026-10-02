@@ -3,6 +3,7 @@ import { createTree, type TreeHandle, type TreeItem, type TreeOptions } from '..
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 /* ── Аккордеон ── */
 export function Accordion({ flush, className, children }: { flush?: boolean; className?: string; children: ReactNode }) {
@@ -65,9 +66,9 @@ export function CheckGroup({ options, value, onChange, height, ariaLabel }: { op
   return (
     <div className="b24-check-group" role="group" aria-label={ariaLabel}>
       <div className="b24-check-group__head">
-        <span className="b24-check-group__count">Выбрано {value.length} из {options.length}</span>
-        <button type="button" className="b24-check-group__link" onClick={() => onChange(Array.from(new Set([...value, ...enabled])))}>все</button>
-        <button type="button" className="b24-check-group__link" onClick={() => onChange(value.filter((v) => !enabled.includes(v)))}>очистить</button>
+        <span className="b24-check-group__count">{t('Выбрано {n} из {m}', { n: value.length, m: options.length })}</span>
+        <button type="button" className="b24-check-group__link" onClick={() => onChange(Array.from(new Set([...value, ...enabled])))}>{t('все')}</button>
+        <button type="button" className="b24-check-group__link" onClick={() => onChange(value.filter((v) => !enabled.includes(v)))}>{t('очистить')}</button>
       </div>
       <div className="b24-check-group__list" style={height ? ({ '--b24-check-group-h': `${height}px` } as CSSProperties) : undefined}>
         {options.map((o) => (
@@ -106,7 +107,7 @@ export function Range({ value, onChange, min = 0, max = 100, step = 1, suffix = 
     </div>
   );
 }
-export function RangePair({ value, onChange, min = 0, max = 100, step = 1, suffix = '', ariaLabel = ['От', 'До'] }: { value: [number, number]; onChange: (v: [number, number]) => void; min?: number; max?: number; step?: number; suffix?: string; ariaLabel?: [string, string] }) {
+export function RangePair({ value, onChange, min = 0, max = 100, step = 1, suffix = '', ariaLabel = [t('От'), t('До')] }: { value: [number, number]; onChange: (v: [number, number]) => void; min?: number; max?: number; step?: number; suffix?: string; ariaLabel?: [string, string] }) {
   const pct = (v: number) => `${((v - min) / ((max - min) || 1)) * 100}%`;
   return (
     <div className="b24-range-field">
@@ -121,7 +122,7 @@ export function RangePair({ value, onChange, min = 0, max = 100, step = 1, suffi
 
 /* ── Выбор цвета ── */
 export const B24_COLORS = ['#2fc6f6', '#0075ff', '#1bce7b', '#faa72c', '#ff5752', '#a77bde', '#e66f9b', '#828b95'];
-export function ColorPicker({ value, onChange, colors = B24_COLORS, custom = true, ariaLabel = 'Цвет' }: { value: string; onChange: (v: string) => void; colors?: string[]; custom?: boolean; ariaLabel?: string }) {
+export function ColorPicker({ value, onChange, colors = B24_COLORS, custom = true, ariaLabel = t('Цвет') }: { value: string; onChange: (v: string) => void; colors?: string[]; custom?: boolean; ariaLabel?: string }) {
   const name = useId();
   const isCustom = !!value && !colors.includes(value);
   return (
@@ -132,8 +133,8 @@ export function ColorPicker({ value, onChange, colors = B24_COLORS, custom = tru
         </label>
       ))}
       {custom && (
-        <label className={cx('b24-colors__custom', isCustom && 'is-active')} style={isCustom ? ({ '--c': value } as CSSProperties) : undefined} title="Свой цвет">
-          <input type="color" aria-label="Свой цвет" value={isCustom ? value : '#0075ff'} onChange={(e) => onChange(e.target.value)} />
+        <label className={cx('b24-colors__custom', isCustom && 'is-active')} style={isCustom ? ({ '--c': value } as CSSProperties) : undefined} title={t('Свой цвет')}>
+          <input type="color" aria-label={t('Свой цвет')} value={isCustom ? value : '#0075ff'} onChange={(e) => onChange(e.target.value)} />
         </label>
       )}
     </div>
@@ -151,10 +152,10 @@ export function SecretInput({ value, onChange, saved, mask = '••••••
     <div className={cx('b24-secret', saved && 'is-saved')}>
       <input
         className="b24-input" id={id} name={name} type={show ? 'text' : 'password'} autoComplete="new-password" value={value} aria-invalid={invalid || undefined}
-        placeholder={saved ? mask : placeholder} title={saved ? 'Значение сохранено. Введите новое, чтобы заменить' : undefined}
+        placeholder={saved ? mask : placeholder} title={saved ? t('Значение сохранено. Введите новое, чтобы заменить') : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
-      <button type="button" className="b24-secret__toggle" aria-pressed={show} aria-label={show ? 'Скрыть значение' : 'Показать значение'} onClick={() => setShow((s) => !s)}>
+      <button type="button" className="b24-secret__toggle" aria-pressed={show} aria-label={show ? t('Скрыть значение') : t('Показать значение')} onClick={() => setShow((s) => !s)}>
         <Icon name="eye" />
       </button>
     </div>

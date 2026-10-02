@@ -10,6 +10,7 @@ import { Icon } from './Icon';
 import { Modal, Popover } from './Overlay';
 import { PeriodPicker } from './DatePicker';
 import { cx } from './utils';
+import { t } from '../js/i18n';
 
 export interface FilterProps {
   fields: FilterField[];
@@ -28,14 +29,14 @@ export interface FilterProps {
 export const emptyFilterState: FilterState = { presetId: null, values: {}, search: '' };
 
 export function Filter({
-  fields, presets = [], onPresetsChange, value, onChange, placeholder = 'Фильтр и поиск', glass, searchDebounce = 400, className,
+  fields, presets = [], onPresetsChange, value, onChange, placeholder = t('Фильтр и поиск'), glass, searchDebounce = 400, className,
 }: FilterProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<FilterState>(value);
   const [search, setSearch] = useState(value.search);
   const [visible, setVisible] = useState<Set<string>>(() => new Set(fields.filter((f) => f.default !== false).map((f) => f.id)));
   const [saveOpen, setSaveOpen] = useState(false);
-  const [presetName, setPresetName] = useState('Мой фильтр');
+  const [presetName, setPresetName] = useState(() => t('Мой фильтр'));
   const barRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -74,7 +75,7 @@ export function Filter({
             id={id}
             value={(v as string) ?? ''}
             onChange={(e) => setField(f.id, e.target.value)}
-            options={[{ value: '', label: 'Не выбрано' }, ...(f.type === 'checkbox' ? [{ value: 'Y', label: 'Да' }, { value: 'N', label: 'Нет' }] : f.options ?? [])]}
+            options={[{ value: '', label: t('Не выбрано') }, ...(f.type === 'checkbox' ? [{ value: 'Y', label: t('Да') }, { value: 'N', label: t('Нет') }] : f.options ?? [])]}
           />
         );
         break;
@@ -102,9 +103,9 @@ export function Filter({
         const r = (v as NumberRange) ?? {};
         control = (
           <div className="b24-filter-popup__field-row">
-            <Input id={id} inputMode="decimal" placeholder="от" value={r.from ?? ''} onChange={(e) => setField(f.id, { ...r, from: e.target.value })} />
+            <Input id={id} inputMode="decimal" placeholder={t('от')} value={r.from ?? ''} onChange={(e) => setField(f.id, { ...r, from: e.target.value })} />
             <span className="b24-filter-popup__sep">—</span>
-            <Input inputMode="decimal" placeholder="до" aria-label={`${f.label} до`} value={r.to ?? ''} onChange={(e) => setField(f.id, { ...r, to: e.target.value })} />
+            <Input inputMode="decimal" placeholder={t('до')} aria-label={t('{label} до', { label: f.label })} value={r.to ?? ''} onChange={(e) => setField(f.id, { ...r, to: e.target.value })} />
           </div>
         );
         break;
@@ -138,7 +139,7 @@ export function Filter({
               <button
                 type="button"
                 className="b24-filter__chip-remove"
-                aria-label={`Убрать ${c.label}`}
+                aria-label={t('Убрать {label}', { label: c.label })}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (c.key.startsWith('preset:')) emit({ ...value, presetId: null, values: {} });
@@ -149,13 +150,13 @@ export function Filter({
               </button>
             </span>
           ))}
-          {list.length > shown.length && <span className="b24-filter__chip b24-filter__chip--more" onClick={openPopup}>ещё {list.length - shown.length}</span>}
+          {list.length > shown.length && <span className="b24-filter__chip b24-filter__chip--more" onClick={openPopup}>{t('ещё {n}', { n: list.length - shown.length })}</span>}
         </div>
         <input
           ref={inputRef}
           className="b24-filter__input"
           type="search"
-          aria-label="Поиск"
+          aria-label={t('Поиск')}
           placeholder={list.length ? '' : placeholder}
           value={search}
           onChange={(e) => {
@@ -175,11 +176,11 @@ export function Filter({
             }
           }}
         />
-        <button type="button" className="b24-filter__icon" aria-label="Открыть фильтр" aria-expanded={open} onClick={() => (open ? setOpen(false) : openPopup())}>
+        <button type="button" className="b24-filter__icon" aria-label={t('Открыть фильтр')} aria-expanded={open} onClick={() => (open ? setOpen(false) : openPopup())}>
           <Icon name="filter" />
         </button>
         {hasAny && (
-          <button type="button" className="b24-filter__icon" aria-label="Сбросить фильтр" onClick={() => { setSearch(''); emit({ presetId: null, values: {}, search: '' }); }}>
+          <button type="button" className="b24-filter__icon" aria-label={t('Сбросить фильтр')} onClick={() => { setSearch(''); emit({ presetId: null, values: {}, search: '' }); }}>
             <Icon name="close" />
           </button>
         )}
@@ -192,7 +193,7 @@ export function Filter({
         className="b24-filter-popup"
         ignoreOutside=".b24-datepicker-popup, .b24-overlay"
         role="dialog"
-        aria-label="Фильтр"
+        aria-label={t('Фильтр')}
       >
         <div className="b24-filter-popup__presets">
           {presets.map((p) => (
@@ -209,7 +210,7 @@ export function Filter({
               {!p.system && onPresetsChange && (
                 <span
                   role="button"
-                  aria-label={`Удалить пресет ${p.name}`}
+                  aria-label={t('Удалить пресет {name}', { name: p.name })}
                   className="b24-filter__chip-remove b24-filter-popup__preset-remove"
                   onClick={(e) => { e.stopPropagation(); onPresetsChange(presets.filter((x) => x.id !== p.id)); }}
                 >
@@ -219,7 +220,7 @@ export function Filter({
             </button>
           ))}
           {onPresetsChange && (
-            <Button variant="plain" size="sm" icon="plus" className="b24-filter-popup__save" onClick={() => setSaveOpen(true)}>Сохранить фильтр</Button>
+            <Button variant="plain" size="sm" icon="plus" className="b24-filter-popup__save" onClick={() => setSaveOpen(true)}>{t('Сохранить фильтр')}</Button>
           )}
         </div>
         <div className="b24-filter-popup__main">
@@ -227,17 +228,17 @@ export function Filter({
             {fields.filter((f) => visible.has(f.id) || draft.values[f.id] != null).map(renderField)}
             <div className="b24-filter-popup__links">
               {hidden.length > 0 && (
-                <Select size="sm" style={{ width: 'auto' }} aria-label="Добавить поле" value="" onChange={(e) => setVisible((v) => new Set([...v, e.target.value]))}
-                  options={[{ value: '', label: '+ Добавить поле' }, ...hidden.map((f) => ({ value: f.id, label: f.label }))]} />
+                <Select size="sm" style={{ width: 'auto' }} aria-label={t('Добавить поле')} value="" onChange={(e) => setVisible((v) => new Set([...v, e.target.value]))}
+                  options={[{ value: '', label: t('+ Добавить поле') }, ...hidden.map((f) => ({ value: f.id, label: f.label }))]} />
               )}
-              <Button variant="link" size="sm" onClick={() => setVisible(new Set(fields.filter((f) => f.default !== false).map((f) => f.id)))}>Вернуть поля по умолчанию</Button>
+              <Button variant="link" size="sm" onClick={() => setVisible(new Set(fields.filter((f) => f.default !== false).map((f) => f.id)))}>{t('Вернуть поля по умолчанию')}</Button>
             </div>
           </div>
           <div className="b24-filter-popup__footer">
             <Button variant="primary" icon="search" onClick={() => { setOpen(false); emit({ ...draft, search }); }}>
-              Найти{countActive(fields, draft.values) ? ` (${countActive(fields, draft.values)})` : ''}
+              {t('Найти')}{countActive(fields, draft.values) ? ` (${countActive(fields, draft.values)})` : ''}
             </Button>
-            <Button variant="link" onClick={() => setDraft({ presetId: null, values: {}, search: '' })}>Сбросить</Button>
+            <Button variant="link" onClick={() => setDraft({ presetId: null, values: {}, search: '' })}>{t('Сбросить')}</Button>
           </div>
         </div>
       </Popover>
@@ -245,7 +246,7 @@ export function Filter({
       <Modal
         open={saveOpen}
         onClose={() => setSaveOpen(false)}
-        title="Сохранить фильтр"
+        title={t('Сохранить фильтр')}
         size="sm"
         footer={
           <>
@@ -256,12 +257,12 @@ export function Filter({
               onPresetsChange([...presets, preset]);
               setDraft({ ...draft, presetId: preset.id });
               setSaveOpen(false);
-            }}>Сохранить</Button>
-            <Button variant="link" onClick={() => setSaveOpen(false)}>Отмена</Button>
+            }}>{t('Сохранить')}</Button>
+            <Button variant="link" onClick={() => setSaveOpen(false)}>{t('Отмена')}</Button>
           </>
         }
       >
-        <Input autoFocus value={presetName} onChange={(e) => setPresetName(e.target.value)} aria-label="Название фильтра" />
+        <Input autoFocus value={presetName} onChange={(e) => setPresetName(e.target.value)} aria-label={t('Название фильтра')} />
       </Modal>
     </>
   );

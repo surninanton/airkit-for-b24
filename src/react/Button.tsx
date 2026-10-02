@@ -3,6 +3,7 @@ import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
 import { Dropdown, type MenuEntry } from './Overlay';
+import { t } from '../js/i18n';
 
 export type ButtonVariant =
   | 'default' | 'primary' | 'success' | 'danger' | 'copilot'
@@ -60,7 +61,7 @@ export interface SplitButtonProps extends Omit<ButtonProps, 'iconRight'> {
 }
 
 /** «Создать ▾»: основная кнопка + шеврон с меню */
-export function SplitButton({ menu, onMenuClick, menuLabel = 'Ещё', variant = 'success', size, ...rest }: SplitButtonProps) {
+export function SplitButton({ menu, onMenuClick, menuLabel = t('Ещё'), variant = 'success', size, ...rest }: SplitButtonProps) {
   const chevron = <Button variant={variant} size={size} icon="chevronDown" aria-label={menuLabel} onClick={onMenuClick} />;
   return (
     <span className="b24-btn-split">

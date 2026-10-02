@@ -1,6 +1,7 @@
 import { icon } from '../icons';
 import { h, html } from './dom';
 import { isCreatedItem, openEntityDialog, type DialogItem, type EntityDialogHandle } from './entity-dialog';
+import { t } from './i18n';
 
 export interface ComboboxOptions {
   /** поиск в списке; по умолчанию — если вариантов больше 7 */
@@ -26,7 +27,7 @@ export interface ComboboxHandle {
 export function enhanceSelect(select: HTMLSelectElement, options: ComboboxOptions = {}): ComboboxHandle {
   const multiple = select.multiple;
   const placeholderOpt = Array.from(select.options).find((o) => o.value === '');
-  const placeholder = options.placeholder ?? select.dataset.placeholder ?? placeholderOpt?.text ?? 'Не выбрано';
+  const placeholder = options.placeholder ?? select.dataset.placeholder ?? placeholderOpt?.text ?? t('Не выбрано');
   const trigger = h('div', {
     class: `b24-combobox${options.size === 'sm' || select.classList.contains('b24-select--sm') ? ' b24-combobox--sm' : ''}`,
     role: 'combobox',
@@ -73,7 +74,7 @@ export function enhanceSelect(select: HTMLSelectElement, options: ComboboxOption
       trigger.append(h('span', { class: 'b24-combobox__value' }, sel[0].title));
     } else {
       for (const item of sel) {
-        const remove = h('button', { type: 'button', class: 'b24-tag__remove', 'aria-label': `Убрать ${item.title}`, tabindex: '-1' }, html(icon('close')));
+        const remove = h('button', { type: 'button', class: 'b24-tag__remove', 'aria-label': t('Убрать {name}', { name: item.title }), tabindex: '-1' }, html(icon('close')));
         remove.addEventListener('click', (e) => {
           e.stopPropagation();
           const opt = Array.from(select.options).find((o) => o.value === item.id);
@@ -250,7 +251,7 @@ export function createCombobox(host: HTMLElement, options: CreateComboboxOptions
     trigger.tabIndex = o.disabled ? -1 : 0;
     if (o.invalid) trigger.setAttribute('aria-invalid', 'true'); else trigger.removeAttribute('aria-invalid');
     if (hidden) hidden.value = values.join(',');
-    if (!values.length) { trigger.append(h('span', { class: 'b24-combobox__placeholder' }, o.placeholder ?? 'Не выбрано')); return; }
+    if (!values.length) { trigger.append(h('span', { class: 'b24-combobox__placeholder' }, o.placeholder ?? t('Не выбрано'))); return; }
     if (!o.multiple && o.display === 'chip') {
       const v = values[0];
       const item = byValue(v);
@@ -262,7 +263,7 @@ export function createCombobox(host: HTMLElement, options: CreateComboboxOptions
         a.addEventListener('click', (e) => e.stopPropagation());
         chip.append(a);
       } else chip.append(h('span', {}, item?.label ?? v));
-      const x = h('button', { type: 'button', class: 'b24-chip__remove', 'aria-label': `Убрать ${item?.label ?? v}`, tabindex: '-1' }, html(icon('close')));
+      const x = h('button', { type: 'button', class: 'b24-chip__remove', 'aria-label': t('Убрать {name}', { name: item?.label ?? v }), tabindex: '-1' }, html(icon('close')));
       x.addEventListener('click', (e) => { e.stopPropagation(); values = []; emit(); trigger.focus(); });
       chip.append(x);
       trigger.append(chip);
@@ -275,11 +276,11 @@ export function createCombobox(host: HTMLElement, options: CreateComboboxOptions
       trigger.append(val);
       const sub = byValue(v)?.subtitle;
       if (sub) trigger.append(h('span', { class: 'b24-combobox__code' }, sub));
-      if (raw) trigger.append(h('span', { class: 'b24-combobox__raw', title: 'Значения нет в справочнике — сохранится как введено' }, 'не из списка'));
+      if (raw) trigger.append(h('span', { class: 'b24-combobox__raw', title: t('Значения нет в справочнике — сохранится как введено') }, t('не из списка')));
       return;
     }
     for (const v of values) {
-      const remove = h('button', { type: 'button', class: 'b24-tag__remove', 'aria-label': `Убрать ${label(v)}`, tabindex: '-1' }, html(icon('close')));
+      const remove = h('button', { type: 'button', class: 'b24-tag__remove', 'aria-label': t('Убрать {name}', { name: label(v) }), tabindex: '-1' }, html(icon('close')));
       remove.addEventListener('click', (e) => { e.stopPropagation(); values = values.filter((x) => x !== v); emit(); });
       trigger.append(h('span', { class: `b24-tag${byValue(v) ? '' : ' is-raw'}` }, h('span', { class: 'b24-tag__text' }, label(v)), remove));
     }

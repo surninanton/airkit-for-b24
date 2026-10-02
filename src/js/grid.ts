@@ -8,6 +8,7 @@ import {
 import { confirm } from './modal';
 import { datepicker, type DatePickerHandle } from './calendar';
 import { escapeHtml } from './dom';
+import { t } from './i18n';
 
 /**
  * Грид в стиле main.ui.grid поверх обычной HTML-таблицы (удобно для PHP):
@@ -115,7 +116,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     const idx = isHead ? firstKeyedIndex() : headMenuIdx;
     const cell = isHead ? h('th', { class: 'b24-table__cell-menu', 'data-fixed': true }) : h('td', { class: 'b24-table__cell-menu' });
     if (!isHead) {
-      const btn = h('button', { type: 'button', class: 'b24-table__row-menu', 'aria-label': 'Действия со строкой', 'aria-haspopup': 'menu' }, html(icon('menu', { size: 16 })));
+      const btn = h('button', { type: 'button', class: 'b24-table__row-menu', 'aria-label': t('Действия со строкой'), 'aria-haspopup': 'menu' }, html(icon('menu', { size: 16 })));
       cell.append(btn);
     }
     const ref = idx >= 0 ? row.cells[idx] : null;
@@ -245,7 +246,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     if (!resizable) return;
     keyedTh().forEach((th) => {
       if (th.querySelector('.b24-table__resizer')) return;
-      const handle = h('span', { class: 'b24-table__resizer', 'aria-hidden': 'true', title: 'Ширина столбца (двойной клик — по содержимому)' });
+      const handle = h('span', { class: 'b24-table__resizer', 'aria-hidden': 'true', title: t('Ширина столбца (двойной клик — по содержимому)') });
       handle.addEventListener('pointerdown', (e) => {
         freezeWidths();
         apply();
@@ -270,7 +271,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   let settingsDd: DropdownHandle | null = null;
   function addSettings() {
     if (!settings) return;
-    const btn = h('button', { type: 'button', class: 'b24-table__settings', 'aria-label': 'Настройка столбцов', title: 'Настройка столбцов' }, html(icon('settings', { size: 16 })));
+    const btn = h('button', { type: 'button', class: 'b24-table__settings', 'aria-label': t('Настройка столбцов'), title: t('Настройка столбцов') }, html(icon('settings', { size: 16 })));
     // как в Б24: ⚙ — в заголовке столбца ☰ (над меню строк); без меню строк — рядом с чекбоксом
     const menuHead = headRow.querySelector<HTMLElement>('th.b24-table__cell-menu');
     if (menuHead) {
@@ -286,7 +287,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     const popup = h('div', { class: 'b24-popup b24-grid-settings', hidden: true });
     const renderSettings = () => {
       popup.textContent = '';
-      popup.append(h('div', { class: 'b24-menu__title' }, 'Столбцы'));
+      popup.append(h('div', { class: 'b24-menu__title' }, t('Столбцы')));
       const list = h('div', { class: 'b24-grid-settings__list' });
       const labels = new Map(keyedTh().map((th) => [th.dataset.key!, th.dataset.label ?? th.textContent?.trim() ?? th.dataset.key!]));
       for (const k of state.order) {
@@ -303,14 +304,14 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
           type: 'button',
           class: `b24-grid-settings__pin${isPinned ? ' is-pinned' : ''}`,
           'aria-pressed': String(isPinned),
-          'aria-label': `${isPinned ? 'Открепить' : 'Закрепить'} столбец «${labels.get(k) ?? k}»`,
-          title: isPinned ? 'Открепить' : 'Закрепить слева',
+          'aria-label': t(isPinned ? 'Открепить столбец «{name}»' : 'Закрепить столбец «{name}»', { name: labels.get(k) ?? k }),
+          title: isPinned ? t('Открепить') : t('Закрепить слева'),
         }, html(icon('pin', { size: 14 })));
         pin.addEventListener('click', () => { state = togglePinned(state, k); commit(); renderSettings(); });
         list.append(h('div', { class: 'b24-grid-settings__item' }, h('label', { class: 'b24-check' }, cb, h('span', {}, labels.get(k) ?? k)), pin));
       }
       popup.append(list);
-      const reset = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm' }, 'Сбросить настройки');
+      const reset = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm' }, t('Сбросить настройки'));
       reset.addEventListener('click', () => { api.reset(); renderSettings(); });
       popup.append(h('div', { class: 'b24-grid-settings__footer' }, reset));
     };
@@ -361,7 +362,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   /* ── Групповые действия ── */
   function setupGroupActions() {
     if (!groupActions.length) return;
-    const bar = h('div', { class: 'b24-grid-actions', hidden: true, role: 'toolbar', 'aria-label': 'Действия с отмеченными' });
+    const bar = h('div', { class: 'b24-grid-actions', hidden: true, role: 'toolbar', 'aria-label': t('Действия с отмеченными') });
     const count = h('span', { class: 'b24-grid-actions__count' });
     bar.append(count);
     const selectedIds = () => Array.from(table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]:checked'))
@@ -379,7 +380,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
       });
       bar.append(btn);
     }
-    const clear = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm b24-grid-actions__clear' }, 'Снять выделение');
+    const clear = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm b24-grid-actions__clear' }, t('Снять выделение'));
     clear.addEventListener('click', () => {
       table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]:checked').forEach((cb) => { cb.checked = false; });
       const all = table.querySelector<HTMLInputElement>('thead input[data-b24-check-all]');
@@ -392,7 +393,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     const update = () => {
       const n = selectedIds().length;
       const total = table.tBodies[0]?.querySelectorAll('tr[data-id]').length ?? 0;
-      count.textContent = `Отмечено: ${n} из ${total}`;
+      count.textContent = t('Отмечено: {n} из {total}', { n, total });
       bar.hidden = n === 0;
     };
     const onChange = (e: Event) => { if ((e.target as HTMLElement).matches('input[type="checkbox"]')) setTimeout(update, 0); };
@@ -417,7 +418,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
       table.querySelectorAll<HTMLElement>(`tbody td[data-col="${CSS.escape(key)}"]`).forEach((td) => {
         td.classList.add('b24-cell-editable');
         if (!td.hasAttribute('tabindex')) td.tabIndex = 0;
-        td.title ||= 'Двойной клик или Enter — изменить';
+        td.title ||= t('Двойной клик или Enter — изменить');
       });
     }
   };
@@ -465,7 +466,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
       const value = control.value.trim();
       if (value === oldValue) { cancel(); if (moveNext) editNext(cell); return; }
       if (cfg.type === 'number' && value !== '' && !Number.isFinite(Number(value.replace(/\s/g, '').replace(',', '.')))) {
-        showError('Введите число');
+        showError(t('Введите число'));
         return;
       }
       busy = true;
@@ -489,7 +490,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
       } catch (err) {
         busy = false;
         cell.classList.remove('is-saving');
-        showError(typeof err === 'string' ? err : (err as Error)?.message ?? 'Не удалось сохранить');
+        showError(typeof err === 'string' ? err : (err as Error)?.message ?? t('Не удалось сохранить'));
       }
     }
     function showError(msg: string) {

@@ -1,4 +1,5 @@
 import { icon } from '../icons';
+import { t } from './i18n';
 
 export const REPO_URL = 'https://github.com/surninanton/airkit-for-b24';
 
@@ -9,8 +10,8 @@ const GITHUB_MARK = '<svg viewBox="0 0 16 16" aria-hidden="true" fill="currentCo
  * Ссылка «Сделано на airkit-for-b24 ♥» для подвала приложения.
  * Лицензия MIT этого не требует — но если кит вам помог, пожалуйста, оставьте её.
  */
-export function creditHtml(label = 'Сделано на airkit-for-b24'): string {
-  return `<a class="b24-credit" href="${REPO_URL}" target="_blank" rel="noopener">${GITHUB_MARK}<span>${label}</span>${icon('heart', { className: 'b24-credit__heart', size: 14, title: 'с любовью' })}</a>`;
+export function creditHtml(label = t('Сделано на airkit-for-b24')): string {
+  return `<a class="b24-credit" href="${REPO_URL}" target="_blank" rel="noopener">${GITHUB_MARK}<span>${label}</span>${icon('heart', { className: 'b24-credit__heart', size: 14, title: t('с любовью') })}</a>`;
 }
 
 export { GITHUB_MARK };
