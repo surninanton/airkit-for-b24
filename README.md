@@ -103,7 +103,7 @@ npm run build    # dist/: b24ui.css, b24ui.min.css, tokens.css, b24ui.js (IIFE),
 npm test         # меню и мегаменю, оглавление, якорное меню, формы, cookie, тема, печать, горизонтальная прокрутка
 ```
 
-Изменения по версиям — в [CHANGELOG.md](CHANGELOG.md).
+Изменения по версиям — в [CHANGELOG.md](CHANGELOG.md), планы — в [BACKLOG.md](BACKLOG.md).
 
 ## PHP / серверные шаблоны
 
