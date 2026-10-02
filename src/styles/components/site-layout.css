@@ -201,6 +201,8 @@ body.b24-menu-open { overflow: hidden; }
 }
 .b24-anchor-nav__list {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0; /* сжимается и прокручивается, а не уходит под кнопку справа */
   gap: var(--b24-space-lg);
   margin: 0;
   padding: 0;
@@ -229,6 +231,14 @@ body.b24-menu-open { overflow: hidden; }
 }
 .b24-anchor-nav__actions { display: flex; align-items: center; gap: var(--b24-space-xs); margin-left: auto; flex: 0 0 auto; }
 .b24-anchor-nav .b24-container { display: flex; align-items: center; gap: var(--b24-space-md); }
+/* на узких экранах — затухание у правого края: видно, что список прокручивается */
+@media (max-width: 768px) {
+  .b24-anchor-nav__list {
+    padding-right: 20px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+}
 
 /* ── Пагинация сайта ───────────────────────────────────── */
 .b24-site-pagination { display: flex; justify-content: center; }

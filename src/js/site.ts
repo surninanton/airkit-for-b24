@@ -133,9 +133,13 @@ export function initSiteHeader(header: HTMLElement): () => void {
   const groups = () => Array.from(header.querySelectorAll<HTMLDetailsElement>('details.b24-site-nav__group'));
   let burger = header.querySelector<HTMLButtonElement>('.b24-site-header__burger');
   if (!burger) {
-    burger = h('button', { type: 'button', class: 'b24-btn b24-btn--glass b24-btn--icon b24-site-header__burger', 'aria-label': 'Меню', 'aria-expanded': 'false' }, html(icon('menu'))) as HTMLButtonElement;
+    burger = h('button', { type: 'button', class: 'b24-btn b24-btn--glass b24-btn--icon b24-site-header__burger', 'aria-label': 'Открыть меню', 'aria-expanded': 'false' }, html(icon('menu'))) as HTMLButtonElement;
     row.append(burger);
   }
+  // подпись и состояние — и у кнопки из разметки, и у созданной китом
+  if (!burger.getAttribute('aria-label') && !burger.textContent?.trim()) burger.setAttribute('aria-label', 'Открыть меню');
+  burger.setAttribute('aria-expanded', 'false');
+  burger.setAttribute('type', 'button');
   const nav = header.querySelector<HTMLElement>('.b24-site-nav');
   if (nav && !nav.id) nav.id = `b24-site-nav-${Math.random().toString(36).slice(2, 7)}`;
   if (nav) burger.setAttribute('aria-controls', nav.id);
@@ -144,6 +148,7 @@ export function initSiteHeader(header: HTMLElement): () => void {
   const setMenu = (open: boolean) => {
     header.classList.toggle('is-menu-open', open);
     burger!.setAttribute('aria-expanded', String(open));
+    burger!.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
     burger!.innerHTML = icon(open ? 'close' : 'menu');
     document.body.classList.toggle('b24-menu-open', open);
     if (!open) closeGroups();
@@ -165,7 +170,10 @@ export function initSiteHeader(header: HTMLElement): () => void {
   const mq = window.matchMedia('(max-width: 960px)');
   const onMq = () => { if (!mq.matches) setMenu(false); };
 
+  // повторный клик по пункту меню не должен начинать выделение текста
+  const onMouseDown = (e: MouseEvent) => { if (e.detail > 1 && (e.target as HTMLElement).closest('summary, .b24-site-nav__link')) e.preventDefault(); };
   burger.addEventListener('click', onBurger);
+  header.addEventListener('mousedown', onMouseDown);
   header.addEventListener('toggle', onToggle, true);
   header.addEventListener('click', onClick);
   document.addEventListener('mousedown', onDocDown);
@@ -175,6 +183,7 @@ export function initSiteHeader(header: HTMLElement): () => void {
   onScroll();
   return () => {
     burger!.removeEventListener('click', onBurger);
+    header.removeEventListener('mousedown', onMouseDown);
     header.removeEventListener('toggle', onToggle, true);
     header.removeEventListener('click', onClick);
     document.removeEventListener('mousedown', onDocDown);

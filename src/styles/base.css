@@ -86,3 +86,18 @@ body.b24-root { margin: 0; }
 .b24-app--air .b24-credit:hover,
 .b24-shell .b24-credit:hover { color: var(--b24-glass-text); }
 .b24-credit-footer { display: flex; justify-content: center; padding: var(--b24-space-lg) 0 var(--b24-space-xs); }
+
+/* Элементы-переключатели не выделяют текст при быстрых повторных кликах
+   (двойной/тройной клик по summary выделял текст на всей странице) */
+.b24-site-nav__link,
+.b24-site-nav__group > summary,
+.b24-faq__item > summary,
+.b24-tabs__item,
+.b24-menu__item,
+.b24-anchor-nav__link,
+.b24-pricing__period label,
+.b24-megamenu__item,
+.b24-topnav__item,
+.b24-sidebar__item,
+.b24-calendar__day,
+.b24-timepicker__cell { -webkit-user-select: none; user-select: none; }
