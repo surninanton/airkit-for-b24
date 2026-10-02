@@ -48,7 +48,7 @@
   white-space: nowrap;
 }
 .b24-toolbar__search { flex: 1 1 240px; max-width: 560px; }
-.b24-toolbar__right { margin-left: auto; display: flex; align-items: center; gap: var(--b24-space-xs); }
+.b24-toolbar__right { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--b24-space-xs); }
 .b24-app--air .b24-toolbar__title,
 .b24-shell .b24-toolbar__title,
 .b24-toolbar--glass .b24-toolbar__title { color: var(--b24-glass-text); }

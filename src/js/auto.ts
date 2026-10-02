@@ -17,6 +17,7 @@ import { initGrid, type GridOptions } from './grid';
 import { createChart, sparkline, type ChartOptions } from './chart';
 import { initSettings, initWizard } from './screens';
 import { initRepeater } from './repeater';
+import { initCheckGroup, initColors, initRange, initSecret } from './controls';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 
 /**
@@ -51,6 +52,10 @@ import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initTheme
  *   [data-b24-cookie]              — уведомление о cookie (показывается, пока не принято)
  *   [data-b24-theme-switch]        — переключатель светлой/тёмной темы (запоминается)
  *   .b24-table__expander[aria-controls] — раскрыть строку .b24-table__details (событие b24:row-expand)
+ *   .b24-check-group[data-b24-check-group] — «Выбрано N из M», ссылки [data-b24-check-group-all/none]
+ *   input.b24-range[data-b24-range], .b24-range-pair[data-b24-range] — закраска дорожки и значение рядом
+ *   .b24-colors[data-b24-colors]   — палитра со своим цветом (input[type=color])
+ *   .b24-secret[data-b24-secret]   — поле секрета с «глазом»; data-saved — значение уже сохранено
  *   [data-b24-repeater]            — повторяющиеся строки серверной формы: <template> строки, [data-b24-repeater-add],
  *                                    [data-b24-repeater-remove]; имена rows[0][key] перенумеровываются; data-max
  *   select[data-b24-combobox][data-creatable][data-counter] — свободный ввод и счётчик «N из M»
@@ -258,6 +263,15 @@ export function init(root: ParentNode = document): void {
     initCookieNotice(el);
   });
 
+  const once = (sel: string, fn: (el: HTMLElement) => unknown) => root.querySelectorAll<HTMLElement>(sel).forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    fn(el);
+  });
+  once('.b24-check-group[data-b24-check-group]', initCheckGroup);
+  once('[data-b24-range]', initRange);
+  once('.b24-colors[data-b24-colors]', initColors);
+  once('.b24-secret[data-b24-secret]', initSecret);
   root.querySelectorAll<HTMLElement>('[data-b24-repeater]').forEach((el) => {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';

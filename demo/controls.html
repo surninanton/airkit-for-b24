@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Элементы управления — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1100px">
+    <div class="b24-toolbar">
+      <div class="b24-toolbar__row">
+        <h1 class="b24-toolbar__title">Элементы управления</h1>
+        <div class="b24-toolbar__right">
+          <div class="b24-tabs b24-tabs--pills b24-tabs--glass" id="theme-tabs">
+            <button class="b24-tabs__item is-active" data-theme="light">Светлая</button>
+            <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
+          </div>
+          <button class="b24-btn b24-btn--glass b24-btn--sm" id="tour-btn">Обучение</button>
+          <a class="b24-btn b24-btn--glass b24-btn--sm" href="index.html">← Все компоненты</a>
+        </div>
+      </div>
+    </div>
+
+    <section class="b24-card" id="sec-cards">
+      <div class="b24-card__header"><h2 class="b24-card__title">Карточки-радио</h2></div>
+      <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+        <div class="b24-radio-cards" role="radiogroup" aria-label="Тип синхронизации">
+          <label class="b24-radio-card"><input type="radio" name="kind" value="create" checked><span class="b24-radio-card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span class="b24-radio-card__title">Создавать</span><span class="b24-radio-card__desc">Новая сделка на каждую строку</span></label>
+          <label class="b24-radio-card" style="--b24-radio-card-color: #1bce7b"><input type="radio" name="kind" value="update"><span class="b24-radio-card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 12a7 7 0 0 1 12-5l2 2M19 12a7 7 0 0 1-12 5l-2-2M19 4v5h-5M5 20v-5h5"/></svg></span><span class="b24-radio-card__title">Обновлять</span><span class="b24-radio-card__desc">Ищет сделку по ключу и меняет поля</span></label>
+          <label class="b24-radio-card" style="--b24-radio-card-color: #a77bde"><input type="radio" name="kind" value="upsert"><span class="b24-radio-card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg></span><span class="b24-radio-card__title">Создавать или обновлять</span><span class="b24-radio-card__desc">Нет сделки — создаст, есть — обновит</span></label>
+        </div>
+        <div class="b24-radio-cards" style="--b24-radio-card-min: 160px" role="radiogroup" aria-label="Движок документов">
+          <label class="b24-radio-card"><input type="radio" name="engine" value="b24" checked><span class="b24-radio-card__title">Шаблоны Битрикс24</span><span class="b24-radio-card__desc">documentgenerator</span></label>
+          <label class="b24-radio-card"><input type="radio" name="engine" value="docx"><span class="b24-radio-card__title">DOCX</span><span class="b24-radio-card__desc">Свой шаблон Word</span></label>
+          <label class="b24-radio-card"><input type="radio" name="engine" value="pdf" disabled><span class="b24-radio-card__title">PDF</span><span class="b24-radio-card__desc">Скоро</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="b24-grid" style="--b24-grid-min: min(400px, 100%); align-items: start">
+      <div class="b24-card" id="sec-pipes">
+        <div class="b24-card__header"><h2 class="b24-card__title">Группа чекбоксов</h2></div>
+        <div class="b24-card__body">
+          <div class="b24-check-group" data-b24-check-group role="group" aria-label="Воронки">
+            <div class="b24-check-group__head"><span class="b24-check-group__count"></span><button type="button" class="b24-check-group__link" data-b24-check-group-all>все</button><button type="button" class="b24-check-group__link" data-b24-check-group-none>очистить</button></div>
+            <div class="b24-check-group__list" style="--b24-check-group-h: 160px">
+              <label class="b24-check"><input type="checkbox" name="cat[]" value="0" checked><span>Общая<span class="b24-check-group__id">#0</span></span></label>
+              <label class="b24-check"><input type="checkbox" name="cat[]" value="1" checked><span>Повторные продажи<span class="b24-check-group__id">#1</span></span></label>
+              <label class="b24-check"><input type="checkbox" name="cat[]" value="3"><span>Обучение<span class="b24-check-group__id">#3</span></span></label>
+              <label class="b24-check"><input type="checkbox" name="cat[]" value="5"><span>Партнёры<span class="b24-check-group__id">#5</span></span></label>
+              <label class="b24-check"><input type="checkbox" name="cat[]" value="7"><span>Тендеры<span class="b24-check-group__id">#7</span></span></label>
+              <label class="b24-check"><input type="checkbox" name="cat[]" value="9" disabled><span>Архив<span class="b24-check-group__id">#9</span></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Переключатели и ползунки</h2></div>
+        <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+          <div class="b24-segmented" role="radiogroup" aria-label="Период">
+            <label><input type="radio" name="period" value="day"><span>День</span></label>
+            <label><input type="radio" name="period" value="week" checked><span>Неделя</span></label>
+            <label><input type="radio" name="period" value="month"><span>Месяц</span></label>
+          </div>
+          <div class="b24-field"><label class="b24-field__label" for="batch">Размер пачки</label>
+            <div class="b24-range-field"><input type="range" class="b24-range" id="batch" min="10" max="500" step="10" value="50" data-b24-range data-suffix=" строк"><span class="b24-range-field__value"></span></div></div>
+          <div class="b24-field"><span class="b24-field__label">Рабочие часы</span>
+            <div class="b24-range-field"><div class="b24-range-pair" data-b24-range data-suffix=":00" style="flex: 1">
+              <input type="range" class="b24-range" min="0" max="24" value="9" aria-label="С">
+              <input type="range" class="b24-range" min="0" max="24" value="18" aria-label="До">
+            </div><span class="b24-range-field__value"></span></div></div>
+          <div class="b24-field"><span class="b24-field__label">Цвет стадии</span>
+            <div class="b24-colors" data-b24-colors role="radiogroup" aria-label="Цвет стадии">
+              <label class="b24-colors__swatch" style="--c:#2fc6f6"><input type="radio" name="color" value="#2fc6f6" checked aria-label="Голубой"></label>
+              <label class="b24-colors__swatch" style="--c:#0075ff"><input type="radio" name="color" value="#0075ff" aria-label="Синий"></label>
+              <label class="b24-colors__swatch" style="--c:#1bce7b"><input type="radio" name="color" value="#1bce7b" aria-label="Зелёный"></label>
+              <label class="b24-colors__swatch" style="--c:#faa72c"><input type="radio" name="color" value="#faa72c" aria-label="Оранжевый"></label>
+              <label class="b24-colors__swatch" style="--c:#ff5752"><input type="radio" name="color" value="#ff5752" aria-label="Красный"></label>
+              <label class="b24-colors__swatch" style="--c:#a77bde"><input type="radio" name="color" value="#a77bde" aria-label="Фиолетовый"></label>
+              <label class="b24-colors__custom" title="Свой цвет"><input type="color" value="#e66f9b"></label>
+            </div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="b24-grid" style="--b24-grid-min: min(400px, 100%); align-items: start">
+      <form class="b24-card" id="api-form" action="#" novalidate>
+        <div class="b24-card__header"><div><h2 class="b24-card__title">Секреты и ошибки сервера</h2><div class="b24-card__subtitle">applyServerErrors раскладывает ответ 422 по полям</div></div></div>
+        <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+          <div class="b24-field"><label class="b24-field__label" for="mb-key">Ключ API Metabase</label>
+            <div class="b24-secret" data-b24-secret data-saved><input class="b24-input" id="mb-key" name="metabase[api_key]"></div><div class="b24-field__hint"></div></div>
+          <div class="b24-field"><label class="b24-field__label" for="hook">Вебхук Битрикс24</label>
+            <div class="b24-secret" data-b24-secret><input class="b24-input" id="hook" name="bitrix[webhook]" value="https://example.bitrix24.ru/rest/1/abc123/"></div></div>
+          <div class="b24-field"><label class="b24-field__label" for="chat-id">Чат для уведомлений</label><input class="b24-input" id="chat-id" name="notify[chat_id]" value="chat0"></div>
+          <div class="b24-row"><button class="b24-btn b24-btn--primary" type="submit">Сохранить</button><span class="b24-text-sm" id="missed"></span></div>
+        </div>
+      </form>
+      <div class="b24-card" id="sec-tree">
+        <div class="b24-card__header"><h2 class="b24-card__title">Дерево</h2><span class="b24-card__subtitle" id="tree-out"></span></div>
+        <div class="b24-card__body"><div id="tree"></div></div>
+      </div>
+    </section>
+
+    <section class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Аккордеон</h2></div>
+      <div class="b24-card__body">
+        <div class="b24-accordion">
+          <details class="b24-accordion__item" name="acc" open>
+            <summary class="b24-accordion__head"><span class="b24-accordion__title">Сделки</span><span class="b24-accordion__meta">последний запуск 10:00</span><span class="b24-counter b24-counter--gray">3</span></summary>
+            <div class="b24-accordion__body">
+              <div class="b24-accordion">
+                <details class="b24-accordion__item"><summary class="b24-accordion__head"><span class="b24-accordion__title">Воронка «Общая»</span><span class="b24-counter b24-counter--gray">2</span></summary><div class="b24-accordion__body">Обходчики «Напоминание», «Сверка оплат».</div></details>
+                <details class="b24-accordion__item"><summary class="b24-accordion__head"><span class="b24-accordion__title">Воронка «Повторные»</span><span class="b24-counter b24-counter--gray">1</span></summary><div class="b24-accordion__body">Обходчик «Продление».</div></details>
+              </div>
+            </div>
+          </details>
+          <details class="b24-accordion__item" name="acc"><summary class="b24-accordion__head"><span class="b24-accordion__title">Лиды</span><span class="b24-counter b24-counter--gray">0</span></summary><div class="b24-accordion__body">Обходчиков нет.</div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="b24-card" id="sec-small">
+      <div class="b24-card__header"><h2 class="b24-card__title">Мелочи</h2></div>
+      <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
+        <div class="b24-row">
+          <span class="b24-badge b24-badge--primary"><span class="b24-spinner"></span>Синхронизация</span>
+          <span class="b24-row" style="--b24-gap: 6px"><span class="b24-dot b24-dot--success b24-dot--pulse"></span>Идёт запуск</span>
+          <button class="b24-btn b24-btn--secondary b24-btn--sm" id="toast-same">Тост 3 раза подряд</button>
+          <button class="b24-btn b24-btn--secondary b24-btn--sm" id="toast-many">Шесть разных тостов</button>
+          <button class="b24-btn b24-btn--secondary b24-btn--sm" id="popover-btn">Подсказка с кнопками</button>
+        </div>
+        <p class="b24-text-sm" id="plural-out"></p>
+        <p class="b24-text-sm" id="crm-out"></p>
+      </div>
+    </section>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  document.getElementById('theme-tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme]'); if (!b) return;
+    B24UI.setTheme(b.dataset.theme);
+    document.querySelectorAll('#theme-tabs .b24-tabs__item').forEach((x) => x.classList.toggle('is-active', x === b));
+  });
+
+  const out = document.getElementById('tree-out');
+  B24UI.createTree(document.getElementById('tree'), {
+    select: 'multiple', ariaLabel: 'Структура компании', expanded: ['hq'], selected: ['sales'],
+    items: [
+      { id: 'hq', label: 'Кедр Софт', icon: 'company', count: 24, children: [
+        { id: 'sales', label: 'Отдел продаж', icon: 'department', count: 9, children: [{ id: 'sales-ekb', label: 'Екатеринбург', count: 6 }, { id: 'sales-msk', label: 'Москва', count: 3 }] },
+        { id: 'dev', label: 'Разработка', icon: 'department', count: 11 },
+        { id: 'support', label: 'Поддержка', icon: 'department', count: 4 },
+      ] },
+    ],
+    onSelect: (ids) => { out.textContent = `Выбрано: ${ids.join(', ')}`; },
+  });
+
+  const form = document.getElementById('api-form');
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    // ответ Laravel 422
+    const missed = B24UI.applyServerErrors(form, { message: 'Ошибка проверки', errors: {
+      'metabase.api_key': ['Ключ не подошёл: Metabase ответил 401'],
+      'notify.chat_id': ['Чат chat0 не найден'],
+      'schedule.cron': ['Неверное расписание'],
+    } });
+    document.getElementById('missed').textContent = `Без поля: ${Object.keys(missed).join(', ')}`;
+  });
+
+  document.getElementById('toast-same').addEventListener('click', () => { for (let i = 0; i < 3; i++) B24UI.toast('Синхронизация запущена'); });
+  document.getElementById('toast-many').addEventListener('click', () => { for (let i = 1; i <= 6; i++) B24UI.toast(`Обработана пачка ${i}`, { type: 'success' }); });
+  document.getElementById('popover-btn').addEventListener('click', (e) => {
+    B24UI.popover(e.currentTarget, { title: 'Новое: пробный запуск', text: 'Проверьте сопоставление на трёх строках, ничего не записывая в CRM.', actions: [{ label: 'Попробовать' }, { label: 'Позже', variant: 'plain' }] });
+  });
+  document.getElementById('tour-btn').addEventListener('click', () => B24UI.startTour([
+    { target: '#sec-cards', title: 'Тип синхронизации', text: 'Выберите, создавать сделки или обновлять найденные.' },
+    { target: '#sec-pipes', title: 'Воронки', text: 'Ограничьте синхронизацию нужными воронками.', placement: 'right' },
+    { target: '#sec-tree', title: 'Ответственные', text: 'Отделы, чьи сотрудники получат сделки.' },
+  ], { onFinish: (done) => B24UI.toast(done ? 'Обучение пройдено' : 'Обучение закрыто') }));
+
+  document.getElementById('plural-out').textContent = [1, 2, 5, 11, 21, 1234].map((n) => B24UI.formatCount(n, ['запись', 'записи', 'записей'])).join(' · ');
+  document.getElementById('crm-out').textContent = [B24UI.crmEntityUrl('deal', 15), B24UI.crmEntityUrl(3, 7), B24UI.crmEntityUrl('dynamic', 42, 128), B24UI.crmEntityUrl('invoice', 5, undefined, 'https://example.bitrix24.ru')].join('  ');
+</script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+/* ── Элементы управления ──────────────────────────────────
+ * Аккордеон, карточки-радио, группа чекбоксов, сегментированный переключатель, ползунок,
+ * выбор цвета, поле секрета, дерево, всплывающая подсказка и шаги обучения, мелочи.
+ */
+
+/* ── Аккордеон (без JS: details/summary; name="…" — открыт один) ──
+ * <div class="b24-accordion"><details class="b24-accordion__item" open>
+ *   <summary class="b24-accordion__head"><span class="b24-accordion__title">Раздел</span><span class="b24-counter">3</span></summary>
+ *   <div class="b24-accordion__body">…</div></details></div>
+ */
+.b24-accordion { display: flex; flex-direction: column; background: var(--b24-bg-surface); border-radius: var(--b24-radius-lg); }
+.b24-accordion__item + .b24-accordion__item { border-top: 1px solid var(--b24-divider); }
+.b24-accordion__head {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 48px; padding: 8px 16px;
+  font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-medium);
+  list-style: none; cursor: pointer; user-select: none;
+  border-radius: var(--b24-radius-md);
+}
+.b24-accordion__head::-webkit-details-marker { display: none; }
+.b24-accordion__head::before {
+  content: ""; flex: 0 0 auto; width: 7px; height: 7px; margin: 0 4px 0 2px;
+  border: solid var(--b24-text-subtle); border-width: 0 1.6px 1.6px 0;
+  transform: rotate(-45deg); transition: transform var(--b24-duration-fast);
+}
+.b24-accordion__item[open] > .b24-accordion__head::before { transform: translateY(-2px) rotate(45deg); }
+.b24-accordion__head:hover { background: var(--b24-bg-hover); }
+.b24-accordion__head:focus-visible { outline: 2px solid var(--b24-color-primary); outline-offset: -2px; }
+.b24-accordion__title { flex: 1 1 auto; min-width: 0; }
+.b24-accordion__meta { font-size: var(--b24-font-size-sm); font-weight: 400; color: var(--b24-text-subtle); }
+.b24-accordion__body { padding: 0 16px 16px 42px; }
+/* вложенный: без подложки, с отступом */
+.b24-accordion .b24-accordion { background: transparent; border: 1px solid var(--b24-divider); }
+.b24-accordion--flush { background: transparent; border-radius: 0; }
+.b24-accordion--flush .b24-accordion__head { padding-inline: 4px; }
+.b24-accordion--flush .b24-accordion__body { padding-inline: 30px 4px; }
+
+/* ── Карточки-радио ──
+ * <div class="b24-radio-cards"><label class="b24-radio-card"><input type="radio" name="kind">
+ *   <span class="b24-radio-card__icon">…</span><span class="b24-radio-card__title">…</span><span class="b24-radio-card__desc">…</span></label></div>
+ * Цвет рамки — style="--b24-radio-card-color: #1bce7b". С checkbox работает так же.
+ */
+.b24-radio-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(var(--b24-radio-card-min, 200px), 100%), 1fr)); gap: 10px; }
+.b24-radio-card {
+  --_c: var(--b24-radio-card-color, var(--b24-color-primary));
+  position: relative;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: start; gap: 4px 12px;
+  padding: 14px 40px 14px 14px;
+  color: var(--b24-text-primary); background: var(--b24-bg-surface);
+  border: 1.5px solid var(--b24-border-field); border-radius: var(--b24-radius-lg);
+  cursor: pointer; user-select: none;
+  transition: border-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast), background-color var(--b24-duration-fast);
+}
+.b24-radio-card > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.b24-radio-card:not(:has(.b24-radio-card__icon)) { grid-template-columns: minmax(0, 1fr); }
+.b24-radio-card__icon {
+  grid-row: span 2; display: grid; place-items: center; width: 36px; height: 36px;
+  color: var(--_c); background: color-mix(in srgb, var(--_c) 12%, transparent); border-radius: var(--b24-radius-md);
+}
+.b24-radio-card__icon svg { width: 20px; height: 20px; }
+.b24-radio-card__title { font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-semibold); }
+.b24-radio-card__desc { font-size: var(--b24-font-size-sm); line-height: 1.4; color: var(--b24-text-subtle); }
+/* галочка в углу */
+.b24-radio-card::after {
+  content: ""; position: absolute; top: 12px; right: 12px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--b24-border-strong); background: var(--b24-bg-surface) center / 11px no-repeat;
+}
+.b24-radio-card:hover { border-color: color-mix(in srgb, var(--_c) 50%, var(--b24-border-field)); }
+.b24-radio-card:has(> input:checked) { border-color: var(--_c); background: color-mix(in srgb, var(--_c) 5%, var(--b24-bg-surface)); box-shadow: 0 0 0 1px var(--_c); }
+.b24-radio-card:has(> input:checked)::after {
+  border-color: var(--_c); background-color: var(--_c);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m2.5 6.2 2.3 2.3 4.7-5'/%3E%3C/svg%3E");
+}
+.b24-radio-card:has(> input:focus-visible) { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; }
+.b24-radio-card:has(> input:disabled) { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Группа чекбоксов: «все / очистить», прокрутка, #id ── */
+.b24-check-group { display: flex; flex-direction: column; gap: 6px; }
+.b24-check-group__head { display: flex; align-items: center; gap: 12px; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-check-group__count { margin-right: auto; }
+.b24-check-group__link { padding: 0; font: inherit; color: var(--b24-color-link); background: none; border: 0; border-bottom: 1px dashed var(--b24-color-link-underline); cursor: pointer; }
+.b24-check-group__link:hover { border-bottom-color: var(--b24-color-link); }
+.b24-check-group__list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: var(--b24-check-group-h, 240px); overflow-y: auto;
+  padding: 10px 12px; border: 1px solid var(--b24-border-field); border-radius: var(--b24-radius-md);
+}
+.b24-check-group__id { margin-left: 6px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); font-variant-numeric: tabular-nums; }
+
+/* ── Сегментированный переключатель ──
+ * <div class="b24-segmented" role="radiogroup"><label><input type="radio" name="v" checked><span>День</span></label>…</div>
+ */
+.b24-segmented { display: inline-flex; gap: 2px; padding: 2px; background: var(--b24-bg-surface-3); border-radius: var(--b24-radius-md); }
+.b24-segmented > label { position: relative; display: inline-flex; }
+.b24-segmented > label > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.b24-segmented > label > span {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium); white-space: nowrap;
+  color: var(--b24-text-secondary); border-radius: calc(var(--b24-radius-md) - 2px); cursor: pointer; user-select: none;
+}
+.b24-segmented > label > span svg { width: 16px; height: 16px; }
+.b24-segmented > label > span:hover { color: var(--b24-text-primary); }
+.b24-segmented > label > input:checked + span { color: var(--b24-text-primary); background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-sm); }
+.b24-segmented > label > input:focus-visible + span { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
+.b24-segmented > label > input:disabled + span { opacity: 0.5; cursor: not-allowed; }
+.b24-segmented--wide { display: flex; }
+.b24-segmented--wide > label { flex: 1 1 0; }
+.b24-segmented--wide > label > span { justify-content: center; width: 100%; }
+
+/* ── Ползунок ──
+ * <input type="range" class="b24-range" data-b24-range>; две ручки — .b24-range-pair с двумя input[type=range]
+ */
+.b24-range {
+  --_p: 50%;
+  width: 100%; height: 20px; margin: 0;
+  appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer;
+}
+.b24-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--b24-color-primary) var(--_p), var(--b24-divider-accent) var(--_p)); }
+.b24-range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--b24-divider-accent); }
+.b24-range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--b24-color-primary); }
+.b24-range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: var(--b24-bg-surface); border: 2px solid var(--b24-color-primary); box-shadow: var(--b24-shadow-sm); }
+.b24-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--b24-bg-surface); border: 2px solid var(--b24-color-primary); }
+.b24-range:focus-visible { outline: none; }
+.b24-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--b24-color-soft-blue-2); }
+.b24-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--b24-color-soft-blue-2); }
+.b24-range:disabled { opacity: 0.5; cursor: not-allowed; }
+.b24-range-field { display: flex; align-items: center; gap: 12px; }
+.b24-range-field__value { min-width: 48px; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; font-size: var(--b24-font-size-md); }
+/* две ручки: два input поверх общей дорожки */
+.b24-range-pair { --_a: 0%; --_b: 100%; position: relative; height: 20px; }
+.b24-range-pair::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--b24-divider-accent) var(--_a), var(--b24-color-primary) var(--_a) var(--_b), var(--b24-divider-accent) var(--_b));
+}
+.b24-range-pair > .b24-range { position: absolute; inset: 0; pointer-events: none; }
+.b24-range-pair > .b24-range::-webkit-slider-runnable-track { background: transparent; }
+.b24-range-pair > .b24-range::-moz-range-track { background: transparent; }
+.b24-range-pair > .b24-range::-moz-range-progress { background: transparent; }
+.b24-range-pair > .b24-range::-webkit-slider-thumb { pointer-events: auto; position: relative; z-index: 1; }
+.b24-range-pair > .b24-range::-moz-range-thumb { pointer-events: auto; }
+
+/* ── Выбор цвета: палитра + свой цвет ──
+ * <div class="b24-colors" role="radiogroup"><label class="b24-colors__swatch" style="--c:#2fc6f6"><input type="radio" name="color" value="#2fc6f6"></label>…
+ *   <label class="b24-colors__custom"><input type="color"></label></div>
+ */
+.b24-colors { display: flex; flex-wrap: wrap; gap: 8px; }
+.b24-colors__swatch, .b24-colors__custom {
+  position: relative; display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  background: var(--c); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.b24-colors__swatch > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.b24-colors__swatch:has(> input:checked) { box-shadow: 0 0 0 2px var(--b24-bg-surface), 0 0 0 4px var(--c); }
+.b24-colors__swatch:has(> input:checked)::after {
+  content: ""; width: 12px; height: 7px; margin-top: -3px;
+  border: solid #fff; border-width: 0 0 2px 2px; transform: rotate(-45deg);
+}
+.b24-colors__swatch:has(> input:focus-visible) { outline: 2px solid var(--b24-focus-color); outline-offset: 4px; }
+.b24-colors__custom { background: conic-gradient(#ff5752, #faa72c, #1bce7b, #2fc6f6, #0075ff, #a77bde, #ff5752); }
+.b24-colors__custom > input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.b24-colors__custom.is-active { box-shadow: 0 0 0 2px var(--b24-bg-surface), 0 0 0 4px var(--c, var(--b24-text-subtle)); }
+
+/* ── Поле секрета: пароль с «глазом», маска сохранённого значения ── */
+.b24-secret { position: relative; display: flex; align-items: center; }
+.b24-secret > .b24-input { padding-right: 40px; font-family: var(--b24-font-family-mono); }
+.b24-secret > .b24-input:placeholder-shown { font-family: inherit; }
+.b24-secret__toggle {
+  position: absolute; right: 4px; display: grid; place-items: center;
+  width: 32px; height: 28px; padding: 0;
+  color: var(--b24-text-subtle); background: none; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-secret__toggle svg { width: 18px; height: 18px; }
+.b24-secret__toggle:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-secret__toggle[aria-pressed="true"] { color: var(--b24-color-primary); }
+.b24-secret.is-saved > .b24-input::placeholder { letter-spacing: 0.15em; color: var(--b24-text-secondary); }
+
+/* ── Дерево (createTree) ── */
+.b24-tree { margin: 0; padding: 0; list-style: none; font-size: var(--b24-font-size-md); }
+.b24-tree ul { margin: 0; padding: 0 0 0 20px; list-style: none; }
+.b24-tree__node {
+  display: flex; align-items: center; gap: 6px;
+  min-height: 32px; padding: 0 8px 0 2px;
+  color: var(--b24-text-primary); border-radius: var(--b24-radius-sm); cursor: pointer; user-select: none;
+}
+.b24-tree__node:hover { background: var(--b24-bg-hover); }
+.b24-tree__node:focus-visible { outline: 2px solid var(--b24-color-primary); outline-offset: -2px; }
+.b24-tree [role="treeitem"][aria-selected="true"] > .b24-tree__node { color: var(--b24-color-soft-text-blue); background: var(--b24-color-soft-blue-3); }
+.b24-tree__toggle { flex: 0 0 auto; display: grid; place-items: center; width: 20px; height: 20px; color: var(--b24-text-subtle); }
+.b24-tree__toggle::before { content: ""; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform var(--b24-duration-fast); }
+.b24-tree [aria-expanded="true"] > .b24-tree__node > .b24-tree__toggle::before { transform: translateY(-2px) rotate(45deg); }
+.b24-tree__toggle.is-leaf::before { content: none; }
+.b24-tree__icon { display: grid; place-items: center; width: 18px; color: var(--b24-text-subtle); }
+.b24-tree__icon svg { width: 16px; height: 16px; }
+.b24-tree__label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-tree__count { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); font-variant-numeric: tabular-nums; }
+.b24-tree__node > .b24-check { pointer-events: none; }
+.b24-tree [aria-expanded="false"] > ul { display: none; }
+
+/* ── Всплывающая подсказка с кнопками и обучение по шагам ── */
+.b24-popover {
+  position: absolute; z-index: var(--b24-z-dropdown);
+  max-width: min(320px, calc(100vw - 16px)); padding: 14px 16px;
+  color: var(--b24-text-primary); background: var(--b24-bg-surface);
+  border-radius: var(--b24-radius-lg); box-shadow: var(--b24-shadow-popup);
+  animation: b24-pop-in var(--b24-duration-fast) var(--b24-ease);
+}
+.b24-popover__title { margin: 0 24px 4px 0; font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-semibold); }
+.b24-popover__text { margin: 0; font-size: var(--b24-font-size-sm); line-height: 1.5; color: var(--b24-text-secondary); }
+.b24-popover__actions { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.b24-popover__step { margin-right: auto; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-popover__close { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.b24-popover__close svg { width: 14px; height: 14px; }
+.b24-popover__close:hover { background: var(--b24-bg-hover); color: var(--b24-text-primary); }
+.b24-popover__arrow { position: absolute; width: 12px; height: 12px; background: inherit; transform: rotate(45deg); }
+.b24-popover--dark { color: #fff; background: #1f2329; }
+.b24-popover--dark .b24-popover__text { color: rgba(255, 255, 255, 0.78); }
+/* подсветка элемента в обучении: «дырка» в затемнении */
+.b24-spotlight {
+  position: absolute; z-index: calc(var(--b24-z-dropdown) - 1); pointer-events: none;
+  border-radius: var(--b24-radius-md);
+  box-shadow: 0 0 0 4px var(--b24-color-primary), 0 0 0 9999px rgba(15, 20, 30, 0.45);
+  transition: all var(--b24-duration) var(--b24-ease);
+}
+
+/* ── Мелочи ── */
+/* бейдж со спиннером: <span class="b24-badge"><span class="b24-spinner"></span>Синхронизация</span> */
+.b24-badge > .b24-spinner { --_s: 10px; border-width: 1.5px; border-color: color-mix(in srgb, currentColor 25%, transparent); border-top-color: currentColor; }
+/* пульсирующая точка «идёт» */
+.b24-dot--pulse { position: relative; }
+.b24-dot--pulse::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit;
+  animation: b24-pulse 1.6s var(--b24-ease) infinite;
+}
+@keyframes b24-pulse { 0% { transform: scale(1); opacity: 0.7; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+.b24-toast__count { flex: 0 0 auto; min-width: 20px; height: 18px; padding: 0 5px; font-size: var(--b24-font-size-2xs); line-height: 18px; text-align: center; color: inherit; background: rgba(255, 255, 255, 0.18); border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) { .b24-dot--pulse::after { animation: none; } .b24-spotlight { transition: none; } }

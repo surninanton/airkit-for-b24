@@ -21,6 +21,7 @@ export default defineConfig({
         docs: resolve(__dirname, 'docs.html'),
         screens: resolve(__dirname, 'screens.html'),
         editors: resolve(__dirname, 'editors.html'),
+        controls: resolve(__dirname, 'controls.html'),
       },
     },
   },

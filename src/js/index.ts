@@ -1,4 +1,4 @@
-export { toast, type ToastOptions, type ToastHandle, type ToastType } from './toast';
+export { toast, TOAST_LIMIT, type ToastOptions, type ToastHandle, type ToastType } from './toast';
 export { modal, confirm, alert, type ModalOptions, type ModalHandle, type ModalButton } from './modal';
 export { openSidePanel, closeAllSidePanels, type SidePanelOptions, type SidePanelHandle } from './sidepanel';
 export { dropdown, type DropdownOptions, type DropdownHandle } from './dropdown';
@@ -27,6 +27,10 @@ export { initGrid, type GridOptions, type GridHandle, type GridRowAction, type G
 export { loadGridState, saveGridState, clearGridState, normalizeGridState, moveColumn, measureColumn, startColumnResize, enableColumnReorder, type GridState } from './grid-core';
 export { createChart, sparkline, chartColor, type ChartOptions, type ChartSeries, type ChartType, type ChartHandle } from './chart';
 export { initSettings, initWizard, type SettingsHandle, type WizardHandle } from './screens';
+export {
+  initCheckGroup, initRange, initColors, initSecret, createTree, popover, startTour, plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors,
+  type TreeItem, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
+} from './controls';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';

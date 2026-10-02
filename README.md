@@ -333,6 +333,30 @@ const mapper = B24UI.createFieldMapper(el, {
 });
 ```
 
+## Элементы управления
+
+Пример — `demo/controls.html`.
+
+| Класс / функция | Что это |
+|---|---|
+| `.b24-accordion` > `details.b24-accordion__item` > `summary.b24-accordion__head` + `.b24-accordion__body` | аккордеон для приложения без JS: шеврон, счётчик, `__meta`, вложенность, `name="…"` — открыт один; `--flush` — без подложки |
+| `.b24-radio-cards` > `label.b24-radio-card` (`__icon`, `__title`, `__desc`) | карточки-радио: рамка цвета `--b24-radio-card-color`, галочка в углу. С checkbox — множественный выбор |
+| `.b24-check-group[data-b24-check-group]` | список чекбоксов с прокруткой, «Выбрано N из M», ссылки «все / очистить», `#id` у пункта |
+| `.b24-segmented` | сегментированный переключатель на радиокнопках (`--wide` — на всю ширину) |
+| `input.b24-range[data-b24-range]`, `.b24-range-pair[data-b24-range]` | ползунок и диапазон с двумя ручками; значение — в `.b24-range-field__value`, `data-suffix` — единица |
+| `.b24-colors[data-b24-colors]` | палитра цветов Битрикс24 и свой цвет |
+| `.b24-secret[data-b24-secret]` | поле секрета с «глазом»; `data-saved` — значение уже сохранено: поле пустое, маска и «введите новое, чтобы заменить» |
+| `createTree(host, { items, select: 'single' \| 'multiple' })` | дерево разделов или отделов с клавиатурой как в ARIA tree |
+| `popover(anchor, { title, text, actions })` | всплывающая подсказка с кнопками |
+| `startTour([{ target, title, text }])` | обучение по шагам: затемнение с окном вокруг элемента |
+| `applyServerErrors(form, errors)` / `clearServerErrors(form)` | ответ Laravel 422 (`{ errors: { 'notify.chat_id': [...] } }`) — в ошибки полей по `name="notify[chat_id]"`; возвращает ошибки без поля |
+| `crmEntityUrl(type, id, typeId?, base?)` | ссылка на карточку CRM: `deal`, `contact`, … или `entityTypeId`; смарт-процессы — `/crm/type/{typeId}/details/{id}/` |
+| `plural(n, ['запись', 'записи', 'записей'])`, `formatCount` | русское множественное число |
+| `.b24-badge > .b24-spinner`, `.b24-dot--pulse` | бейдж со спиннером и пульсирующая точка «идёт» |
+| `toast(…)` | одинаковые тосты склеиваются со счётчиком «×3», видимых не больше четырёх |
+
+React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `Range`, `RangePair`, `ColorPicker`, `SecretInput`, `Tree`.
+
 ## Сайт и лендинги приложений
 
 Для сайта разработчика и страниц приложений (витрина, описания, политики) есть отдельный набор компонентов. Они работают без JavaScript, так что документы видны и роботу кабинета Битрикс24. JS нужен только лайтбоксу галереи и мобильному меню. На Air-подложке текст белый, элементы «стеклянные». Для светлого фона есть модификаторы `--light` / `--dark`. Пример — `demo/site.html`.

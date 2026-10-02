@@ -27,10 +27,15 @@ export { Chart, Sparkline, Kpi, Stepper, SettingRow, SaveBar, EmptyScreen, type 
 export type { ChartOptions, ChartSeries, ChartType } from '../js/chart';
 export { KeyValueEditor, FieldMapper, type KeyValueEditorProps, type FieldMapperProps } from './Editors';
 export type { FieldMapping, FieldTransform, UpdateRule, KeyValuePair, ComboItem } from '../js/index';
+export {
+  Accordion, AccordionItem, RadioCards, CheckGroup, Segmented, Range, RangePair, ColorPicker, B24_COLORS, SecretInput, Tree,
+  type RadioCardOption, type CheckGroupOption, type TreeProps, type TreeItem,
+} from './Controls';
 export { Credit } from './Credit';
 export { Vendor, type VendorOptions } from './Vendor';
 export { B24Provider, App, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, type ToolbarProps, type ShellProps, type NavItemProps } from './Layout';
 
 // Императивные API общие с vanilla-версией
+export { plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors, popover, startTour, type TourStep } from '../js/index';
 export { toast, confirm, alert, modal, openSidePanel, setTheme, setAirPreset, bx24, toBitrixFilter, toQuery, resolvePeriod, formatDate, parseDate, bx24UserLoader, openEntityDialog, formatSize, formatMoney, type DateRange, type PeriodValue } from '../js/index';
 export type { IconName } from '../icons';
