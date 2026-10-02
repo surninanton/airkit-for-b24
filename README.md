@@ -97,6 +97,14 @@ npm run dev      # витрина: demo/index.html (чистый HTML) и demo/r
 npm run build    # dist/: b24ui.css, b24ui.min.css, tokens.css, b24ui.js (IIFE), js/, react/, icons/ (ESM + d.ts)
 ```
 
+Тесты поведения — Playwright на демо-страницах, на ширине 1280 и 390px (сервер поднимается сам):
+
+```bash
+npm test         # меню и мегаменю, оглавление, якорное меню, формы, cookie, тема, печать, горизонтальная прокрутка
+```
+
+Изменения по версиям — в [CHANGELOG.md](CHANGELOG.md).
+
 ## PHP / серверные шаблоны
 
 ```html

@@ -1,6 +1,6 @@
 {
   "name": "airkit-for-b24",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Неофициальный UI-кит в стиле Битрикс24 (Air): CSS-токены, vanilla JS и React-компоненты для приложений Битрикс24",
   "author": "Anton Surnin",
   "repository": {
@@ -42,7 +42,8 @@
     "build:css": "lightningcss --bundle --targets '>= 0.5%' src/styles/index.css -o dist/b24ui.css && lightningcss --bundle --minify --targets '>= 0.5%' src/styles/index.css -o dist/b24ui.min.css && lightningcss --bundle --targets '>= 0.5%' src/styles/tokens.css -o dist/tokens.css",
     "build:js": "tsup",
     "typecheck": "tsc --noEmit",
-    "preview": "npm run build && vite demo"
+    "preview": "npm run build && vite demo",
+    "test": "playwright test"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -57,6 +58,7 @@
     }
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.1",
