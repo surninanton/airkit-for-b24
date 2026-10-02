@@ -158,6 +158,17 @@
 .b24-megamenu__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .b24-megamenu__title { font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-semibold); }
 .b24-megamenu__desc { font-size: var(--b24-font-size-sm); line-height: 1.4; color: var(--b24-text-subtle); }
+/* метки под описанием пункта: для какого сервиса приложение («for Bitrix24», «for Frontpad») */
+.b24-megamenu__tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.b24-megamenu__tag {
+  display: inline-flex; align-items: center;
+  height: 20px; padding: 0 8px;
+  font-size: var(--b24-font-size-xs, 11px); font-weight: var(--b24-font-weight-medium); line-height: 1;
+  white-space: nowrap;
+  color: var(--b24-color-primary);
+  background: var(--b24-color-soft-blue-2);
+  border-radius: 999px;
+}
 .b24-megamenu__footer {
   grid-column: 1 / -1;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
