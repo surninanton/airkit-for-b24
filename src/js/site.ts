@@ -181,7 +181,9 @@ export function initSiteHeader(header: HTMLElement): () => void {
   window.addEventListener('scroll', onScroll, { passive: true });
   mq.addEventListener?.('change', onMq);
   onScroll();
+  const panes = Array.from(header.querySelectorAll<HTMLElement>('.b24-megamenu--panes, [data-b24-megamenu-panes]')).map((m) => initMegamenuPanes(m, mq));
   return () => {
+    panes.forEach((off) => off());
     burger!.removeEventListener('click', onBurger);
     header.removeEventListener('mousedown', onMouseDown);
     header.removeEventListener('toggle', onToggle, true);
@@ -191,6 +193,46 @@ export function initSiteHeader(header: HTMLElement): () => void {
     window.removeEventListener('scroll', onScroll);
     mq.removeEventListener?.('change', onMq);
     header.classList.remove('is-enhanced', 'is-menu-open');
+  };
+}
+
+/* Мегаменю с категориями. Без JS категории переключаются радиокнопками (клик, стрелки ↑/↓).
+ * Здесь: на десктопе категория выбирается и наведением; на узком экране открытую можно свернуть
+ * повторным тапом, а при открытии меню все категории свёрнуты. */
+function initMegamenuPanes(menu: HTMLElement, mq: MediaQueryList): () => void {
+  const inputs = () => Array.from(menu.querySelectorAll<HTMLInputElement>('.b24-megamenu__cat-label > input[type="radio"]'));
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const sync = () => {
+    if (mq.matches) inputs().forEach((i) => { i.checked = false; });
+    else if (!inputs().some((i) => i.checked)) { const first = inputs()[0]; if (first) first.checked = true; }
+  };
+  const labelOf = (e: Event) => (e.target as HTMLElement).closest?.<HTMLLabelElement>('.b24-megamenu__cat-label') ?? null;
+  // задержка, чтобы при движении мыши наискосок к панели не перескакивать по соседним категориям
+  const onOver = (e: PointerEvent) => {
+    const label = labelOf(e);
+    if (!label || e.pointerType !== 'mouse' || mq.matches) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => { const i = label.querySelector('input'); if (i) i.checked = true; }, 90);
+  };
+  const onOut = (e: PointerEvent) => { if (labelOf(e)) clearTimeout(timer); };
+  const onClick = (e: MouseEvent) => {
+    const label = labelOf(e);
+    const i = label?.querySelector('input');
+    if (e.target === i) return; // вторичный клик по самому радио, который порождает label
+    // клик по label ещё не переключил радио: checked — прежнее состояние
+    if (i && i.checked && mq.matches) { e.preventDefault(); i.checked = false; }
+  };
+  menu.addEventListener('pointerover', onOver);
+  menu.addEventListener('pointerout', onOut);
+  menu.addEventListener('click', onClick);
+  mq.addEventListener?.('change', sync);
+  sync();
+  return () => {
+    clearTimeout(timer);
+    menu.removeEventListener('pointerover', onOver);
+    menu.removeEventListener('pointerout', onOut);
+    menu.removeEventListener('click', onClick);
+    mq.removeEventListener?.('change', sync);
   };
 }
 

@@ -165,6 +165,72 @@
   border-top: 1px solid var(--b24-divider);
 }
 
+/* мегаменю с категориями: слева категории (радиокнопки), справа панель выбранной.
+   Категория и её панель стоят рядом в разметке (.b24-megamenu__cat — display: contents),
+   поэтому без JS переключение работает на :has(), а на узком экране это аккордеон. */
+.b24-site-header__row { position: relative; }
+.b24-site-nav__group:has(> .b24-megamenu--panes) { position: static; }
+.b24-megamenu--panes {
+  --b24-megamenu-cats-w: 248px;
+  grid-template-columns: var(--b24-megamenu-cats-w) minmax(0, 1fr);
+  /* до 12 категорий; последняя строка 1fr прижимает ссылку «Смотреть все» к низу колонки */
+  grid-template-rows: repeat(var(--b24-megamenu-max-cats, 12), min-content) 1fr;
+  gap: 0;
+  width: min(900px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  padding: 0;
+  overflow: hidden;
+  background-image: linear-gradient(90deg, var(--b24-bg-page) 0 var(--b24-megamenu-cats-w), transparent 0);
+}
+.b24-megamenu__cat { display: contents; }
+.b24-megamenu__cat-label {
+  position: relative;
+  grid-column: 1;
+  display: flex; align-items: center; gap: 10px;
+  min-height: 44px; margin: 2px 8px 0; padding: 6px 10px;
+  font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-medium);
+  border-radius: var(--b24-radius-md);
+  cursor: pointer;
+  user-select: none;
+}
+.b24-megamenu__cat:first-child > .b24-megamenu__cat-label { margin-top: 8px; }
+.b24-megamenu__cat-label > input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.b24-megamenu__cat-label::after {
+  content: ""; flex: 0 0 auto; width: 7px; height: 7px; margin-left: auto;
+  border: solid currentColor; border-width: 0 1.6px 1.6px 0;
+  transform: rotate(-45deg); opacity: 0.45;
+}
+.b24-megamenu__cat-label:hover { background: var(--b24-bg-hover); }
+.b24-megamenu__cat-label:has(input:checked) { color: var(--b24-color-primary); background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-sm, 0 1px 3px #0000000f); }
+.b24-megamenu__cat-label:has(input:checked)::after { opacity: 1; }
+.b24-megamenu__cat-label:has(input:focus-visible) { outline: 2px solid var(--b24-color-primary); outline-offset: -2px; }
+.b24-megamenu__cat-icon { display: grid; place-items: center; flex: 0 0 auto; width: 28px; height: 28px; color: var(--b24-color-primary); }
+.b24-megamenu__cat-icon svg, .b24-megamenu__cat-icon img { width: 22px; height: 22px; }
+.b24-megamenu__all {
+  grid-column: 1; grid-row: -2; align-self: end;
+  margin: 12px 8px 12px; padding: 8px 10px;
+  font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium);
+  color: var(--b24-color-link); text-decoration: none;
+  border-radius: var(--b24-radius-md);
+}
+.b24-megamenu__all:hover { background: var(--b24-bg-hover); }
+.b24-megamenu__pane { display: none; grid-column: 2; grid-row: 1 / -1; align-self: start; min-width: 0; padding: 16px 16px 12px; }
+.b24-megamenu__cat:has(> .b24-megamenu__cat-label input:checked) > .b24-megamenu__pane { display: block; }
+.b24-megamenu__pane-head { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 0 12px 12px; border-bottom: 1px solid var(--b24-divider); }
+.b24-megamenu__pane-icon { display: grid; place-items: center; flex: 0 0 auto; width: 40px; height: 40px; color: var(--b24-color-primary); background: var(--b24-color-soft-blue-2); border-radius: var(--b24-radius-md); }
+.b24-megamenu__pane-icon svg, .b24-megamenu__pane-icon img { width: 24px; height: 24px; }
+.b24-megamenu__pane-title { margin: 0; font-size: var(--b24-font-size-lg); font-weight: var(--b24-font-weight-semibold); }
+.b24-megamenu__pane-desc { margin: 2px 0 0; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-megamenu__grid { display: grid; grid-template-columns: repeat(var(--b24-megamenu-cols, 2), minmax(0, 1fr)); gap: 2px var(--b24-space-xs); }
+.b24-megamenu__empty { margin: 0; padding: 10px 12px; font-size: var(--b24-font-size-md); color: var(--b24-text-subtle); }
+.b24-megamenu--panes > .b24-megamenu__footer { margin: 0; padding: 14px 20px; background: var(--b24-bg-surface); }
+.b24-megamenu__footer-lead { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.b24-megamenu__footer-title { font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-semibold); }
+.b24-megamenu__footer-text { font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-megamenu__footer-links { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 0; padding: 0; list-style: none; }
+.b24-megamenu__footer-links a { font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium); color: var(--b24-color-link); text-decoration: none; }
+.b24-megamenu__footer-links a:hover { text-decoration: underline; }
+
 /* мобильная шапка: с JS — бургер и панель; без JS — пункты переносятся */
 @media (max-width: 960px) {
   .b24-site-header.is-enhanced .b24-site-header__burger { display: inline-flex; }
@@ -187,6 +253,17 @@
   }
   .b24-site-header.is-menu-open .b24-site-nav__link,
   .b24-site-header.is-menu-open .b24-site-nav__group > summary { height: 44px; font-size: var(--b24-font-size-lg); }
+  /* категории — аккордеоном: пункты раскрываются в поток под заголовком категории */
+  .b24-megamenu--panes { display: block; padding: 4px 0; background-image: none; }
+  .b24-megamenu__cat-label, .b24-megamenu__cat:first-child > .b24-megamenu__cat-label { margin: 0 4px; }
+  .b24-megamenu__cat-label::after { transform: translateY(-2px) rotate(45deg); }
+  .b24-megamenu__cat-label:has(input:checked) { box-shadow: none; background: var(--b24-bg-hover); }
+  .b24-megamenu__cat-label:has(input:checked)::after { transform: translateY(2px) rotate(-135deg); }
+  .b24-megamenu__pane { padding: 4px 4px 8px 16px; }
+  .b24-megamenu__pane-head { display: none; }
+  .b24-megamenu__grid { grid-template-columns: minmax(0, 1fr); }
+  .b24-megamenu__all { display: block; margin: 4px; }
+  .b24-megamenu--panes > .b24-megamenu__footer { flex-direction: column; align-items: flex-start; padding: 12px 14px; }
 }
 body.b24-menu-open { overflow: hidden; }
 
