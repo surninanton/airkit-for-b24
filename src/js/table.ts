@@ -1,3 +1,5 @@
+import { escapeHtml } from './dom';
+
 /**
  * Клиентская сортировка таблицы: <table data-b24-sortable> и <th aria-sort="none">.
  * Значение ячейки берётся из data-sort-value, иначе из текста. Числа сравниваются как числа.
@@ -52,4 +54,35 @@ export function initSortableTable(table: HTMLTableElement): void {
     all.addEventListener('change', () => { boxes().forEach((b) => (b.checked = all.checked)); sync(); });
     table.addEventListener('change', (e) => { if ((e.target as HTMLElement).closest('tbody')) sync(); });
   }
+}
+
+/* ── Богатые ячейки ─────────────────────────────────────── */
+export interface DiffOptions {
+  /** подпись поля перед значениями */
+  field?: string;
+  /** текст пустого значения */
+  emptyText?: string;
+}
+
+const isEmptyValue = (v: unknown) => v == null || v === '';
+
+/** «Поле: ~~было~~ → станет»; одинаковые — «значение (без изменений)», пустые — «пусто» */
+export function diffHtml(before: unknown, after: unknown, options: DiffOptions = {}): string {
+  const empty = `<span class="b24-diff__empty">${escapeHtml(options.emptyText ?? 'пусто')}</span>`;
+  const val = (v: unknown) => (isEmptyValue(v) ? empty : escapeHtml(String(v)));
+  const field = options.field ? `<span class="b24-diff__field">${escapeHtml(options.field)}</span>` : '';
+  if (String(before ?? '') === String(after ?? '')) return `<span class="b24-diff b24-diff--same">${field}<span class="b24-diff__value">${val(after)}</span></span>`;
+  // «пусто» не зачёркиваем и не подсвечиваем — это не значение
+  const old = isEmptyValue(before) ? empty : `<del>${val(before)}</del>`;
+  const next = isEmptyValue(after) ? empty : `<ins>${val(after)}</ins>`;
+  return `<span class="b24-diff">${field}${old}<span class="b24-diff__arrow" aria-label="станет">→</span>${next}</span>`;
+}
+
+/** Ссылка-чип на карточку: «#123 ООО Ромашка» */
+export function chipHtml(title: string, options: { href?: string; id?: string | number; avatar?: string } = {}): string {
+  const tag = options.href ? 'a' : 'span';
+  const href = options.href ? ` href="${escapeHtml(options.href)}" target="_top"` : '';
+  const id = options.id != null ? `<span class="b24-chip__id">#${escapeHtml(String(options.id))}</span>` : '';
+  const avatar = options.avatar ? `<img class="b24-avatar" src="${escapeHtml(options.avatar)}" alt="">` : '';
+  return `<${tag} class="b24-chip"${href}>${avatar}${id}<span>${escapeHtml(title)}</span></${tag}>`;
 }

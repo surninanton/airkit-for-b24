@@ -81,3 +81,74 @@
 .b24-pagination__item:hover { background: var(--b24-bg-hover); }
 .b24-pagination__item[aria-current="page"] { background: var(--b24-color-soft-blue-2); color: var(--b24-color-soft-text-blue); font-weight: var(--b24-font-weight-semibold); }
 .b24-pagination__item:disabled { opacity: 0.4; pointer-events: none; }
+
+/* ── Тон строки: ошибка, расхождение, совпадение ──
+ * tr.is-danger | is-warning | is-success | is-info: фон строки и полоса слева у первой ячейки.
+ */
+.b24-table tbody tr.is-danger > td { background: var(--b24-color-soft-red-3); }
+.b24-table tbody tr.is-warning > td { background: var(--b24-color-soft-orange-3); }
+.b24-table tbody tr.is-success > td { background: var(--b24-color-soft-green-3); }
+.b24-table tbody tr.is-info > td { background: var(--b24-color-soft-blue-3); }
+.b24-table tbody tr.is-danger > td:first-child { box-shadow: inset 3px 0 0 var(--b24-color-danger); }
+.b24-table tbody tr.is-warning > td:first-child { box-shadow: inset 3px 0 0 var(--b24-color-warning); }
+.b24-table tbody tr.is-success > td:first-child { box-shadow: inset 3px 0 0 var(--b24-color-success); }
+.b24-table tbody tr.is-info > td:first-child { box-shadow: inset 3px 0 0 var(--b24-color-primary); }
+.b24-table tbody tr:is(.is-danger, .is-warning, .is-success, .is-info):hover > td { filter: brightness(0.985); }
+
+/* ── Раскрывающиеся строки ──
+ * <td class="b24-table__cell-expand"><button class="b24-table__expander" aria-expanded="false" aria-controls="row-7-details"></button></td>
+ * <tr class="b24-table__details" id="row-7-details" hidden><td colspan="…">…</td></tr>
+ */
+.b24-table__cell-expand { width: 36px; padding-right: 0 !important; }
+.b24-table__expander {
+  display: grid; place-items: center;
+  width: 24px; height: 24px; padding: 0;
+  color: var(--b24-text-subtle); background: transparent; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer;
+}
+.b24-table__expander::before {
+  content: ""; width: 7px; height: 7px; margin-left: -3px;
+  border: solid currentColor; border-width: 0 1.6px 1.6px 0;
+  transform: rotate(-45deg); transition: transform var(--b24-duration-fast);
+}
+.b24-table__expander[aria-expanded="true"]::before { margin: -4px 0 0; transform: rotate(45deg); }
+.b24-table__expander:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-table__expander:focus-visible { outline: 2px solid var(--b24-color-primary); outline-offset: 1px; }
+.b24-table tbody tr:has(+ .b24-table__details:not([hidden])) > td { border-bottom-color: transparent; }
+.b24-table tbody tr.b24-table__details > td { padding: 4px 16px 16px 52px; background: var(--b24-bg-surface-2); }
+.b24-table tbody tr.b24-table__details:hover > td { background: var(--b24-bg-surface-2); }
+
+/* ── Богатые ячейки ── */
+/* «было → станет»: <span class="b24-diff"><span class="b24-diff__field">Сумма</span><del>100</del>→<ins>120</ins></span> */
+.b24-diff { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; min-width: 0; }
+.b24-diff__field { color: var(--b24-text-subtle); }
+.b24-diff__field::after { content: ":"; }
+.b24-diff del { color: var(--b24-text-subtle); text-decoration: line-through; text-decoration-color: var(--b24-color-danger); }
+.b24-diff ins { padding: 0 4px; color: var(--b24-color-soft-text-green); background: var(--b24-color-soft-green-3); text-decoration: none; border-radius: 4px; }
+.b24-diff__arrow { color: var(--b24-text-subtle); }
+.b24-diff__empty { font-style: italic; color: var(--b24-text-disabled); }
+.b24-diff--same .b24-diff__value { color: var(--b24-text-secondary); }
+.b24-diff--same::after { content: "(без изменений)"; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
+.b24-diff-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+
+/* чип-ссылка на карточку: <a class="b24-chip" href="…"><span class="b24-chip__id">#123</span>ООО «Ромашка»</a> */
+.b24-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  height: 24px; padding: 0 8px 0 4px;
+  font-size: var(--b24-font-size-sm); color: var(--b24-text-primary) !important; text-decoration: none !important;
+  background: var(--b24-bg-surface-3); border-radius: 999px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.b24-chip:only-child, .b24-chip:not(:has(.b24-avatar, .b24-chip__id)) { padding-left: 8px; }
+.b24-chip .b24-avatar { --_s: 18px; flex: 0 0 auto; }
+.b24-chip__id { padding: 0 5px; font-size: var(--b24-font-size-2xs); font-variant-numeric: tabular-nums; color: var(--b24-text-subtle); background: var(--b24-bg-surface); border-radius: 999px; }
+a.b24-chip:hover { background: var(--b24-color-soft-blue-2); }
+.b24-chip__remove { display: grid; place-items: center; width: 16px; height: 16px; margin-right: -4px; padding: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.b24-chip__remove svg { width: 12px; height: 12px; }
+.b24-chip__remove:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* выбор прямо в ячейке: «какую карточку оставить» + кнопка */
+.b24-cell-choice { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: var(--b24-bg-surface); border: 1px solid var(--b24-divider-accent); border-radius: var(--b24-radius-md); }
+.b24-cell-choice__title { font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium); }
+.b24-cell-choice .b24-check { font-size: var(--b24-font-size-sm); }
+.b24-cell-choice__actions { display: flex; gap: 6px; margin-top: 2px; }

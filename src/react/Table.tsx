@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button } from './Button';
 import { Checkbox } from './Form';
 import { EmptyState, Loader } from './Display';
@@ -86,13 +86,29 @@ export interface DataTableProps<T> {
   onGridStateChange?: (state: GridState) => void;
   /** сохранение значения ячейки; бросить ошибку — текст покажется под полем, редактор останется открытым */
   onCellEdit?: (row: T, key: string, value: string) => void | Promise<void>;
+  /** тон строки: ошибка, расхождение, совпадение */
+  rowTone?: (row: T) => 'danger' | 'warning' | 'success' | 'info' | null | undefined;
+  /** содержимое под строкой (детали записи); у строки появляется кнопка-шеврон. null — строку не раскрывать */
+  renderExpanded?: (row: T) => ReactNode;
+  /** контролируемый список раскрытых строк */
+  expanded?: Array<string | number>;
+  onExpandedChange?: (keys: Array<string | number>) => void;
 }
 
 export function DataTable<T>({
   columns, rows, rowKey, selectable, selected = [], onSelectionChange,
   sort: sortProp, onSortChange, onRowClick, loading, empty, footer, compact, striped, maxHeight, className,
   stateKey, resizable, reorderable, columnSettings, rowActions, groupActions, onGridStateChange, onCellEdit,
+  rowTone, renderExpanded, expanded: expandedProp, onExpandedChange,
 }: DataTableProps<T>) {
+  const [innerExpanded, setInnerExpanded] = useState<Array<string | number>>([]);
+  const expandedKeys = expandedProp ?? innerExpanded;
+  const toggleExpanded = (k: string | number) => {
+    const next = expandedKeys.includes(k) ? expandedKeys.filter((x) => x !== k) : [...expandedKeys, k];
+    if (expandedProp === undefined) setInnerExpanded(next);
+    onExpandedChange?.(next);
+  };
+  const tableId = useRef(`b24-dt-${Math.random().toString(36).slice(2, 7)}`).current;
   const [innerSort, setInnerSort] = useState<SortState | null>(null);
   const sort = sortProp !== undefined ? sortProp : innerSort;
   const tableRef = useRef<HTMLTableElement>(null);
@@ -174,7 +190,7 @@ export function DataTable<T>({
   // угол: чекбокс + ⚙ — 64px; только чекбокс — 44px; только ⚙ (без чекбоксов и меню строк) — как ☰, 36px
   const cornerW = serviceW.corner ?? (selectable ? (columnSettings && !gearInMenu ? SERVICE_WIDTH.corner : SERVICE_WIDTH.check) : SERVICE_WIDTH.menu);
   const menuW = serviceW.menu ?? SERVICE_WIDTH.menu;
-  const serviceTotal = (selectable || (columnSettings && !rowActions) ? cornerW : 0) + (rowActions ? menuW : 0);
+  const serviceTotal = (selectable || (columnSettings && !rowActions) ? cornerW : 0) + (rowActions ? menuW : 0) + (renderExpanded ? 36 : 0);
   const layout = hasWidths ? layoutWidths(visible.map((c) => c.key), grid.widths, serviceTotal, wrapWidth) : null;
   const tableWidth = layout?.total;
 
@@ -292,7 +308,7 @@ export function DataTable<T>({
     onSelectionChange?.(selectedSet.has(k) ? selected.filter((x) => x !== k) : [...selected, k]);
 
   const cornerCol = selectable || (columnSettings && !rowActions);
-  const colSpan = visible.length + (cornerCol ? 1 : 0) + (rowActions ? 1 : 0);
+  const colSpan = visible.length + (cornerCol ? 1 : 0) + (rowActions ? 1 : 0) + (renderExpanded ? 1 : 0);
   const alignStyle = (c: Column<T>): CSSProperties | undefined => (c.align && c.align !== 'left' ? { textAlign: c.align } : undefined);
 
   const settingsMenu = columnSettings ? (
@@ -355,6 +371,7 @@ export function DataTable<T>({
         <colgroup>
           {cornerCol && <col style={{ width: hasWidths ? cornerW : undefined }} />}
           {rowActions && <col style={{ width: hasWidths ? menuW : undefined }} />}
+          {renderExpanded && <col style={{ width: 36 }} />}
           {visible.map((c) => <col key={c.key} data-col={c.key} style={{ width: layout ? layout.widths[c.key] : c.width }} />)}
         </colgroup>
         <thead>
@@ -368,6 +385,7 @@ export function DataTable<T>({
               </th>
             )}
             {rowActions && <th className="b24-table__cell-menu" data-fixed="">{gearInMenu && settingsMenu}</th>}
+            {renderExpanded && <th className="b24-table__cell-expand" aria-label="Подробности" />}
             {visible.map((c) => (
               <th
                 key={c.key}
@@ -405,9 +423,14 @@ export function DataTable<T>({
               const k = rowKey(row);
               const isSel = selectedSet.has(k);
               const menu = rowActions?.(row);
+              const details = renderExpanded ? renderExpanded(row) : null;
+              const isOpen = details != null && expandedKeys.includes(k);
+              const detailsId = `${tableId}-${k}`;
+              const tone = rowTone?.(row);
               return (
+                <Fragment key={k}>
                 <tr
-                  key={k}
+                  className={tone ? `is-${tone}` : undefined}
                   aria-selected={selectable ? isSel : undefined}
                   onClick={onRowClick ? (e) => { if (!(e.target as HTMLElement).closest('a,button,input,select,label,.is-editing')) onRowClick(row); } : undefined}
                   style={onRowClick ? { cursor: 'pointer' } : undefined}
@@ -425,6 +448,13 @@ export function DataTable<T>({
                           items={menu}
                           trigger={<button type="button" className="b24-table__row-menu" aria-label="Действия со строкой"><Icon name="menu" size={16} /></button>}
                         />
+                      )}
+                    </td>
+                  )}
+                  {renderExpanded && (
+                    <td className="b24-table__cell-expand">
+                      {details != null && (
+                        <button type="button" className="b24-table__expander" aria-expanded={isOpen} aria-controls={detailsId} aria-label={isOpen ? 'Скрыть подробности' : 'Показать подробности'} onClick={() => toggleExpanded(k)} />
                       )}
                     </td>
                   )}
@@ -447,6 +477,12 @@ export function DataTable<T>({
                     );
                   })}
                 </tr>
+                {isOpen && (
+                  <tr className="b24-table__details" id={detailsId}>
+                    <td colSpan={colSpan}>{details}</td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })
           )}

@@ -37,6 +37,48 @@
     </section>
 
     <section class="b24-card">
+      <div class="b24-card__header"><div><h2 class="b24-card__title">Отчёт о пробной синхронизации</h2><div class="b24-card__subtitle">Тон строки, раскрытие деталей, «было → станет», чипы-ссылки, выбор прямо в ячейке</div></div></div>
+      <div class="b24-table-wrap">
+        <table class="b24-table" id="report">
+          <thead><tr><th class="b24-table__cell-expand" aria-label="Подробности"></th><th>Строка Metabase</th><th>Сделка</th><th>Изменения</th><th>Статус</th></tr></thead>
+          <tbody>
+            <tr class="is-success">
+              <td class="b24-table__cell-expand"><button class="b24-table__expander" type="button" aria-expanded="false" aria-controls="rep-1" aria-label="Показать подробности"></button></td>
+              <td>Договор 2026-114</td>
+              <td><a class="b24-chip" href="#"><span class="b24-chip__id">#4812</span><span>Договор 2026-114 — Соколова</span></a></td>
+              <td id="diff-1"></td>
+              <td><span class="b24-badge b24-badge--success">Совпадает</span></td>
+            </tr>
+            <tr class="b24-table__details" id="rep-1" hidden><td colspan="5"><ul class="b24-diff-list" id="diff-1-all"></ul></td></tr>
+            <tr class="is-warning">
+              <td class="b24-table__cell-expand"><button class="b24-table__expander" type="button" aria-expanded="false" aria-controls="rep-2" aria-label="Показать подробности"></button></td>
+              <td>Договор 2026-117</td>
+              <td><div class="b24-chips"><a class="b24-chip" href="#"><span class="b24-chip__id">#4815</span><span>Петренко</span></a><a class="b24-chip" href="#"><span class="b24-chip__id">#4902</span><span>Петренко (дубль)</span></a></div></td>
+              <td>
+                <div class="b24-cell-choice" role="group" aria-label="Какую сделку оставить">
+                  <span class="b24-cell-choice__title">Найдено две сделки — какую обновлять?</span>
+                  <label class="b24-check"><input type="radio" name="keep-2" value="4815" checked><span>#4815, создана 12.09</span></label>
+                  <label class="b24-check"><input type="radio" name="keep-2" value="4902"><span>#4902, создана 30.09</span></label>
+                  <div class="b24-cell-choice__actions"><button class="b24-btn b24-btn--primary b24-btn--xs" type="button">Применить</button></div>
+                </div>
+              </td>
+              <td><span class="b24-badge b24-badge--warning">Дубль</span></td>
+            </tr>
+            <tr class="b24-table__details" id="rep-2" hidden><td colspan="5">Поиск по полю UF_CRM_CONTRACT_NO нашёл две сделки. Выбор запомнится для следующих запусков.</td></tr>
+            <tr class="is-danger">
+              <td class="b24-table__cell-expand"><button class="b24-table__expander" type="button" aria-expanded="false" aria-controls="rep-3" aria-label="Показать подробности"></button></td>
+              <td>Договор 2026-120</td>
+              <td><span class="b24-table__muted">не создана</span></td>
+              <td id="diff-3"></td>
+              <td><span class="b24-badge b24-badge--danger">Ошибка</span></td>
+            </tr>
+            <tr class="b24-table__details" id="rep-3" hidden><td colspan="5">Стадии «signed_late» нет в словаре значений, а действие для отсутствующих — «Остановить с ошибкой».</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="b24-card">
       <div class="b24-card__header"><div><h2 class="b24-card__title">Ключ → значение</h2><div class="b24-card__subtitle">Условия запуска: колонка Metabase → поле родительской сделки</div></div></div>
       <div class="b24-card__body b24-stack" style="--b24-gap: var(--b24-space-md)">
         <div id="kv"></div>
@@ -129,8 +171,8 @@
     value: [
       { mode: 'template', source: '', template: 'Договор {{Номер договора}} — {{Фамилия}}', target: 'TITLE', rule: 'always' },
       { mode: 'column', source: 'amount', template: '', target: 'OPPORTUNITY', rule: 'if_changed' },
-      { mode: 'column', source: 'status', template: '', target: 'STAGE_ID', rule: 'always', transform: { type: 'value_map', map: [{ from: 'new', to: 'NEW' }, { from: 'signed', to: 'WON' }], onMissing: 'default', default: 'EXECUTING' } },
-      { mode: 'column', source: 'amount', template: '', target: 'UF_CRM_SUM_WORDS', rule: 'always', transform: { type: 'amount_words', currency: 'RUB', withKopecks: true } },
+      { mode: 'column', source: 'status', template: '', target: 'STAGE_ID', rule: 'always', transform: { type: 'value_map', map: { new: 'NEW', signed: 'WON' }, on_missing: 'default', default: 'EXECUTING' } },
+      { mode: 'column', source: 'amount', template: '', target: 'UF_CRM_SUM_WORDS', rule: 'always', transform: { type: 'amount_words', currency: 'рубль', fraction: 'копейка' } },
       { mode: 'column', source: 'city', template: '', target: 'UF_CRM_REGION_OLD', rule: 'if_empty' },
     ],
     onChange: show,
@@ -144,7 +186,7 @@
   show();
   document.getElementById('show-errors').addEventListener('click', () => {
     // ответ Laravel 422: ключи по пути field_mappings.N.поле — приложение отрезает префикс
-    mapper.setErrors({ '1.target': 'Поле «Сумма» уже сопоставлено в другой строке', '2.transform.map.0.to': 'Стадии NEW нет в воронке «Повторные продажи»' });
+    mapper.setErrors({ '1.target': 'Поле «Сумма» уже сопоставлено в другой строке', '2.transformation': 'Стадии NEW нет в воронке «Повторные продажи»' });
   });
 
   const kvJson = document.getElementById('kv-json');
@@ -162,6 +204,12 @@
     groupBy: (i) => (i.value.startsWith('UF_') ? 'Пользовательские' : 'Системные'),
   });
   B24UI.createCombobox(document.getElementById('combo-raw'), { items: [], value: 'UF_CRM_1712345678', creatable: true, placeholder: 'Поле' });
+
+  document.getElementById('diff-1').innerHTML = B24UI.diffHtml(1250000, 1250000, { field: 'Сумма' });
+  document.getElementById('diff-1-all').innerHTML = [
+    B24UI.diffHtml(1250000, 1250000, { field: 'Сумма' }), B24UI.diffHtml('В работе', 'Сделка успешна', { field: 'Стадия' }), B24UI.diffHtml('', 'Екатеринбург', { field: 'Город' }),
+  ].map((x) => `<li>${x}</li>`).join('');
+  document.getElementById('diff-3').innerHTML = B24UI.diffHtml('Новая', 'signed_late', { field: 'Стадия' });
 
   const phonesJson = document.getElementById('phones-json');
   const showPhones = () => { phonesJson.textContent = [...new FormData(document.getElementById('phones-form'))].map(([k, v]) => `${k} = ${v}`).join('\n'); };

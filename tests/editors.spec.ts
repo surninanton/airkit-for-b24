@@ -111,10 +111,10 @@ test.describe('сопоставление полей', () => {
     await expect(row.locator('.b24-mapper__default')).toBeHidden();
     // переключились на «Сумму прописью» и обратно — пары на месте
     await row.getByRole('radio', { name: 'Сумма прописью' }).click();
-    expect((await dealValue(page))[2].transform).toEqual({ type: 'amount_words', currency: 'RUB', withKopecks: true });
+    expect((await dealValue(page))[2].transform).toEqual({ type: 'amount_words' });
     await row.getByRole('radio', { name: 'Словарь значений' }).click();
     await expect(row.locator('.b24-kv__row')).toHaveCount(2);
-    expect((await dealValue(page))[2].transform).toEqual({ type: 'value_map', map: [{ from: 'new', to: 'PREPARATION' }, { from: 'signed', to: 'WON' }], onMissing: 'skip', default: 'EXECUTING' });
+    expect((await dealValue(page))[2].transform).toEqual({ type: 'value_map', map: { new: 'PREPARATION', signed: 'WON' }, on_missing: 'skip' });
     await row.getByRole('radio', { name: 'Без преобразования' }).click();
     expect((await dealValue(page))[2].transform).toBeNull();
     await expect(btn).not.toHaveClass(/is-configured/);
@@ -126,8 +126,17 @@ test.describe('сопоставление полей', () => {
     await row.locator('.b24-mapper__transform').click();
     await row.getByRole('radio', { name: 'Словарь значений' }).click();
     await expect(row.locator('.b24-mapper__note')).toContainText('Справочника у поля нет');
+    // пустой словарь с «передать как есть» — то же, что без преобразования
+    expect((await dealValue(page))[4].transform).toBeNull();
     await row.locator('.b24-repeater__add').click();
-    await expect(row.locator('.b24-kv__row input')).toHaveCount(2);
+    const inputs = row.locator('.b24-kv__row input');
+    await expect(inputs).toHaveCount(2);
+    await inputs.nth(0).fill('Москва');
+    await inputs.nth(1).fill('MSK');
+    expect((await dealValue(page))[4].transform).toEqual({ type: 'value_map', map: { 'Москва': 'MSK' }, on_missing: 'pass' });
+    await row.getByRole('radio', { name: 'Склонение ФИО' }).click();
+    await row.locator('.b24-mapper__config select').selectOption('dative');
+    expect((await dealValue(page))[4].transform).toEqual({ type: 'inflect', case: 'dative' });
   });
 
   test('ошибки сервера по пути и дочерний экземпляр со своим списком полей', async ({ page }) => {
@@ -146,5 +155,25 @@ test.describe('сопоставление полей', () => {
     await page.keyboard.press('Escape');
     await child.locator('.b24-mapper__transform').first().click();
     await expect(child.getByRole('radio')).toHaveText(['Без преобразования', 'Склонение ФИО']);
+  });
+});
+
+test.describe('таблица отчёта', () => {
+  test('раскрытие строки, тон, «было → станет»', async ({ page }) => {
+    await open(page, '/editors.html');
+    const btn = page.locator('[aria-controls="rep-1"]');
+    const details = page.locator('#rep-1');
+    await expect(details).toBeHidden();
+    await btn.click();
+    await expect(details).toBeVisible();
+    await expect(btn).toHaveAttribute('aria-expanded', 'true');
+    await expect(details.locator('.b24-diff')).toHaveCount(3);
+    await expect(details.locator('.b24-diff--same')).toHaveCount(1);
+    // пустое «было» не зачёркнуто
+    await expect(details.locator('li').nth(2).locator('del')).toHaveCount(0);
+    await btn.click();
+    await expect(details).toBeHidden();
+    const bg = await page.locator('#report tr.is-danger > td').nth(1).evaluate((td) => getComputedStyle(td).backgroundColor);
+    expect(bg).not.toBe('rgba(0, 0, 0, 0)');
   });
 });

@@ -12,11 +12,13 @@ import { createKeyValue, createRepeater, valueField, type KeyValueHandle, type R
  */
 export type UpdateRule = 'always' | 'if_empty' | 'if_changed' | 'never';
 export type MissingAction = 'pass' | 'default' | 'skip' | 'fail';
-export type InflectCase = 'gen' | 'dat' | 'acc' | 'ins' | 'pre';
+export type InflectCase = 'nominative' | 'genitive' | 'dative' | 'accusative' | 'instrumental' | 'prepositional';
 
-export interface ValueMapTransform { type: 'value_map'; map: Array<{ from: string; to: string }>; onMissing: MissingAction; default?: string }
-export interface AmountWordsTransform { type: 'amount_words'; currency: string; withKopecks: boolean }
-export interface InflectTransform { type: 'inflect'; case: InflectCase; short: boolean }
+/** словарь: значение источника → значение Битрикс24; default — только при on_missing = default */
+export interface ValueMapTransform { type: 'value_map'; map: Record<string, string>; on_missing: MissingAction; default?: string }
+/** сумма прописью: названия валюты и дробной части в именительном падеже, склоняет обработчик (по умолчанию рубль/копейка) */
+export interface AmountWordsTransform { type: 'amount_words'; currency?: string; fraction?: string }
+export interface InflectTransform { type: 'inflect'; case: InflectCase }
 export type FieldTransform = ValueMapTransform | AmountWordsTransform | InflectTransform;
 export type TransformType = FieldTransform['type'];
 
@@ -64,7 +66,7 @@ export interface FieldMapperHandle {
   setValue(value: FieldMapping[]): void;
   setSourceFields(items: ComboItem[]): void;
   setTargetFields(items: ComboItem[]): void;
-  /** ошибки по пути «индекс.поле»: «3.target», «0.source», «2.transform.map.1.to», «1» — вся строка */
+  /** ошибки по пути «индекс.поле»: «3.target», «0.source», «2.transform» (или «2.transformation»), «1» — вся строка */
   setErrors(errors: Record<string, string | string[]>): void;
   clearErrors(): void;
   destroy(): void;
@@ -84,19 +86,36 @@ const MISSING: Array<{ value: MissingAction; label: string }> = [
   { value: 'fail', label: 'Остановить с ошибкой' },
 ];
 const CASES: Array<{ value: InflectCase; label: string }> = [
-  { value: 'gen', label: 'Родительный (кого?)' },
-  { value: 'dat', label: 'Дательный (кому?)' },
-  { value: 'acc', label: 'Винительный (кого?)' },
-  { value: 'ins', label: 'Творительный (кем?)' },
-  { value: 'pre', label: 'Предложный (о ком?)' },
+  { value: 'nominative', label: 'Именительный (кто?)' },
+  { value: 'genitive', label: 'Родительный (кого?)' },
+  { value: 'dative', label: 'Дательный (кому?)' },
+  { value: 'accusative', label: 'Винительный (кого?)' },
+  { value: 'instrumental', label: 'Творительный (кем?)' },
+  { value: 'prepositional', label: 'Предложный (о ком?)' },
 ];
-const CURRENCIES = ['RUB', 'USD', 'EUR', 'KZT', 'BYN'];
 
 const defaultGroup = (i: ComboItem) => (/^UF_/i.test(i.value) ? 'Пользовательские' : 'Системные');
 const freshTransform = (type: TransformType): FieldTransform =>
-  type === 'value_map' ? { type, map: [], onMissing: 'pass' } : type === 'amount_words' ? { type, currency: 'RUB', withKopecks: true } : { type, case: 'gen', short: false };
-/** «настроено»: у словаря есть пары, у остальных — сам факт выбора */
-const configured = (t?: FieldTransform | null) => !!t && (t.type !== 'value_map' || t.map.length > 0);
+  type === 'value_map' ? { type, map: {}, on_missing: 'pass' } : type === 'amount_words' ? { type } : { type, case: 'genitive' };
+/** Наружу: пустой словарь с «передать как есть» — то же, что без преобразования; default — только при on_missing = default */
+export function normalizeTransform(t?: FieldTransform | null): FieldTransform | null {
+  if (!t) return null;
+  if (t.type === 'value_map') {
+    if (!Object.keys(t.map).length && t.on_missing === 'pass') return null;
+    const { default: def, ...rest } = t;
+    return t.on_missing === 'default' ? { ...rest, default: def ?? '' } : rest;
+  }
+  if (t.type === 'amount_words') {
+    const out: AmountWordsTransform = { type: 'amount_words' };
+    if (t.currency?.trim()) out.currency = t.currency.trim();
+    if (t.fraction?.trim()) out.fraction = t.fraction.trim();
+    return out;
+  }
+  return { type: 'inflect', case: t.case };
+}
+/** «настроено»: преобразование что-то меняет */
+const configured = (t?: FieldTransform | null) => !!normalizeTransform(t);
+const pairsToMap = (pairs: Array<{ key: string; value: string }>) => Object.fromEntries(pairs.filter((p) => p.key !== '').map((p) => [p.key, p.value]));
 
 function nativeSelect(opts: Array<{ value: string; label: string }>, value: string, onChange: (v: string) => void, attrs: Record<string, string> = {}): HTMLSelectElement {
   const sel = h('select', { class: 'b24-select b24-select--sm', ...attrs }) as HTMLSelectElement;
@@ -120,8 +139,9 @@ export function createFieldMapper(host: HTMLElement, options: FieldMapperOptions
     h('span', {}, L.source), h('span', {}), h('span', {}), h('span', {}, L.target), h('span', {}, L.rule), h('span', {})));
 
   /** наружу — без кэша других типов преобразования */
-  type RowState = FieldMapping & { cache: Partial<Record<TransformType, FieldTransform>> };
-  const clean = (r: RowState): FieldMapping => ({ mode: r.mode, source: r.source, template: r.template, target: r.target, rule: r.rule, transform: r.transform ?? null });
+  /** pairs — строки словаря при редактировании: в объекте map нельзя держать пустой или повторяющийся ключ */
+  type RowState = FieldMapping & { cache: Partial<Record<TransformType, FieldTransform>>; pairs: Array<{ key: string; value: string }> };
+  const clean = (r: RowState): FieldMapping => ({ mode: r.mode, source: r.source, template: r.template, target: r.target, rule: r.rule, transform: normalizeTransform(r.transform) });
   const emit = (rows: RowState[]) => {
     const v = rows.map(clean);
     if (hidden) hidden.value = JSON.stringify(v);
@@ -130,6 +150,7 @@ export function createFieldMapper(host: HTMLElement, options: FieldMapperOptions
   const toState = (m: FieldMapping): RowState => ({
     mode: m.mode ?? 'column', source: m.source ?? '', template: m.template ?? '', target: m.target ?? '', rule: m.rule ?? o.defaultRule ?? 'always',
     transform: m.transform ?? null, cache: m.transform ? { [m.transform.type]: m.transform } : {},
+    pairs: m.transform?.type === 'value_map' ? Object.entries(m.transform.map ?? {}).map(([key, value]) => ({ key, value: String(value) })) : [],
   });
 
   // строки и их элементы для ошибок
@@ -263,13 +284,13 @@ export function createFieldMapper(host: HTMLElement, options: FieldMapperOptions
           const kvHost = h('div');
           box.append(kvHost);
           kv = createKeyValue(kvHost, {
-            pairs: t.map.map((p) => ({ key: p.from, value: p.to })),
+            pairs: st.pairs,
             key: { label: 'Значение источника', placeholder: 'Как в источнике', items: srcVals ?? null },
             value: { label: 'Значение Битрикс24', placeholder: 'Выберите значение', items: dict ?? null },
             addLabel: 'Добавить значение',
             emptyText: 'Добавьте пары значений',
             size: 'sm',
-            onChange: (pairs) => setTransform({ ...(st.transform as ValueMapTransform), map: pairs.map((p) => ({ from: p.key, to: p.value })) }),
+            onChange: (pairs) => { st.pairs = pairs; setTransform({ ...(st.transform as ValueMapTransform), map: pairsToMap(pairs) }); },
           });
           const miss = h('div', { class: 'b24-mapper__missing' });
           const missLabel = h('span', { class: 'b24-mapper__missing-label' }, 'Значения нет в словаре:');
@@ -277,32 +298,28 @@ export function createFieldMapper(host: HTMLElement, options: FieldMapperOptions
           const renderDefault = () => {
             defField?.destroy(); defField = null; defHost.textContent = '';
             const cur = st.transform as ValueMapTransform;
-            defHost.hidden = cur.onMissing !== 'default';
-            if (cur.onMissing === 'default') {
+            defHost.hidden = cur.on_missing !== 'default';
+            if (cur.on_missing === 'default') {
               defField = valueField(defHost, { items: dict ?? null, placeholder: 'Значение по умолчанию' }, cur.default ?? '', (v) => setTransform({ ...(st.transform as ValueMapTransform), default: v }), { size: 'sm', ariaLabel: 'Значение по умолчанию' });
             }
           };
-          miss.append(missLabel, nativeSelect(MISSING, t.onMissing, (v) => { setTransform({ ...(st.transform as ValueMapTransform), onMissing: v as MissingAction }); renderDefault(); }, { 'aria-label': 'Если значения нет в словаре' }), defHost);
+          miss.append(missLabel, nativeSelect(MISSING, t.on_missing, (v) => { setTransform({ ...(st.transform as ValueMapTransform), on_missing: v as MissingAction }); renderDefault(); }, { 'aria-label': 'Если значения нет в словаре' }), defHost);
           box.append(miss);
           renderDefault();
         } else if (t.type === 'amount_words') {
-          const kop = h('label', { class: 'b24-check' }, h('input', { type: 'checkbox' }), h('span', {}, 'С копейками'));
-          const cb = kop.querySelector('input')!;
-          cb.checked = t.withKopecks;
-          cb.addEventListener('change', () => setTransform({ ...(st.transform as AmountWordsTransform), withKopecks: cb.checked }));
-          box.append(h('div', { class: 'b24-row' },
-            h('span', { class: 'b24-mapper__missing-label' }, 'Валюта'),
-            nativeSelect(CURRENCIES.map((c) => ({ value: c, label: c })), t.currency, (v) => setTransform({ ...(st.transform as AmountWordsTransform), currency: v }), { 'aria-label': 'Валюта' }),
-            kop), h('p', { class: 'b24-mapper__note' }, '1 250,50 → «одна тысяча двести пятьдесят рублей 50 копеек»'));
+          const text = (label: string, key: 'currency' | 'fraction', placeholder: string) => {
+            const input = h('input', { class: 'b24-input b24-input--sm', placeholder, 'aria-label': label }) as HTMLInputElement;
+            input.value = (t as AmountWordsTransform)[key] ?? '';
+            input.addEventListener('input', () => setTransform({ ...(st.transform as AmountWordsTransform), [key]: input.value }));
+            return h('label', { class: 'b24-mapper__inline' }, h('span', { class: 'b24-mapper__missing-label' }, label), input);
+          };
+          box.append(h('div', { class: 'b24-row' }, text('Валюта', 'currency', 'рубль'), text('Дробная часть', 'fraction', 'копейка')),
+            h('p', { class: 'b24-mapper__note' }, 'Названия — в именительном падеже, склоняются при подстановке: 1 250,50 → «одна тысяча двести пятьдесят рублей 50 копеек».'));
         } else {
-          const short = h('label', { class: 'b24-check' }, h('input', { type: 'checkbox' }), h('span', {}, 'Кратко: Иванову И. И.'));
-          const cb = short.querySelector('input')!;
-          cb.checked = t.short;
-          cb.addEventListener('change', () => setTransform({ ...(st.transform as InflectTransform), short: cb.checked }));
           box.append(h('div', { class: 'b24-row' },
             h('span', { class: 'b24-mapper__missing-label' }, 'Падеж'),
-            nativeSelect(CASES, t.case, (v) => setTransform({ ...(st.transform as InflectTransform), case: v as InflectCase }), { 'aria-label': 'Падеж' }),
-            short));
+            nativeSelect(CASES, t.case, (v) => setTransform({ ...(st.transform as InflectTransform), case: v as InflectCase }), { 'aria-label': 'Падеж' })),
+            h('p', { class: 'b24-mapper__note' }, 'Иванов Пётр Сергеевич → Иванова Петра Сергеевича (родительный).'));
         }
       };
 
@@ -312,7 +329,9 @@ export function createFieldMapper(host: HTMLElement, options: FieldMapperOptions
 
       const api = {
         row: ctx.row,
-        setError(field: string, msg: string) {
+        setError(raw: string, msg: string) {
+          // имена полей Laravel-модели тоже понимаем: metabase_field, bitrix_field, transformation
+          const field = ({ metabase_field: 'source', bitrix_field: 'target', update_rule: 'rule' } as Record<string, string>)[raw] ?? raw;
           ctx.row.classList.add('is-invalid');
           if (field === 'source') srcCombo?.setInvalid(true);
           if (field === 'target') tgtCombo.setInvalid(true);

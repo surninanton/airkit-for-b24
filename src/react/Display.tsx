@@ -254,3 +254,31 @@ export function StageMini({ total, done, color, label }: { total: number; done: 
     </span>
   );
 }
+
+/* ── Богатые ячейки ── */
+/** «Поле: ~~было~~ → станет»; одинаковые значения — «(без изменений)», пустые — «пусто» */
+export function DiffValue({ field, before, after, emptyText = 'пусто' }: { field?: ReactNode; before: ReactNode; after: ReactNode; emptyText?: string }) {
+  const empty = (v: ReactNode) => v == null || v === '';
+  const val = (v: ReactNode) => (empty(v) ? <span className="b24-diff__empty">{emptyText}</span> : v);
+  const same = (empty(before) && empty(after)) || (typeof before !== 'object' && typeof after !== 'object' && String(before ?? '') === String(after ?? ''));
+  if (same) return <span className="b24-diff b24-diff--same">{field && <span className="b24-diff__field">{field}</span>}<span className="b24-diff__value">{val(after)}</span></span>;
+  return (
+    <span className="b24-diff">
+      {field && <span className="b24-diff__field">{field}</span>}
+      {empty(before) ? val(before) : <del>{before}</del>}<span className="b24-diff__arrow" aria-label="станет">→</span>{empty(after) ? val(after) : <ins>{after}</ins>}
+    </span>
+  );
+}
+
+/** Ссылка-чип на карточку: «#123 ООО Ромашка», с крестиком при onRemove */
+export function Chip({ children, href, id, avatar, onRemove }: { children: ReactNode; href?: string; id?: string | number; avatar?: string; onRemove?: () => void }) {
+  const inner = (
+    <>
+      {avatar && <Avatar name={typeof children === 'string' ? children : ''} src={avatar} size="xs" />}
+      {id != null && <span className="b24-chip__id">#{id}</span>}
+      <span>{children}</span>
+      {onRemove && <button type="button" className="b24-chip__remove" aria-label="Убрать" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}><Icon name="close" /></button>}
+    </>
+  );
+  return href ? <a className="b24-chip" href={href} target="_top">{inner}</a> : <span className="b24-chip">{inner}</span>;
+}

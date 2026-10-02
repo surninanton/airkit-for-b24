@@ -116,6 +116,8 @@
 .b24-mapper__errors:empty { display: none; }
 .b24-mapper__errors { margin-top: 6px; font-size: var(--b24-font-size-sm); color: var(--b24-color-danger); }
 .b24-mapper__config .b24-row > .b24-select { width: auto; }
+.b24-mapper__inline { display: inline-flex; align-items: center; gap: 8px; }
+.b24-mapper__inline > .b24-input { width: 140px; }
 
 @media (max-width: 760px) {
   .b24-mapper__head { display: none; }

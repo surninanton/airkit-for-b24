@@ -50,6 +50,7 @@ import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initTheme
  *   .b24-toc[data-b24-toc]         — оглавление статьи: подсветка раздела; пустой <ol> + data-source — собрать из h2/h3
  *   [data-b24-cookie]              — уведомление о cookie (показывается, пока не принято)
  *   [data-b24-theme-switch]        — переключатель светлой/тёмной темы (запоминается)
+ *   .b24-table__expander[aria-controls] — раскрыть строку .b24-table__details (событие b24:row-expand)
  *   [data-b24-repeater]            — повторяющиеся строки серверной формы: <template> строки, [data-b24-repeater-add],
  *                                    [data-b24-repeater-remove]; имена rows[0][key] перенумеровываются; data-max
  *   select[data-b24-combobox][data-creatable][data-counter] — свободный ввод и счётчик «N из M»
@@ -303,6 +304,18 @@ export function delegateGlobalEvents(): void {
     const dismiss = target.closest<HTMLElement>('[data-b24-dismiss]');
     if (dismiss) {
       dismiss.closest('.b24-alert, [data-b24-dismissible]')?.remove();
+      return;
+    }
+    // раскрывающаяся строка таблицы: кнопка с aria-controls → строка .b24-table__details
+    const expander = target.closest<HTMLButtonElement>('.b24-table__expander[aria-controls]');
+    if (expander) {
+      const row = document.getElementById(expander.getAttribute('aria-controls')!);
+      if (!row) return;
+      const open = expander.getAttribute('aria-expanded') !== 'true';
+      expander.setAttribute('aria-expanded', String(open));
+      expander.setAttribute('aria-label', open ? 'Скрыть подробности' : 'Показать подробности');
+      row.hidden = !open;
+      expander.dispatchEvent(new CustomEvent('b24:row-expand', { bubbles: true, detail: { open, row } }));
       return;
     }
     const toggle = target.closest<HTMLElement>('[data-b24-shell-toggle]');

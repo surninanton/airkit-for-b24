@@ -3,7 +3,7 @@ export { modal, confirm, alert, type ModalOptions, type ModalHandle, type ModalB
 export { openSidePanel, closeAllSidePanels, type SidePanelOptions, type SidePanelHandle } from './sidepanel';
 export { dropdown, type DropdownOptions, type DropdownHandle } from './dropdown';
 export { initTabs } from './tabs';
-export { initSortableTable } from './table';
+export { initSortableTable, diffHtml, chipHtml, type DiffOptions } from './table';
 export { createCalendar, datepicker, type CalendarOptions, type CalendarHandle, type DatePickerOptions, type DatePickerHandle } from './calendar';
 export * from './date';
 export { enableKanbanDnd, paintKanbanColumns, readableTextColor, type KanbanMove, type KanbanDndOptions } from './kanban';

@@ -17,6 +17,8 @@
 - `createRepeater` и `[data-b24-repeater]` для серверных форм; `createKeyValue` — пары «ключ → значение».
 - `createFieldMapper`: сопоставление полей с шаблонами, правилами обновления, словарём значений, суммой прописью, склонением ФИО и ошибками сервера по пути.
 - React: `KeyValueEditor`, `FieldMapper`; у `Combobox` — `creatable`, `counter`, `groupBy`.
+- Таблица: тон строки (`tr.is-danger/warning/success/info`), раскрывающиеся строки, «было → станет» (`diffHtml`, `DiffValue`), чипы-ссылки (`chipHtml`, `Chip`), выбор в ячейке `.b24-cell-choice`. У `DataTable` — `rowTone`, `renderExpanded`, `expanded`, `onExpandedChange`.
+- Формат преобразований `createFieldMapper` совпадает с хранением в приложении: `map` — объект, `on_missing`, `amount_words { currency, fraction }`, `inflect { case: 'genitive' … }`.
 
 ### Исправлено
 - Подсветка раздела (якорное меню, оглавление, настройки) пересчитывается, когда раздел появляется без прокрутки, и не перескакивает на последний раздел после клика внизу страницы.
