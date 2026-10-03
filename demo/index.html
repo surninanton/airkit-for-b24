@@ -73,17 +73,6 @@
       </div>
     </div>
 
-    <!-- Все демо-страницы -->
-    <nav class="b24-tabs b24-tabs--pills b24-tabs--glass" aria-label="Демо-страницы" style="flex-wrap: wrap; align-self: flex-start">
-      <a class="b24-tabs__item is-active" aria-current="page" href="index.html">Компоненты</a>
-      <a class="b24-tabs__item" href="screens.html">Экраны приложения</a>
-      <a class="b24-tabs__item" href="editors.html">Редакторы полей</a>
-      <a class="b24-tabs__item" href="controls.html">Элементы управления</a>
-      <a class="b24-tabs__item" href="react.html">React</a>
-      <a class="b24-tabs__item" href="landing.html">Лендинг</a>
-      <a class="b24-tabs__item" href="site.html">Сайт</a>
-    </nav>
-
     <div class="b24-popup" id="create-menu" hidden>
       <div class="b24-menu">
         <div class="b24-menu__title">Создать</div>
@@ -697,7 +686,7 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
     </section>
 
     <section class="b24-card">
-      <div class="b24-card__header"><h2 class="b24-card__title">Токены</h2><span class="b24-card__actions"><a class="b24-link" href="react.html">React-пример →</a> · <a class="b24-link" href="site.html">Пример сайта →</a> · <a class="b24-link" href="screens.html">Экраны приложения →</a> · <a class="b24-link" href="editors.html">Редакторы полей →</a> · <a class="b24-link" href="controls.html">Элементы управления →</a> · <a class="b24-link" href="landing.html">Лендинг →</a> · <a class="b24-link" href="about.html">О компании</a> · <a class="b24-link" href="blog.html">Блог</a> · <a class="b24-link" href="article.html">Статья</a> · <a class="b24-link" href="docs.html">Документы</a></span></div>
+      <div class="b24-card__header"><h2 class="b24-card__title">Токены</h2></div>
       <div class="b24-card__body">
         <div class="b24-grid" style="--b24-grid-min:110px;--b24-gap:12px" id="swatches"></div>
       </div>
@@ -857,5 +846,6 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
     items.forEach((el, i) => { el.classList.toggle('is-done', i < idx); el.classList.toggle('is-current', i === idx); });
   });
 </script>
+<script type="module" src="./demo-nav.ts"></script>
 </body>
 </html>

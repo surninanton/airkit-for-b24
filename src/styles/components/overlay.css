@@ -50,7 +50,8 @@
 
 /* Tooltip (CSS-only): <span data-b24-tooltip="Текст"> */
 [data-b24-tooltip] { position: relative; }
-[data-b24-tooltip]::after {
+/* подсказка существует только при наведении: скрытая прозрачная коробка у края экрана давала горизонтальную прокрутку */
+[data-b24-tooltip]:is(:hover, :focus-visible)::after {
   content: attr(data-b24-tooltip);
   position: absolute;
   left: 50%;
@@ -68,13 +69,12 @@
   background: var(--b24-bg-tooltip);
   border-radius: var(--b24-radius-xs);
   pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, 4px);
-  transition: opacity var(--b24-duration-fast), transform var(--b24-duration-fast);
+  transform: translate(-50%, 0);
+  animation: b24-tooltip-in var(--b24-duration-fast) var(--b24-ease) 300ms both;
 }
-[data-b24-tooltip]:hover::after,
-[data-b24-tooltip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 300ms; }
-[data-b24-tooltip-pos="bottom"]::after { bottom: auto; top: calc(100% + 6px); }
+@keyframes b24-tooltip-in { from { opacity: 0; transform: translate(-50%, 4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { [data-b24-tooltip]:is(:hover, :focus-visible)::after { animation-duration: 1ms; } }
+[data-b24-tooltip-pos="bottom"]:is(:hover, :focus-visible)::after { bottom: auto; top: calc(100% + 6px); }
 
 /* Modal (popup-window) */
 .b24-overlay {

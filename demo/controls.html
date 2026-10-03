@@ -18,7 +18,6 @@
             <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
           </div>
           <button class="b24-btn b24-btn--glass b24-btn--sm" id="tour-btn">Обучение</button>
-          <a class="b24-btn b24-btn--glass b24-btn--sm" href="index.html">← Все компоненты</a>
         </div>
       </div>
     </div>
@@ -186,5 +185,6 @@
   document.getElementById('plural-out').textContent = [1, 2, 5, 11, 21, 1234].map((n) => B24UI.formatCount(n, ['запись', 'записи', 'записей'])).join(' · ');
   document.getElementById('crm-out').textContent = [B24UI.crmEntityUrl('deal', 15), B24UI.crmEntityUrl(3, 7), B24UI.crmEntityUrl('dynamic', 42, 128), B24UI.crmEntityUrl('invoice', 5, undefined, 'https://example.bitrix24.ru')].join('  ');
 </script>
+<script type="module" src="./demo-nav.ts"></script>
 </body>
 </html>
