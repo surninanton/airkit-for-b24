@@ -203,7 +203,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     root.append(h('div', { class: 'b24-scheduler__legend' }, html([
       item(t('Встреча'), 'color-mix(in srgb, var(--b24-color-primary) 25%, var(--b24-bg-surface))'),
       item(t('Рабочее время'), 'var(--b24-bg-surface); box-shadow: inset 0 0 0 1px var(--b24-divider-accent)'),
-      item(t('Нерабочее время'), 'color-mix(in srgb, var(--b24-text-subtle) 14%, transparent)'),
+      item(t('Нерабочее время'), 'color-mix(in srgb, var(--b24-text-subtle) 10%, transparent); background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 22%, transparent) 0 1px, transparent 1px 4px)'),
       item(t('Отпуск'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-violet-1) 0 3px, transparent 3px 6px)'),
       item(t('Больничный'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-red-2) 0 3px, transparent 3px 6px)'),
       item(t('Командировка'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-blue-1) 0 3px, transparent 3px 6px)'),
@@ -356,12 +356,22 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       cell.append(l);
     }
     const track = h('div', { class: 'b24-scheduler__track', style: `width:${w}px;height:${it.height}px` });
+    // нерабочее время = дополнение смен в видимом периоде; рабочее остаётся прозрачным, сквозь него видна сетка часов
+    if (hasSchedule) {
+      const work = rb.filter((b) => b.kind === 'work')
+        .map((b) => (view === 'month' ? [x(startOfDay(b.s)), x(startOfDay(b.s)) + dayW()] : [x(b.s), x(b.e)]))
+        .sort((a, b) => a[0] - b[0]);
+      let cur = 0;
+      for (const [a, b] of work) {
+        if (a > cur) track.append(h('div', { class: 'b24-scheduler__band b24-scheduler__band--offhours', style: `left:${cur}px;width:${a - cur}px` }));
+        cur = Math.max(cur, b);
+      }
+      if (cur < w) track.append(h('div', { class: 'b24-scheduler__band b24-scheduler__band--offhours', style: `left:${cur}px;width:${w - cur}px` }));
+    }
     for (const b of rb) {
-      // в месяце рабочий день закрашивается целиком: узкие полоски часов на шкале в 48px не читаются
-      const bs = view === 'month' && b.kind === 'work' ? startOfDay(b.s) : b.s;
-      const be = view === 'month' && b.kind === 'work' ? addDays(startOfDay(b.s), 1) : b.e;
-      const left = Math.max(0, x(bs));
-      const right = Math.min(w, view === 'month' && b.kind === 'work' ? left + dayW() : x(be));
+      if (b.kind === 'work') continue;
+      const left = Math.max(0, x(b.s));
+      const right = Math.min(w, x(b.e));
       if (right <= left) continue;
       const label = b.label ?? ({ vacation: t('Отпуск'), sick: t('Больничный'), trip: t('Командировка'), off: '', work: '' } as Record<BandKind, string>)[b.kind];
       track.append(h('div', { class: `b24-scheduler__band b24-scheduler__band--${b.kind}`, style: `left:${left}px;width:${right - left}px` }, right - left > 60 ? label : ''));

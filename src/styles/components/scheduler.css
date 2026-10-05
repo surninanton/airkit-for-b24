@@ -81,15 +81,15 @@
 .b24-scheduler__grid { position: absolute; top: 0; bottom: 0; pointer-events: none; }
 .b24-scheduler__col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--b24-divider); }
 .b24-scheduler__col.is-day { border-left-color: var(--b24-divider-accent); }
-.b24-scheduler__col.is-minor { border-left-color: color-mix(in srgb, var(--b24-divider) 50%, transparent); }
+.b24-scheduler__col.is-minor { border-left: 1px dashed var(--b24-divider); }
 .b24-scheduler__col.is-weekend { background: color-mix(in srgb, var(--b24-text-subtle) 6%, transparent); bottom: 0; }
 .b24-scheduler__now { position: absolute; top: 0; bottom: 0; z-index: 2; width: 2px; margin-left: -1px; background: var(--b24-color-danger); pointer-events: none; }
 .b24-scheduler__now::before { content: ""; position: absolute; top: 0; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: inherit; }
 
 /* график: у сотрудника с графиком нерабочее время приглушено, смены — светлые */
-.b24-scheduler__row.has-schedule .b24-scheduler__track { background: color-mix(in srgb, var(--b24-text-subtle) 10%, transparent); }
 .b24-scheduler__band { position: absolute; top: 0; bottom: 0; pointer-events: none; }
-.b24-scheduler__band--work { background: var(--b24-bg-surface); }
+/* нерабочее время сотрудника с графиком — диагональная штриховка поверх серого, рабочее — прозрачное */
+.b24-scheduler__band--offhours { background-color: color-mix(in srgb, var(--b24-text-subtle) 8%, transparent); background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 7%, transparent) 0 1px, transparent 1px 7px); }
 .b24-scheduler__band--vacation, .b24-scheduler__band--sick, .b24-scheduler__band--trip, .b24-scheduler__band--off {
   display: flex; align-items: center; padding: 0 8px; overflow: hidden;
   font-size: var(--b24-font-size-xs); white-space: nowrap; color: var(--b24-text-secondary);
