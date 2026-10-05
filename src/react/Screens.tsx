@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { createChart, sparkline, type ChartHandle, type ChartOptions } from '../js/chart';
+import { createScheduler, type SchedulerHandle, type SchedulerOptions } from '../js/scheduler';
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
@@ -144,4 +145,38 @@ export function EmptyScreen({ icon = 'search', tone = 'primary', compact, glass,
       {note && <p className="b24-empty__note">{note}</p>}
     </div>
   );
+}
+
+/* ── Планировщик ── */
+export interface SchedulerProps extends SchedulerOptions { className?: string }
+/** Сотрудники × время: обёртка над createScheduler. Новые resources/events/bands применяются без пересоздания */
+export function Scheduler({ className, ...options }: SchedulerProps) {
+  const host = useRef<HTMLDivElement>(null);
+  const sch = useRef<SchedulerHandle | null>(null);
+  const opts = useRef(options);
+  opts.current = options;
+  useEffect(() => {
+    const cb = <K extends keyof SchedulerOptions>(k: K) => ((...a: unknown[]) => (opts.current[k] as ((...x: unknown[]) => unknown) | undefined)?.(...a)) as SchedulerOptions[K];
+    sch.current = createScheduler(host.current!, {
+      ...opts.current,
+      onChange: cb('onChange'), onCreate: options.onCreate ? cb('onCreate') : undefined, onClick: cb('onClick'),
+      onDelete: options.onDelete ? cb('onDelete') : undefined, onRangeChange: cb('onRangeChange'),
+      load: options.load ? (r, s) => opts.current.load!(r, s) : undefined,
+    });
+    return () => sch.current?.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const first = useRef(true);
+  const rKey = JSON.stringify(options.resources);
+  const eKey = JSON.stringify(options.events ?? null);
+  const bKey = JSON.stringify(options.bands ?? null);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    sch.current?.setResources(options.resources);
+    if (options.events) sch.current?.setEvents(options.events);
+    if (options.bands) sch.current?.setBands(options.bands);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rKey, eKey, bKey]);
+  useEffect(() => { if (options.view && sch.current && sch.current.view !== options.view) sch.current.setView(options.view); }, [options.view]);
+  return <div ref={host} className={className} />;
 }

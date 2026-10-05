@@ -22,6 +22,7 @@ export default defineConfig({
         screens: resolve(__dirname, 'screens.html'),
         editors: resolve(__dirname, 'editors.html'),
         controls: resolve(__dirname, 'controls.html'),
+        scheduler: resolve(__dirname, 'scheduler.html'),
       },
     },
   },

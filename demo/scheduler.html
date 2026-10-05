@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Планировщик — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1600px">
+    <div class="b24-toolbar">
+      <div class="b24-toolbar__row">
+        <h1 class="b24-toolbar__title">Планировщик</h1>
+        <div class="b24-toolbar__right">
+          <div class="b24-tabs b24-tabs--pills b24-tabs--glass" id="theme-tabs">
+            <button class="b24-tabs__item is-active" data-theme="light">Светлая</button>
+            <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="scheduler"></div>
+    <p class="b24-text-sm" style="color: var(--b24-glass-text-secondary); margin: 0">
+      Перетащите встречу по времени или на другого сотрудника, потяните за край — изменить длительность, выделите пустое место — новая встреча.
+      С клавиатуры: Tab к встрече, Alt+←/→ — сдвиг, Alt+Shift+←/→ — длительность, Delete — удалить. Ctrl+колесо — масштаб.
+      Перенос на сотрудника в отпуске «сервер» отклоняет — встреча вернётся на место.
+    </p>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  document.getElementById('theme-tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme]'); if (!b) return;
+    B24UI.setTheme(b.dataset.theme);
+    document.querySelectorAll('#theme-tabs .b24-tabs__item').forEach((x) => x.classList.toggle('is-active', x === b));
+  });
+
+  // вымышленные сотрудники
+  const people = {
+    'Отдел продаж': [['Григорий Воронцов', 'Руководитель отдела'], ['Алиса Мельникова', 'Менеджер'], ['Тимур Сафонов', 'Менеджер'], ['Полина Зорина', 'Менеджер'], ['Арсений Бойко', 'Менеджер'], ['Ксения Лаврова', 'Аккаунт-менеджер'], ['Матвей Кудрин', 'Стажёр'], ['Варвара Нестерова', 'Менеджер']],
+    'Поддержка': [['Елисей Громов', 'Старший специалист'], ['Мирослава Котова', 'Специалист, смены 2/2'], ['Савелий Ершов', 'Специалист, смены 2/2'], ['Злата Фомина', 'Специалист'], ['Родион Пахомов', 'Специалист'], ['Есения Широкова', 'Специалист'], ['Леон Демидов', 'Специалист'], ['Вера Полянская', 'Специалист']],
+    'Внедрение': [['Остап Ильин', 'Руководитель проектов'], ['Ульяна Рябова', 'Аналитик'], ['Демид Голованов', 'Консультант'], ['Таисия Миронова', 'Консультант'], ['Лука Субботин', 'Разработчик'], ['Ангелина Кравец', 'Разработчик'], ['Платон Седов', 'Тестировщик'], ['Нелли Аксёнова', 'Консультант']],
+  };
+  const resources = Object.entries(people).flatMap(([group, list], gi) => list.map(([name, meta], i) => ({ id: `u${gi}${i}`, name, meta, group })));
+
+  // неделя от понедельника; всё относительно сегодняшнего дня, чтобы демо всегда было заполнено
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const at = (dayOffset, hh, mm = 0) => { const d = new Date(monday); d.setDate(d.getDate() + dayOffset); d.setHours(hh, mm, 0, 0); return d; };
+
+  const bands = [];
+  const from = -14, to = 35;
+  for (const r of resources) {
+    const shift = r.meta.includes('2/2');
+    for (let d = from; d < to; d++) {
+      const day = (((monday.getDay() + d) % 7) + 7) % 7;
+      if (shift) { if (((d + (r.id === 'u19' ? 0 : 2)) % 4 + 4) % 4 < 2) bands.push({ resourceId: r.id, start: at(d, 8), end: at(d, 20), kind: 'work' }); }
+      else if (day !== 0 && day !== 6) bands.push({ resourceId: r.id, start: at(d, 9), end: at(d, 18), kind: 'work' });
+    }
+  }
+  bands.push({ resourceId: 'u03', start: at(1, 0), end: at(5, 0), kind: 'vacation' });
+  bands.push({ resourceId: 'u14', start: at(0, 0), end: at(2, 0), kind: 'sick' });
+  bands.push({ resourceId: 'u22', start: at(2, 0), end: at(4, 0), kind: 'trip', label: 'Командировка, Казань' });
+
+  const titles = ['Планёрка', 'Встреча с клиентом', 'Демо продукта', 'Созвон по внедрению', 'Обучение', 'Ревью задач', 'Звонок партнёру', 'Разбор обращений', 'Интервью', '1:1'];
+  const colors = [undefined, undefined, '#1bce7b', '#a77bde', '#faa72c'];
+  let seed = 7; const rnd = (n) => { seed = (seed * 9301 + 49297) % 233280; return Math.floor((seed / 233280) * n); };
+  const events = [];
+  let id = 1;
+  for (const r of resources) {
+    for (let d = 0; d < 5; d++) {
+      const n = rnd(3);
+      for (let k = 0; k < n; k++) {
+        const hh = 9 + rnd(8);
+        const len = [30, 60, 60, 90, 120][rnd(5)];
+        const s = at(d, hh, rnd(2) * 30);
+        events.push({ id: `e${id++}`, resourceId: r.id, start: s, end: new Date(s.getTime() + len * 60000), title: titles[rnd(titles.length)], color: colors[rnd(colors.length)] });
+      }
+    }
+  }
+  // специально: пересечение и встреча вне рабочего времени
+  events.push({ id: 'e-overlap-a', resourceId: 'u00', start: at(1, 10), end: at(1, 12), title: 'Переговоры «Ромашка»' });
+  events.push({ id: 'e-overlap-b', resourceId: 'u00', start: at(1, 11), end: at(1, 13), title: 'Демо для «Луча»', color: '#1bce7b' });
+  events.push({ id: 'e-late', resourceId: 'u20', start: at(2, 19), end: at(2, 21), title: 'Выкатка релиза', color: '#faa72c' });
+  events.push({ id: 'e-all-hands', resourceId: 'u10', start: at(3, 12), end: at(3, 13), title: 'Общее собрание', readonly: true, color: '#828b95' });
+
+  const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+  const isAbsent = (rid, s, e) => bands.some((b) => b.resourceId === rid && b.kind !== 'work' && b.start < e && b.end > s);
+
+  window.scheduler = B24UI.createScheduler(document.getElementById('scheduler'), {
+    resources, events, bands, view: 'week', height: 620,
+    async onChange({ event, start, end, resourceId }) {
+      await delay(300);
+      if (isAbsent(resourceId, start, end)) { B24UI.toast('Сотрудник отсутствует — встреча не перенесена', { type: 'danger' }); throw new Error('absent'); }
+      B24UI.toast(`«${event.title}» перенесена`, { type: 'success' });
+    },
+    onCreate({ resourceId, start, end }) {
+      return { id: `new-${Date.now()}`, resourceId, start, end, title: 'Новая встреча', color: '#1bce7b' };
+    },
+    onClick(ev) {
+      const r = resources.find((x) => x.id === ev.resourceId);
+      const f = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+      B24UI.openSidePanel({ title: ev.title, width: 560, content: B24UI.html(`<div class="b24-card"><div class="b24-card__body b24-props">
+        <div class="b24-prop"><span class="b24-prop__label">Сотрудник</span><span class="b24-prop__value">${B24UI.escapeHtml(r?.name ?? '')}</span></div>
+        <div class="b24-prop"><span class="b24-prop__label">Начало</span><span class="b24-prop__value">${f.format(new Date(ev.start))}</span></div>
+        <div class="b24-prop"><span class="b24-prop__label">Окончание</span><span class="b24-prop__value">${f.format(new Date(ev.end))}</span></div></div></div>`) });
+    },
+    async onDelete(ev) {
+      if (!(await B24UI.confirm(`Удалить «${ev.title}»?`, { okText: 'Удалить', danger: true }))) throw new Error('cancel');
+    },
+  });
+</script>
+<script type="module" src="./demo-nav.ts"></script>
+</body>
+</html>
