@@ -226,6 +226,25 @@ B24UI.createTagSelector(el, { name: 'ASSIGNED_BY_ID', load: B24UI.bx24UserLoader
 
 ### Фильтр → REST Битрикс24
 
+Фильтр — компонент тулбара: в портале строка «Фильтр и поиск» стоит рядом с заголовком страницы. Своей ширины у `.b24-filter` нет, её задаёт контейнер; в тулбаре это `.b24-toolbar__search` (растягивается, но не шире 560px). На подложке Air — `"glass": true`.
+
+```html
+<div class="b24-toolbar">
+  <div class="b24-toolbar__row">
+    <h1 class="b24-toolbar__title">Сделки</h1>
+    <button class="b24-btn b24-btn--success">Создать</button>
+    <div class="b24-toolbar__search">
+      <div data-b24-filter>
+        <script type="application/json">{ "glass": true, "fields": [ … ], "presets": [ … ] }</script>
+      </div>
+    </div>
+    <div class="b24-toolbar__right">…</div>
+  </div>
+</div>
+```
+
+В React то же даёт `<Toolbar search={<Filter glass … />}>`. Фильтр на всю ширину карточки — просто положите его в карточку без `.b24-toolbar__search`.
+
 Состояние фильтра само превращается в `filter` для `crm.*.list`: `toBitrixFilter(fields, state)`.
 
 ```js
@@ -463,6 +482,7 @@ React: `<Scheduler resources events bands onChange …>`.
 - Фрейм не бывает ниже высоты, которую ему дал портал при открытии: `.b24-app` дотягивается до неё через `--b24-frame-min-height`, поэтому под коротким контентом не проступает подложка портала. Свой предел: `autoFitFrame({ minHeight: 900 })`, без предела: `{ minHeight: 0 }`.
 - `ResizeObserver` не срабатывает в фоновой вкладке браузера: фрейм подгоняется, когда вкладка снова отрисовывается. Для пользователя это незаметно, но учитывайте при автотестах.
 - Боковая панель (`openSidePanel`) во фрейме пока открывается на всю высоту фрейма, без привязки к месту клика.
+- Строка фильтра и поиска — часть тулбара страницы (`.b24-toolbar__search`), а не отдельный блок на всю ширину: так приложение выглядит как разделы портала. Пример — в разделе «Фильтр → REST Битрикс24».
 
 ## Язык подписей
 

@@ -28,9 +28,26 @@
           </button>
         </div>
         <div class="b24-toolbar__search">
-          <div class="b24-input-group b24-input-group--glass">
-            <span class="b24-input-group__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></span>
-            <input class="b24-input" placeholder="Фильтр и поиск" />
+          <div id="demo-filter" data-b24-filter>
+            <script type="application/json">
+            {
+              "placeholder": "Фильтр и поиск", "glass": true,
+              "fields": [
+                { "id": "TITLE", "label": "Название", "type": "text" },
+                { "id": "STAGE_ID", "label": "Стадия", "type": "select", "options": [
+                  { "value": "NEW", "label": "Новая" }, { "value": "PREPARATION", "label": "Подготовка" }, { "value": "WON", "label": "Успешна" } ] },
+                { "id": "OPPORTUNITY", "label": "Сумма", "type": "number" },
+                { "id": "DATE_CREATE", "label": "Дата создания", "type": "date" },
+                { "id": "SOURCE_ID", "label": "Источник", "type": "multiselect", "default": false, "options": [
+                  { "value": "CALL", "label": "Звонок" }, { "value": "WEB", "label": "Сайт" }, { "value": "EMAIL", "label": "E-mail" } ] }
+              ],
+              "presets": [
+                { "id": "work", "name": "Сделки в работе", "system": true, "values": { "STAGE_ID": "NEW" } },
+                { "id": "month", "name": "Созданы в этом месяце", "system": true, "values": { "DATE_CREATE": { "type": "month" } } }
+              ],
+              "state": { "presetId": "work", "values": { "STAGE_ID": "NEW" }, "search": "" }
+            }
+            </script>
           </div>
         </div>
         <div class="b24-toolbar__right">
@@ -350,29 +367,9 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
 
     <!-- Filter (vanilla, конфиг в JSON — так удобно отдавать из PHP) -->
     <section class="b24-card">
-      <div class="b24-card__header"><h2 class="b24-card__title">Фильтр</h2><span class="b24-card__subtitle">&nbsp;data-b24-filter + JSON-конфиг</span></div>
+      <div class="b24-card__header"><h2 class="b24-card__title">Фильтр</h2><span class="b24-card__subtitle">&nbsp;data-b24-filter + JSON-конфиг → REST-фильтр</span></div>
       <div class="b24-card__body b24-stack">
-        <div id="demo-filter" data-b24-filter>
-          <script type="application/json">
-          {
-            "placeholder": "Фильтр и поиск",
-            "fields": [
-              { "id": "TITLE", "label": "Название", "type": "text" },
-              { "id": "STAGE_ID", "label": "Стадия", "type": "select", "options": [
-                { "value": "NEW", "label": "Новая" }, { "value": "PREPARATION", "label": "Подготовка" }, { "value": "WON", "label": "Успешна" } ] },
-              { "id": "OPPORTUNITY", "label": "Сумма", "type": "number" },
-              { "id": "DATE_CREATE", "label": "Дата создания", "type": "date" },
-              { "id": "SOURCE_ID", "label": "Источник", "type": "multiselect", "default": false, "options": [
-                { "value": "CALL", "label": "Звонок" }, { "value": "WEB", "label": "Сайт" }, { "value": "EMAIL", "label": "E-mail" } ] }
-            ],
-            "presets": [
-              { "id": "work", "name": "Сделки в работе", "system": true, "values": { "STAGE_ID": "NEW" } },
-              { "id": "month", "name": "Созданы в этом месяце", "system": true, "values": { "DATE_CREATE": { "type": "month" } } }
-            ],
-            "state": { "presetId": "work", "values": { "STAGE_ID": "NEW" }, "search": "" }
-          }
-          </script>
-        </div>
+        <p class="b24-text-sm" style="margin:0">Фильтр стоит в тулбаре вверху страницы, как в разделах портала: <code>&lt;div class="b24-toolbar__search"&gt;&lt;div data-b24-filter&gt;…</code>. Ширину задаёт контейнер — в тулбаре это <code>.b24-toolbar__search</code> (до 560px).</p>
         <pre class="demo-code" id="filter-output">Нажмите «Найти» — здесь появится filter для REST (crm.deal.list)</pre>
       </div>
     </section>
