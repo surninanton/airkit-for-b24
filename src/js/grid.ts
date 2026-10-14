@@ -126,7 +126,19 @@ export interface GridHandle {
   clearSelection(): void;
   setTotal(total: number | null): void;
   setPagination(next: Partial<GridPagination>): void;
+  getPagination(): GridPagination | null;
+  /** заменить строки tbody (например, первой порцией после смены размера страницы) */
+  replaceRows(rows: string | HTMLTableRowElement[], meta?: { hasMore?: boolean; total?: number | null; page?: number }): Promise<void>;
+  /** добавить строки в конец, как «Показать ещё» */
+  appendRows(rows: string | HTMLTableRowElement[], meta?: { hasMore?: boolean; total?: number | null }): Promise<void>;
   destroy(): void;
+}
+
+const registry = new WeakMap<HTMLTableElement, GridHandle>();
+/** Грид, созданный на таблице (в том числе автоинициализацией data-b24-grid) */
+export function getGrid(table: HTMLTableElement | string | null): GridHandle | undefined {
+  const el = typeof table === 'string' ? document.querySelector<HTMLTableElement>(table) : table;
+  return el ? registry.get(el) : undefined;
 }
 
 export function initGrid(table: HTMLTableElement, options: GridOptions = {}): GridHandle {
@@ -407,7 +419,14 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   let pagination: GridPagination | null = options.pagination ? { ...options.pagination } : null;
   const pageSizeKey = storageKey ? `${storageKey}:pageSize` : null;
   if (pagination && pageSizeKey) {
-    try { const saved = Number(localStorage.getItem(pageSizeKey)); if (saved && saved !== pagination.pageSize) { pagination.pageSize = saved; queueMicrotask(() => options.onPageSizeChange?.(saved)); } } catch { /* нет доступа к хранилищу */ }
+    try { const saved = Number(localStorage.getItem(pageSizeKey)); if (saved && saved !== pagination.pageSize) {
+      pagination.pageSize = saved;
+      // сервер отрисовал страницу другого размера — сообщаем приложению (колбэком и событием для серверных шаблонов)
+      setTimeout(() => {
+        options.onPageSizeChange?.(saved);
+        table.dispatchEvent(new CustomEvent('b24:page-size-change', { detail: { pageSize: saved, restored: true }, bubbles: true }));
+      }, 0);
+    } } catch { /* нет доступа к хранилищу */ }
   }
   const selectedIds = () => Array.from(table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]:checked'))
     .map((cb) => cb.closest('tr')?.dataset.id).filter((x): x is string => !!x);
@@ -425,6 +444,20 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     syncCheckAll();
   };
   let updatePanel = () => {};
+  /** вставить строки (HTML <tr>… или tr[]) — заменой или в конец; разметка, «выбрать все» и подвал обновляются */
+  const putRows = async (rows: string | HTMLTableRowElement[], replace: boolean, meta: { hasMore?: boolean; total?: number | null; page?: number } = {}) => {
+    const body = table.tBodies[0];
+    const list = typeof rows === 'string'
+      ? (() => { const tpl = document.createElement('template'); tpl.innerHTML = `<table><tbody>${rows}</tbody></table>`; return Array.from(tpl.content.querySelectorAll<HTMLTableRowElement>('tbody > tr')); })()
+      : rows;
+    if (replace) body.replaceChildren(...list); else body.append(...list);
+    if (pagination && 'hasMore' in meta) pagination.hasMore = meta.hasMore;
+    if (pagination && meta.page) pagination.page = meta.page;
+    if ('total' in meta) total = meta.total ?? null;
+    await new Promise((r) => setTimeout(r, 0)); // строки размечает MutationObserver
+    syncCheckAll();
+    updatePanel();
+  };
   function setupPanel() {
     const hasFilterActions = groupActions.some((a) => a.when === 'none' || a.when === 'always');
     if (!groupActions.length && !pagination && options.total === undefined && !options.onCountRequest) return;
@@ -541,15 +574,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
       try {
         const res = await loadMore();
         const payload = typeof res === 'object' && !Array.isArray(res) && 'rows' in res ? res : { rows: res as string | HTMLTableRowElement[] };
-        const body = table.tBodies[0];
-        if (typeof payload.rows === 'string') {
-          const tpl = document.createElement('template');
-          tpl.innerHTML = `<table><tbody>${payload.rows}</tbody></table>`;
-          body.append(...Array.from(tpl.content.querySelectorAll('tbody > tr')));
-        } else body.append(...payload.rows);
-        if (pagination && 'hasMore' in payload) pagination.hasMore = payload.hasMore;
-        await new Promise((r) => setTimeout(r, 0)); // строки размечает MutationObserver
-        syncCheckAll();
+        await putRows(payload.rows, false, 'hasMore' in payload ? { hasMore: payload.hasMore } : {});
       } finally {
         more.classList.remove('b24-btn--loading');
         updatePanel();
@@ -808,7 +833,11 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     clearSelection,
     setTotal(next) { total = next; updatePanel(); },
     setPagination(next) { pagination = { ...(pagination ?? { page: 1, pageSize: 20 }), ...next }; updatePanel(); },
-    destroy() { cleanups.splice(0).forEach((c) => c()); },
+    getPagination: () => (pagination ? { ...pagination } : null),
+    replaceRows: (rows, meta) => putRows(rows, true, meta),
+    appendRows: (rows, meta) => putRows(rows, false, meta),
+    destroy() { cleanups.splice(0).forEach((c) => c()); registry.delete(table); },
   };
+  registry.set(table, api);
   return api;
 }

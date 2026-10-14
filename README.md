@@ -234,6 +234,8 @@ JS: `B24UI.timepicker(input, { step, min, max, strict, onChange, onSelect })`, `
 - **Всего**: `total` или `onCountRequest: () => Promise<number>` — тогда вместо числа ссылка «Показать количество»; `grid.setTotal(n)`.
 - **Страницы**: номера (`mode: 'pages'`), «Показать ещё» (`'more'`) или оба (`'both'`). Размер страницы запоминается в localStorage вместе с состоянием грида. События `b24:page-change { page, pageSize }`, `b24:page-size-change { pageSize }` — или колбэки `onPageChange`, `onPageSizeChange`.
 - **«Показать ещё»**: `onLoadMore: () => Promise<html | tr[] | { rows, hasMore }>` или, для серверных шаблонов, событие `b24:load-more` — ответьте сразу промисом: `e.detail.respond(fetch(…).then((r) => r.text()))`. Новые строки встают в тот же `tbody`: отметка, «выбрать все», ☰-меню и счётчики работают; `hasMore: false` прячет кнопку.
+- **Размер страницы из localStorage**: если сохранённый размер отличается от отрисованного сервером, после инициализации приходит `b24:page-size-change { pageSize, restored: true }` (и `onPageSizeChange`). Подписывайтесь до `DOMContentLoaded` — инлайн-скриптом или модулем.
+- **Доступ к гриду из автоинициализации**: `B24UI.getGrid(table | '#selector')` → методы `replaceRows(html | tr[], { hasMore, total, page })` (заменить строки, например первой порцией нового размера), `appendRows(…)`, `getSelectedIds()`, `clearSelection()`, `setTotal(n)`, `setPagination({…})`, `getPagination()`. После вставки строк счётчики, «выбрать все» и «Показать ещё» обновляются сами.
 - **Во фрейме портала** у документа нет своего скролла, и где низ окна — фрейм не знает. Поэтому там панель стоит сразу под таблицей, а в длинной таблице (выше 600px) при отметке строки всплывает рядом с местом клика.
 
 ### Выбор сотрудников из портала

@@ -91,6 +91,8 @@ test.describe('подвал грида', () => {
     await expect(page.locator('.b24-toast').last()).toContainText('На странице: 50');
     await page.reload();
     await expect(page.locator('.b24-grid-panel__size select')).toHaveValue('50');
+    // восстановленный размер приходит событием — серверный шаблон узнаёт, что строк нужно 50
+    await expect(page.locator('.b24-toast').last()).toContainText('На странице: 50');
 
     const more = page.locator('.b24-grid-more');
     await more.click();
@@ -105,6 +107,20 @@ test.describe('подвал грида', () => {
     await more.click(); await expect(grid(page).locator('tbody tr[data-id]')).toHaveCount(12);
     await expect(more).toBeHidden();
   });
+});
+
+test('getGrid и replaceRows для автоинициализированного грида', async ({ page }) => {
+  const res = await page.evaluate(async () => {
+    const g = (window as unknown as { B24UI: { getGrid(sel: string): any } }).B24UI.getGrid('table[data-b24-grid]'); // eslint-disable-line @typescript-eslint/no-explicit-any
+    await g.replaceRows('<tr data-id="900"><td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox"></label></td><td>Новая порция</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>', { hasMore: false, total: 1 });
+    return { pag: g.getPagination(), rows: document.querySelectorAll('table[data-b24-grid] tbody tr[data-id]').length };
+  });
+  expect(res.rows).toBe(1);
+  expect(res.pag.hasMore).toBe(false);
+  await expect(page.locator('.b24-grid-panel__selected')).toHaveText('Отмечено: 0 / 1');
+  await expect(page.locator('.b24-grid-panel__total')).toHaveText('Всего: 1');
+  await expect(page.locator('.b24-grid-more')).toBeHidden();
+  await expect(grid(page).locator('tr[data-id="900"] .b24-table__row-menu')).toHaveCount(1);
 });
 
 test.describe('фильтр', () => {
