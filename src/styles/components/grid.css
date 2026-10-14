@@ -127,6 +127,43 @@ body.b24-col-resizing, body.b24-col-resizing * { cursor: col-resize !important; 
 .b24-grid-actions__count { margin-right: 8px; font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-semibold); color: var(--b24-text-secondary); }
 .b24-grid-actions__clear { margin-left: auto; }
 
+/* ── Подвал грида: отмеченные, всего, действия, страницы ──
+ * Прилипает к низу окна, пока таблица на экране. Во фрейме портала (b24-in-frame) у документа нет своего
+ * скролла: панель стоит под таблицей, а в длинной таблице при отметке всплывает у места клика (.is-floating).
+ */
+.b24-grid-panel {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  min-height: 52px; padding: 8px 14px;
+  background: var(--b24-bg-surface);
+  border-top: 1px solid var(--b24-divider-accent);
+  border-radius: 0 0 var(--b24-radius-md) var(--b24-radius-md);
+}
+.b24-grid-panel.has-selection { box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.08); }
+.b24-grid-panel__counts { display: flex; align-items: center; gap: 4px 14px; flex-wrap: wrap; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); white-space: nowrap; }
+.b24-grid-panel__selected { font-weight: var(--b24-font-weight-semibold); }
+.b24-grid-panel__total { display: inline-flex; align-items: center; gap: 4px; }
+.b24-grid-panel__total .b24-btn--link { height: auto; padding: 0; }
+.b24-grid-panel__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.b24-grid-panel__actions .b24-btn[hidden] { display: none; }
+.b24-grid-panel__pager { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-left: auto; }
+.b24-grid-panel__size { display: inline-flex; align-items: center; gap: 8px; font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); white-space: nowrap; }
+.b24-grid-panel__size .b24-select { width: auto; min-width: 72px; }
+.b24-pagination__gap { padding: 0 4px; color: var(--b24-text-subtle); }
+.b24-grid-panel.is-floating { position: absolute; bottom: auto; border-radius: var(--b24-radius-lg); box-shadow: var(--b24-shadow-popup); }
+.b24-in-frame .b24-grid-panel:not(.is-floating) { position: static; }
+/* «Показать ещё» и подвал пристыкованы к таблице — вместе выглядят одной карточкой */
+.b24-grid-more {
+  display: flex; width: 100%; justify-content: center; height: 44px; margin: 0;
+  font-weight: var(--b24-font-weight-medium); color: var(--b24-color-link);
+  background: var(--b24-bg-surface); border: 0; border-top: 1px solid var(--b24-divider); border-radius: 0;
+}
+.b24-grid-more:hover { color: var(--b24-color-link); background: var(--b24-bg-surface-2); }
+.b24-grid-more[hidden] { display: none; }
+.b24-table-wrap:has(+ .b24-grid-more:not([hidden])), .b24-table-wrap:has(+ .b24-grid-more + .b24-grid-panel:not([hidden])) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.b24-grid-more:not([hidden]):has(+ .b24-grid-panel[hidden]) { border-radius: 0 0 var(--b24-radius-md) var(--b24-radius-md); }
+@media (max-width: 640px) { .b24-grid-panel__pager { margin-left: 0; } }
+
 /* ── Закреплённые столбцы (прилипают слева при горизонтальной прокрутке) ── */
 .b24-datagrid .b24-col-pinned { position: sticky; z-index: 1; background: var(--b24-bg-surface); }
 .b24-datagrid thead th.b24-col-pinned { z-index: 3; }

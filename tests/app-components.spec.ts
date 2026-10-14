@@ -25,13 +25,12 @@ test.describe('грид', () => {
 
   test('«выбрать все» и групповые действия', async ({ page }) => {
     await grid(page).locator('thead input[data-b24-check-all]').check();
-    await expect(page.locator('#selected-info')).toHaveText('Выбрано: 3');
-    const bar = page.locator('.b24-grid-actions');
-    await expect(bar).toContainText('3');
+    const bar = page.locator('.b24-grid-panel');
+    await expect(bar.locator('.b24-grid-panel__selected')).toHaveText('Отмечено: 3 / 3');
     await bar.getByRole('button', { name: 'Выгрузить' }).click();
     await expect(page.locator('.b24-toast').last()).toContainText('export: 101, 102, 103');
     await grid(page).locator('tbody tr[data-id="102"] input[type="checkbox"]').uncheck();
-    await expect(page.locator('#selected-info')).toHaveText('Выбрано: 2');
+    await expect(bar.locator('.b24-grid-panel__selected')).toHaveText('Отмечено: 2 / 3');
   });
 
   test('меню строки учитывает data-actions', async ({ page }) => {
@@ -62,6 +61,49 @@ test.describe('грид', () => {
     await expect(grid(page).locator('th[data-key="note"]')).toBeHidden();
     await page.reload();
     await expect(grid(page).locator('th[data-key="note"]')).toBeHidden();
+  });
+});
+
+test.describe('подвал грида', () => {
+  test('без отметки — действия по фильтру и «Всего», с отметкой — групповые', async ({ page }) => {
+    const bar = page.locator('.b24-grid-panel');
+    await expect(bar).toBeVisible();
+    await expect(bar.locator('.b24-grid-panel__total')).toHaveText('Всего: 137');
+    await expect(bar.getByRole('button', { name: 'Удалить по фильтру (137)' })).toBeVisible();
+    await expect(bar.getByRole('button', { name: 'Выгрузить', exact: true })).toBeHidden();
+    await bar.getByRole('button', { name: 'Выгрузить всё по фильтру (137)' }).click();
+    await expect(page.locator('.b24-toast').last()).toContainText('export-filter:');
+
+    await grid(page).locator('tbody tr[data-id="101"] input[type="checkbox"]').check();
+    await expect(bar.getByRole('button', { name: 'Удалить по фильтру (137)' })).toBeHidden();
+    await expect(bar.getByRole('button', { name: 'Выгрузить', exact: true })).toBeVisible();
+    await bar.getByRole('button', { name: 'Снять выделение' }).click();
+    await expect(bar.locator('.b24-grid-panel__selected')).toHaveText('Отмечено: 0 / 3');
+  });
+
+  test('страницы, размер страницы запоминается, «Показать ещё» догружает строки', async ({ page }) => {
+    const bar = page.locator('.b24-grid-panel');
+    await expect(bar.locator('.b24-pagination__item[aria-current="page"]')).toHaveText('1');
+    await expect(bar.locator('.b24-pagination__item').last()).toBeEnabled();
+    await bar.locator('.b24-pagination__item', { hasText: /^2$/ }).click();
+    await expect(page.locator('.b24-toast').last()).toContainText('Страница 2');
+    await bar.locator('.b24-grid-panel__size select').selectOption('50');
+    await expect(page.locator('.b24-toast').last()).toContainText('На странице: 50');
+    await page.reload();
+    await expect(page.locator('.b24-grid-panel__size select')).toHaveValue('50');
+
+    const more = page.locator('.b24-grid-more');
+    await more.click();
+    await expect(grid(page).locator('tbody tr[data-id]')).toHaveCount(6);
+    await expect(page.locator('.b24-grid-panel__selected')).toHaveText('Отмечено: 0 / 6');
+    // у догруженных строк работают отметка и меню
+    await grid(page).locator('tbody tr[data-id="200"] input[type="checkbox"]').check();
+    await expect(page.locator('.b24-grid-panel__selected')).toHaveText('Отмечено: 1 / 6');
+    await expect(grid(page).locator('thead input[data-b24-check-all]')).toHaveJSProperty('indeterminate', true);
+    await expect(grid(page).locator('tr[data-id="200"] .b24-table__row-menu')).toHaveCount(1);
+    await more.click(); await expect(grid(page).locator('tbody tr[data-id]')).toHaveCount(9);
+    await more.click(); await expect(grid(page).locator('tbody tr[data-id]')).toHaveCount(12);
+    await expect(more).toBeHidden();
   });
 });
 

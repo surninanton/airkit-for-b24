@@ -213,6 +213,29 @@ JS: `B24UI.timepicker(input, { step, min, max, strict, onChange, onSelect })`, `
   groupActions={[{ id: 'delete', label: 'Удалить', variant: 'tinted-danger', confirm: 'Удалить ({n})?', onClick: (ids) => remove(ids) }]} />
 ```
 
+#### Подвал грида: действия, «Всего», страницы
+
+Под таблицей — одна панель, как в списках Битрикс24: «Отмечено: N / M», «Всего: N» (или ссылка «Показать количество»), кнопки действий и постраничный вывод. Панель прилипает к низу окна, пока таблица на экране.
+
+```json
+{ "groupActions": [
+    { "id": "stop", "label": "Остановить", "variant": "secondary" },
+    { "id": "delete", "label": "Удалить", "variant": "tinted-danger", "confirm": "Удалить отмеченные ({n})?" },
+    { "id": "stop-filter", "label": "Остановить по фильтру ({total})", "when": "none" },
+    { "id": "delete-filter", "label": "Удалить по фильтру ({total})", "variant": "tinted-danger", "when": "none", "hint": "Сначала выберите фильтр" } ],
+  "total": 4210,
+  "pagination": { "page": 1, "pageSize": 50, "pageSizes": [20, 50, 100, 200, 500], "mode": "both" } }
+```
+
+- **`when`** у действия: `selected` (по умолчанию) — только когда есть отмеченные, `none` — когда ничего не отмечено («по фильтру»), `always`. В подписи и подтверждении: `{n}` — отмечено, `{total}` — всего.
+- **Событие то же**: `b24:group-action { action, ids, scope }` / `onGroupAction(action, ids)`; у действий «по фильтру» `ids` пустой, `scope: 'filter'`. Без `confirm` встроенного подтверждения нет — показывайте своё.
+- **`disabled`** — `true` или функция `({ selected, total }) => boolean` (в JS); `hint` — подсказка у кнопки.
+- **Панель видна всегда**, если есть действия «по фильтру» или пагинация; `actionPanel: 'auto'` — только при отметке.
+- **Всего**: `total` или `onCountRequest: () => Promise<number>` — тогда вместо числа ссылка «Показать количество»; `grid.setTotal(n)`.
+- **Страницы**: номера (`mode: 'pages'`), «Показать ещё» (`'more'`) или оба (`'both'`). Размер страницы запоминается в localStorage вместе с состоянием грида. События `b24:page-change { page, pageSize }`, `b24:page-size-change { pageSize }` — или колбэки `onPageChange`, `onPageSizeChange`.
+- **«Показать ещё»**: `onLoadMore: () => Promise<html | tr[] | { rows, hasMore }>` или, для серверных шаблонов, событие `b24:load-more` — ответьте сразу промисом: `e.detail.respond(fetch(…).then((r) => r.text()))`. Новые строки встают в тот же `tbody`: отметка, «выбрать все», ☰-меню и счётчики работают; `hasMore: false` прячет кнопку.
+- **Во фрейме портала** у документа нет своего скролла, и где низ окна — фрейм не знает. Поэтому там панель стоит сразу под таблицей, а в длинной таблице (выше 600px) при отметке строки всплывает рядом с местом клика.
+
 ### Выбор сотрудников из портала
 
 ```js

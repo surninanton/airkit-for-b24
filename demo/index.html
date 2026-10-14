@@ -275,13 +275,12 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
           "groupActions": [
             { "id": "stage", "label": "Сменить стадию", "variant": "secondary" },
             { "id": "export", "label": "Выгрузить", "variant": "secondary", "icon": "download" },
-            { "id": "delete", "label": "Удалить", "variant": "tinted-danger", "icon": "trash", "confirm": "Удалить отмеченные сделки ({n})?" } ] }
+            { "id": "delete", "label": "Удалить", "variant": "tinted-danger", "icon": "trash", "confirm": "Удалить отмеченные сделки ({n})?" },
+            { "id": "export-filter", "label": "Выгрузить всё по фильтру ({total})", "variant": "secondary", "icon": "download", "when": "none" },
+            { "id": "delete-filter", "label": "Удалить по фильтру ({total})", "variant": "tinted-danger", "icon": "trash", "when": "none", "confirm": "Удалить все сделки по фильтру ({total})?" } ],
+          "total": 137,
+          "pagination": { "page": 1, "pageSize": 20, "mode": "both" } }
         </script>
-        <div class="b24-table-footer">
-          <span id="selected-info">Выбрано: 0</span>
-          <span class="b24-spacer"></span>
-          <nav class="b24-pagination"><button class="b24-pagination__item" aria-current="page">1</button><button class="b24-pagination__item">2</button><button class="b24-pagination__item">3</button></nav>
-        </div>
       </div>
     </section>
 
@@ -836,7 +835,18 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
     }, 400);
   });
 
-  document.addEventListener('b24:selection', (e) => { document.getElementById('selected-info').textContent = `Выбрано: ${e.detail.count}`; });
+  // подвал грида: страницы и «Показать ещё» — в демо строки сочиняются на лету
+  document.addEventListener('b24:page-change', (e) => B24UI.toast(`Страница ${e.detail.page}: сервер отдал бы следующие ${e.detail.pageSize} строк`));
+  document.addEventListener('b24:page-size-change', (e) => B24UI.toast(`На странице: ${e.detail.pageSize}`));
+  let extraId = 200;
+  document.addEventListener('b24:load-more', (e) => {
+    const rows = Array.from({ length: 3 }, () => { const id = extraId++; return `<tr data-id="${id}">
+      <td class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" aria-label="Выбрать" /></label></td>
+      <td><a href="#">Сделка #${id}</a><div class="b24-table__muted">Догружена</div></td><td>—</td>
+      <td class="b24-table__num" data-sort-value="${id * 1000}" data-value="${id * 1000}">${(id * 1000).toLocaleString('ru-RU')} ₽</td>
+      <td>—</td><td data-sort-value="0">только что</td><td data-value=""></td><td></td></tr>`; }).join('');
+    e.detail.respond(new Promise((r) => setTimeout(() => r({ rows, hasMore: extraId < 209 }), 300)));
+  });
   document.getElementById('stages').addEventListener('click', (e) => {
     const item = e.target.closest('.b24-stages__item'); if (!item) return;
     const items = [...e.currentTarget.children]; const idx = items.indexOf(item);

@@ -122,7 +122,10 @@ test.describe('планировщик', () => {
     const tb = (await track.boundingBox())!;
     const vp = (await page.locator('.b24-scheduler__viewport').boundingBox())!;
     const y = tb.y + tb.height / 2;
-    const x0 = Math.max(tb.x, vp.x + 300);
+    // встречи демо зависят от сегодняшней даты — ищем в строке свободный промежуток шириной 140px
+    const busy = await page.locator('.b24-scheduler__row[data-resource="u06"] .b24-scheduler__event').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.right]; }));
+    let x0 = Math.max(tb.x, vp.x + 260) + 10;
+    while (busy.some(([a, b]) => x0 < b + 4 && x0 + 140 > a - 4) && x0 < vp.x + vp.width - 150) x0 += 20;
     await page.mouse.move(x0, y);
     await page.mouse.down();
     await page.mouse.move(x0 + 120, y, { steps: 8 });

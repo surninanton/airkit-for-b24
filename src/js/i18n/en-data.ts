@@ -117,4 +117,13 @@ export const enData: Record<string, string> = {
   'Вне рабочего времени': 'Outside working hours',
   'Нет сотрудников': 'No employees',
   'Занят': 'Busy',
+  'Действия со списком': 'List actions',
+  'Показать ещё': 'Show more',
+  'Всего: {n}': 'Total: {n}',
+  'Всего:': 'Total:',
+  'Показать количество': 'Show count',
+  'Строк на странице': 'Rows per page',
+  'На странице:': 'Per page:',
+  'Страницы': 'Pages',
+  'Отмечено: {n} / {m}': 'Selected: {n} / {m}',
 };

@@ -7,8 +7,8 @@ import {
 } from './grid-core';
 import { confirm } from './modal';
 import { datepicker, type DatePickerHandle } from './calendar';
-import { escapeHtml } from './dom';
-import { t } from './i18n';
+import { escapeHtml, frameAnchorY, isInFrame } from './dom';
+import { intlLocale, t } from './i18n';
 
 /**
  * Грид в стиле main.ui.grid поверх обычной HTML-таблицы (удобно для PHP):
@@ -26,17 +26,39 @@ import { t } from './i18n';
  *
  * Столбцы с data-key можно перетаскивать, менять ширину (двойной клик по ручке — по содержимому),
  * скрывать через ⚙. Состояние хранится в localStorage под ключом data-b24-grid.
- * События: b24:grid-change { state }, b24:row-action { action, id, row }, b24:group-action { action, ids }.
+ * События: b24:grid-change { state }, b24:row-action { action, id, row }, b24:group-action { action, ids, scope },
+ * b24:page-change { page, pageSize }, b24:page-size-change { pageSize }, b24:load-more { respond(rows) }.
  */
 
 export interface GridRowAction { id: string; label: string; icon?: IconName; danger?: boolean }
 export interface GridGroupAction {
   id: string;
+  /** подпись; {n} — отмечено, {total} — всего по фильтру */
   label: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'tinted' | 'tinted-danger' | 'plain';
   icon?: IconName;
-  /** текст подтверждения — перед событием спросить confirm */
+  /** текст подтверждения ({n}, {total}) — перед событием спросить confirm; без него подтверждение — на стороне приложения */
   confirm?: string;
+  /** когда показывать: есть отмеченные (по умолчанию), ничего не отмечено («по фильтру») или всегда */
+  when?: 'selected' | 'none' | 'always';
+  /** выключить кнопку (например, фильтр не задан); функция пересчитывается при каждом обновлении панели */
+  disabled?: boolean | ((ctx: { selected: number; total: number | null }) => boolean);
+  /** подсказка у кнопки — особенно у выключенной */
+  hint?: string;
+}
+
+/** Постраничный вывод в подвале; данные отдаёт сервер */
+export interface GridPagination {
+  page: number;
+  pageSize: number;
+  /** всего записей; null — неизвестно (ссылка «Показать количество» при onCountRequest) */
+  total?: number | null;
+  /** варианты «На странице» (по умолчанию 20, 50, 100, 200, 500) */
+  pageSizes?: number[];
+  /** номера страниц, «Показать ещё» или оба (по умолчанию pages, при onLoadMore — both) */
+  mode?: 'pages' | 'more' | 'both';
+  /** есть ли ещё строки для «Показать ещё», если total неизвестен */
+  hasMore?: boolean;
 }
 
 export type CellEditType = 'text' | 'number' | 'select' | 'date';
@@ -65,8 +87,21 @@ export interface GridOptions {
   /** меню ☰ у строки; какие пункты показывать конкретной строке — tr[data-actions="edit,delete"] */
   rowActions?: GridRowAction[];
   groupActions?: GridGroupAction[];
+  /** панель действий: появляется при отметке (auto) или видна всегда; по умолчанию always, если есть действия «по фильтру» или пагинация */
+  actionPanel?: 'auto' | 'always';
+  /** всего записей по фильтру — «Всего: N» в подвале */
+  total?: number | null;
+  /** посчитать total по запросу: вместо числа — ссылка «Показать количество» */
+  onCountRequest?: () => Promise<number>;
+  pagination?: GridPagination;
+  onPageChange?: (page: number) => void;
+  /** размер страницы запоминается в localStorage вместе с состоянием грида */
+  onPageSizeChange?: (size: number) => void;
+  /** «Показать ещё»: вернуть строки (HTML <tr>…, массив tr) и, если известно, есть ли ещё */
+  onLoadMore?: () => Promise<string | HTMLTableRowElement[] | { rows: string | HTMLTableRowElement[]; hasMore?: boolean }>;
   onChange?: (state: GridState) => void;
   onRowAction?: (action: string, id: string, row: HTMLTableRowElement) => void;
+  /** ids — отмеченные строки; у действий «по фильтру» (when: none) — пустой массив */
   onGroupAction?: (action: string, ids: string[]) => void;
   /**
    * Редактирование в ячейке (двойной клик): { ключ: { type, options } } или th[data-edit="text|number|select|date"]
@@ -87,6 +122,10 @@ export interface GridHandle {
   reset(): void;
   /** пересчитать после добавления строк/столбцов извне (строки подхватываются и сами) */
   refresh(): void;
+  getSelectedIds(): string[];
+  clearSelection(): void;
+  setTotal(total: number | null): void;
+  setPagination(next: Partial<GridPagination>): void;
   destroy(): void;
 }
 
@@ -359,50 +398,201 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     cleanups.push(() => { table.removeEventListener('click', onClick); rowMenuDd?.destroy(); popup.remove(); });
   }
 
-  /* ── Групповые действия ── */
-  function setupGroupActions() {
-    if (!groupActions.length) return;
-    const bar = h('div', { class: 'b24-grid-actions', hidden: true, role: 'toolbar', 'aria-label': t('Действия с отмеченными') });
-    const count = h('span', { class: 'b24-grid-actions__count' });
-    bar.append(count);
-    const selectedIds = () => Array.from(table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]:checked'))
-      .map((cb) => cb.closest('tr')?.dataset.id).filter((x): x is string => !!x);
-    for (const a of groupActions) {
-      const btn = h('button', { type: 'button', class: `b24-btn b24-btn--sm b24-btn--${a.variant ?? 'secondary'}` });
-      if (a.icon) btn.append(html(icon(a.icon)));
-      btn.append(h('span', {}, a.label));
-      btn.addEventListener('click', async () => {
-        const ids = selectedIds();
-        if (!ids.length) return;
-        if (a.confirm && !(await confirm(a.confirm.replace('{n}', String(ids.length)), { danger: a.variant?.includes('danger'), okText: a.label }))) return;
-        options.onGroupAction?.(a.id, ids);
-        table.dispatchEvent(new CustomEvent('b24:group-action', { detail: { action: a.id, ids }, bubbles: true }));
-      });
-      bar.append(btn);
-    }
-    const clear = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm b24-grid-actions__clear' }, t('Снять выделение'));
-    clear.addEventListener('click', () => {
-      table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]:checked').forEach((cb) => { cb.checked = false; });
-      const all = table.querySelector<HTMLInputElement>('thead input[data-b24-check-all]');
-      if (all) { all.checked = false; all.indeterminate = false; }
-      table.querySelectorAll('tbody tr[aria-selected="true"]').forEach((tr) => tr.setAttribute('aria-selected', 'false'));
-      update();
-    });
-    bar.append(clear);
-    table.after(bar);
-    const update = () => {
-      const n = selectedIds().length;
-      const total = table.tBodies[0]?.querySelectorAll('tr[data-id]').length ?? 0;
-      count.textContent = t('Отмечено: {n} из {total}', { n, total });
-      bar.hidden = n === 0;
-    };
-    const onChange = (e: Event) => { if ((e.target as HTMLElement).matches('input[type="checkbox"]')) setTimeout(update, 0); };
-    table.addEventListener('change', onChange);
-    table.addEventListener('b24:selection', update);
-    update();
-    cleanups.push(() => { table.removeEventListener('change', onChange); table.removeEventListener('b24:selection', update); bar.remove(); });
+  /* ── Подвал: отмеченные, всего, групповые действия, страницы ──
+   * Одна панель на все случаи, как в списках Битрикс24. Прилипает к низу окна; во фрейме портала у документа
+   * нет своего скролла (низ окна неизвестен), поэтому там панель стоит под таблицей, а при отметке строки
+   * в длинной таблице — всплывает рядом с местом клика.
+   */
+  let total: number | null = options.total ?? null;
+  let pagination: GridPagination | null = options.pagination ? { ...options.pagination } : null;
+  const pageSizeKey = storageKey ? `${storageKey}:pageSize` : null;
+  if (pagination && pageSizeKey) {
+    try { const saved = Number(localStorage.getItem(pageSizeKey)); if (saved && saved !== pagination.pageSize) { pagination.pageSize = saved; queueMicrotask(() => options.onPageSizeChange?.(saved)); } } catch { /* нет доступа к хранилищу */ }
   }
+  const selectedIds = () => Array.from(table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]:checked'))
+    .map((cb) => cb.closest('tr')?.dataset.id).filter((x): x is string => !!x);
+  const pageRows = () => table.tBodies[0]?.querySelectorAll('tr[data-id]').length ?? 0;
+  const syncCheckAll = () => {
+    const boxes = Array.from(table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]'));
+    const n = boxes.filter((b) => b.checked).length;
+    const all = table.querySelector<HTMLInputElement>('thead input[data-b24-check-all]');
+    if (all) { all.checked = n > 0 && n === boxes.length; all.indeterminate = n > 0 && n < boxes.length; }
+    boxes.forEach((b) => b.closest('tr')?.setAttribute('aria-selected', String(b.checked)));
+    table.dispatchEvent(new CustomEvent('b24:selection', { detail: { count: n }, bubbles: true }));
+  };
+  const clearSelection = () => {
+    table.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]:checked').forEach((cb) => { cb.checked = false; });
+    syncCheckAll();
+  };
+  let updatePanel = () => {};
+  function setupPanel() {
+    const hasFilterActions = groupActions.some((a) => a.when === 'none' || a.when === 'always');
+    if (!groupActions.length && !pagination && options.total === undefined && !options.onCountRequest) return;
+    const mode = options.actionPanel ?? (hasFilterActions || pagination ? 'always' : 'auto');
+    const panel = h('div', { class: 'b24-grid-panel', role: 'toolbar', 'aria-label': t('Действия со списком') });
+    const counts = h('div', { class: 'b24-grid-panel__counts' });
+    const selCount = h('span', { class: 'b24-grid-panel__selected' });
+    const totalEl = h('span', { class: 'b24-grid-panel__total' });
+    counts.append(selCount, totalEl);
+    const actionsEl = h('div', { class: 'b24-grid-panel__actions' });
+    const pager = h('div', { class: 'b24-grid-panel__pager' });
+    panel.append(counts, actionsEl, pager);
+    const more = h('button', { type: 'button', class: 'b24-btn b24-btn--secondary b24-grid-more' }, t('Показать ещё')) as HTMLButtonElement;
+    const wrapEl = table.closest('.b24-table-wrap') ?? table;
+    wrapEl.after(panel);
+    panel.before(more);
 
+    const buttons = groupActions.map((a) => {
+      const btn = h('button', { type: 'button', class: `b24-btn b24-btn--sm b24-btn--${a.variant ?? 'secondary'}` }) as HTMLButtonElement;
+      if (a.icon) btn.append(html(icon(a.icon)));
+      const label = h('span', {});
+      btn.append(label);
+      btn.addEventListener('click', async () => {
+        const when = a.when ?? 'selected';
+        const ids = when === 'none' ? [] : selectedIds();
+        if (when === 'selected' && !ids.length) return;
+        const vars = { n: ids.length, total: total ?? '—' };
+        if (a.confirm && !(await confirm(t(a.confirm, vars), { danger: a.variant?.includes('danger'), okText: t(a.label, vars) }))) return;
+        options.onGroupAction?.(a.id, ids);
+        table.dispatchEvent(new CustomEvent('b24:group-action', { detail: { action: a.id, ids, scope: ids.length ? 'selected' : 'filter' }, bubbles: true }));
+      });
+      actionsEl.append(btn);
+      return { a, btn, label };
+    });
+    const clear = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm b24-grid-panel__clear' }, t('Снять выделение'));
+    clear.addEventListener('click', clearSelection);
+    actionsEl.append(clear);
+
+    const renderTotal = () => {
+      totalEl.textContent = '';
+      if (total != null) totalEl.append(t('Всего: {n}', { n: total.toLocaleString(intlLocale()) }));
+      else if (options.onCountRequest) {
+        const link = h('button', { type: 'button', class: 'b24-btn b24-btn--link b24-btn--sm' }, t('Показать количество')) as HTMLButtonElement;
+        link.addEventListener('click', async () => {
+          link.classList.add('b24-btn--loading');
+          try { total = await options.onCountRequest!(); } catch { link.classList.remove('b24-btn--loading'); return; }
+          updatePanel();
+        });
+        totalEl.append(t('Всего:') + ' ', link);
+      }
+    };
+    const renderPager = () => {
+      pager.textContent = '';
+      if (!pagination) { more.hidden = true; return; }
+      const p = pagination;
+      const pm = p.mode ?? (options.onLoadMore ? 'both' : 'pages');
+      const canLoad = pm !== 'pages';
+      const sizes = p.pageSizes ?? [20, 50, 100, 200, 500];
+      const sel = h('select', { class: 'b24-select b24-select--sm', 'aria-label': t('Строк на странице') }) as HTMLSelectElement;
+      for (const n of sizes) sel.add(new Option(String(n), String(n), false, n === p.pageSize));
+      sel.addEventListener('change', () => {
+        p.pageSize = Number(sel.value);
+        p.page = 1;
+        if (pageSizeKey) { try { localStorage.setItem(pageSizeKey, sel.value); } catch { /* нет доступа */ } }
+        options.onPageSizeChange?.(p.pageSize);
+        table.dispatchEvent(new CustomEvent('b24:page-size-change', { detail: { pageSize: p.pageSize }, bubbles: true }));
+        renderPager();
+      });
+      pager.append(h('label', { class: 'b24-grid-panel__size' }, h('span', {}, t('На странице:')), sel));
+      const pages = total != null ? Math.max(1, Math.ceil(total / p.pageSize)) : null;
+      if (pm !== 'more') {
+        const nav = h('nav', { class: 'b24-pagination', 'aria-label': t('Страницы') });
+        const go = (n: number) => { p.page = n; options.onPageChange?.(n); table.dispatchEvent(new CustomEvent('b24:page-change', { detail: { page: n, pageSize: p.pageSize }, bubbles: true })); renderPager(); };
+        const item = (label: string | number, n: number | null, current = false, aria?: string) => {
+          const b = h('button', { type: 'button', class: 'b24-pagination__item', 'aria-label': aria, 'aria-current': current ? 'page' : undefined }, String(label)) as HTMLButtonElement;
+          if (n == null) b.disabled = true; else b.addEventListener('click', () => go(n));
+          return b;
+        };
+        nav.append(item('‹', p.page > 1 ? p.page - 1 : null, false, t('Назад')));
+        if (pages) {
+          // 1 … p-1 p p+1 … N
+          const set = new Set([1, pages, p.page - 1, p.page, p.page + 1].filter((n) => n >= 1 && n <= pages));
+          let prev = 0;
+          for (const n of [...set].sort((a, b) => a - b)) {
+            if (n - prev > 1) nav.append(h('span', { class: 'b24-pagination__gap' }, '…'));
+            nav.append(item(n, n === p.page ? null : n, n === p.page));
+            prev = n;
+          }
+        } else nav.append(item(p.page, null, true));
+        const hasNext = pages ? p.page < pages : p.hasMore !== false && pageRows() >= p.pageSize;
+        nav.append(item('›', hasNext ? p.page + 1 : null, false, t('Вперёд')));
+        pager.append(nav);
+      }
+      const shown = pageRows();
+      // явный ответ сервера «больше нет» главнее подсчёта по total
+      const canMore = canLoad && p.hasMore !== false && (total == null || shown < total - (p.page - 1) * p.pageSize);
+      more.hidden = !canMore;
+    };
+    /** без onLoadMore — событие b24:load-more { respond(rows | Promise) } для серверных шаблонов */
+    const loadMore = (): Promise<Awaited<ReturnType<NonNullable<GridOptions['onLoadMore']>>>> => {
+      if (options.onLoadMore) return options.onLoadMore();
+      return new Promise((resolve, reject) => {
+        let answered = false;
+        const ev = new CustomEvent('b24:load-more', { bubbles: true, detail: {
+          page: pagination?.page, pageSize: pagination?.pageSize, loaded: pageRows(),
+          respond: (r: unknown) => { answered = true; Promise.resolve(r).then(resolve as (v: unknown) => void, reject); },
+        } });
+        table.dispatchEvent(ev);
+        if (!answered) resolve({ rows: [], hasMore: false });
+      });
+    };
+    more.addEventListener('click', async () => {
+      more.classList.add('b24-btn--loading');
+      try {
+        const res = await loadMore();
+        const payload = typeof res === 'object' && !Array.isArray(res) && 'rows' in res ? res : { rows: res as string | HTMLTableRowElement[] };
+        const body = table.tBodies[0];
+        if (typeof payload.rows === 'string') {
+          const tpl = document.createElement('template');
+          tpl.innerHTML = `<table><tbody>${payload.rows}</tbody></table>`;
+          body.append(...Array.from(tpl.content.querySelectorAll('tbody > tr')));
+        } else body.append(...payload.rows);
+        if (pagination && 'hasMore' in payload) pagination.hasMore = payload.hasMore;
+        await new Promise((r) => setTimeout(r, 0)); // строки размечает MutationObserver
+        syncCheckAll();
+      } finally {
+        more.classList.remove('b24-btn--loading');
+        updatePanel();
+      }
+    });
+
+    // во фрейме длинная таблица: при отметке панель всплывает у места клика
+    const placeInFrame = () => {
+      if (!isInFrame()) { panel.classList.remove('is-floating'); panel.style.top = ''; return; }
+      const r = (wrapEl as HTMLElement).getBoundingClientRect();
+      const tall = r.height > 600;
+      const n = selectedIds().length;
+      if (!tall || !n) { panel.classList.remove('is-floating'); panel.style.top = ''; return; }
+      const top = Math.min(Math.max(frameAnchorY() + 28, r.top + scrollY), r.bottom + scrollY - panel.offsetHeight);
+      panel.classList.add('is-floating');
+      Object.assign(panel.style, { top: `${top}px`, left: `${r.left + scrollX}px`, width: `${r.width}px` });
+    };
+
+    updatePanel = () => {
+      const n = selectedIds().length;
+      const ctx = { selected: n, total };
+      selCount.textContent = t('Отмечено: {n} / {m}', { n, m: pageRows() });
+      for (const { a, btn, label } of buttons) {
+        const when = a.when ?? 'selected';
+        btn.hidden = when === 'selected' ? n === 0 : when === 'none' ? n > 0 : false;
+        const off = typeof a.disabled === 'function' ? a.disabled(ctx) : !!a.disabled;
+        btn.disabled = off;
+        label.textContent = t(a.label, { n, total: total ?? '—' });
+        if (a.hint) btn.title = a.hint; else btn.removeAttribute('title');
+      }
+      clear.hidden = n === 0;
+      renderTotal();
+      renderPager();
+      panel.hidden = mode === 'auto' && n === 0;
+      panel.classList.toggle('has-selection', n > 0);
+      placeInFrame();
+    };
+    const onChange = (e: Event) => { if ((e.target as HTMLElement).matches('input[type="checkbox"]')) setTimeout(updatePanel, 0); };
+    table.addEventListener('change', onChange);
+    table.addEventListener('b24:selection', updatePanel);
+    updatePanel();
+    cleanups.push(() => { table.removeEventListener('change', onChange); table.removeEventListener('b24:selection', updatePanel); panel.remove(); more.remove(); });
+  }
 
   /* ── Редактирование в ячейке ── */
   const editable: Record<string, CellEditConfig> = { ...(options.editable ?? {}) };
@@ -557,7 +747,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   addSettings();
   addResizers();
   setupRowMenu();
-  setupGroupActions();
+  setupPanel();
   const extra = (cornerInserted ? 1 : 0) + (rowActions.length ? 1 : 0);
   if (extra) for (const body of Array.from(table.tBodies)) for (const row of Array.from(body.rows)) {
     if (row.cells.length === 1 && row.cells[0].colSpan > 1) row.cells[0].colSpan += extra;
@@ -594,7 +784,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     for (const r of records) r.addedNodes.forEach((n) => {
       if (n instanceof HTMLTableRowElement && !n.dataset.b24GridRow) { markRow(n); changed = true; }
     });
-    if (changed) { apply(); if (Object.keys(editable).length) markEditable(); }
+    if (changed) { apply(); if (Object.keys(editable).length) markEditable(); updatePanel(); }
   });
   for (const body of Array.from(table.tBodies)) mo.observe(body, { childList: true });
   cleanups.push(() => mo.disconnect());
@@ -612,7 +802,12 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     refresh() {
       for (const body of Array.from(table.tBodies)) for (const row of Array.from(body.rows)) markRow(row);
       apply();
+      updatePanel();
     },
+    getSelectedIds: selectedIds,
+    clearSelection,
+    setTotal(next) { total = next; updatePanel(); },
+    setPagination(next) { pagination = { ...(pagination ?? { page: 1, pageSize: 20 }), ...next }; updatePanel(); },
     destroy() { cleanups.splice(0).forEach((c) => c()); },
   };
   return api;
