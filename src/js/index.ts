@@ -21,7 +21,7 @@ export { initials, avatarColor, avatarHtml } from './avatar';
 export { creditHtml, REPO_URL } from './credit';
 export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePickerHandle } from './timepicker';
 export { multiValue, type MultiValueOptions, type MultiValueHandle } from './multi-value';
-export { createVendor, checkVendor, type VendorOptions, type VendorHandle, type VendorLink } from './vendor';
+export { createVendor, checkVendor, getVendor, type VendorOptions, type VendorHandle, type VendorLink } from './vendor';
 export { initGallery, openLightbox, initTopnav, initSiteHeader, initAnchorNav, initVideo, initToc, initCookieNotice, initThemeSwitch, applyStoredTheme, type GalleryItem, type GalleryHandle } from './site';
 export { initGrid, getGrid, type GridOptions, type GridHandle, type GridRowAction, type GridGroupAction, type GridPagination } from './grid';
 export { loadGridState, saveGridState, clearGridState, normalizeGridState, moveColumn, measureColumn, startColumnResize, enableColumnReorder, type GridState } from './grid-core';

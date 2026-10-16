@@ -31,6 +31,10 @@
 }
 .b24-vendor__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .b24-vendor__chevron { flex: 0 0 auto; color: var(--b24-text-subtle); }
+/* счётчик непрочитанных обращений: на кнопке перед шевроном и у «Мои обращения» */
+.b24-vendor .b24-counter { flex: 0 0 auto; }
+.b24-vendor--on-dark .b24-counter { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35); }
+.b24-vendor-menu .b24-menu__item > .b24-counter { margin-left: auto; }
 
 /* На Air-подложке — стеклянный вариант */
 .b24-vendor--on-dark { color: var(--b24-glass-text); background: var(--b24-glass-bg); border-color: var(--b24-glass-border-soft); backdrop-filter: blur(12px); }

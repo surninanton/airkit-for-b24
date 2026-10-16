@@ -44,7 +44,8 @@ import { t } from './i18n';
  *                                    data-step, data-min-time / data-max-time (HH:MM),
  *                                    data-values="09:00,14:30", data-unique="false", data-sort="false";
  *                                    варианты select — <option> внутри или JSON-конфиг; событие b24:multi-change
- *   [data-b24-vendor]              — блок разработчика (правило кита); JSON-конфиг VendorOptions внутри
+ *   [data-b24-vendor]              — блок разработчика (правило кита); JSON-конфиг VendorOptions внутри;
+ *                                    data-counter — непрочитанные обращения; потом getVendor(el).setCounter(n) или событие b24:vendor-counter
  *   [data-b24-gallery]             — галерея скриншотов: a.b24-gallery__item → лайтбокс (←/→, Esc)
  *   .b24-topnav[data-b24-topnav]   — верхнее меню сайта: на ≤768px пункты прячутся в «☰»
  *   .b24-site-header[data-b24-site-header] — липкая шапка сайта: бургер на ≤960px, группы меню (details)
@@ -204,7 +205,8 @@ export function init(root: ParentNode = document): void {
     if (!config) return;
     el.dataset.b24Ready = '1';
     el.querySelectorAll('script[type="application/json"]').forEach((s) => s.remove());
-    createVendor(el, config);
+    const counter = el.dataset.counter !== undefined ? Number(el.dataset.counter) : config.counter;
+    createVendor(el, { ...config, counter });
   });
 
   root.querySelectorAll<HTMLTableElement>('table[data-b24-grid]').forEach((table) => {

@@ -252,3 +252,34 @@ test.describe('во фрейме портала', () => {
     expect(Math.abs(toastY - btnY)).toBeLessThan(400);
   });
 });
+
+test.describe('блок разработчика', () => {
+  test('счётчик непрочитанных: data-counter, setCounter, событие, 99+', async ({ page }) => {
+    const btn = page.locator('.b24-vendor');
+    const badge = btn.locator('.b24-counter');
+    await expect(badge).toHaveText('3');
+    await expect(btn).toHaveAttribute('aria-label', /Непрочитанных ответов: 3/);
+    await btn.click();
+    const item = page.locator('.b24-vendor-menu .b24-menu__item', { hasText: 'Мои обращения' });
+    await expect(item.locator('.b24-counter')).toHaveText('3');
+    await page.keyboard.press('Escape');
+
+    await page.evaluate(() => (window as unknown as { B24UI: { getVendor(s: string): { setCounter(n: number): void } } }).B24UI.getVendor('[data-b24-vendor]').setCounter(150));
+    await expect(badge).toHaveText('99+');
+    await page.evaluate(() => document.querySelector('[data-b24-vendor]')!.dispatchEvent(new CustomEvent('b24:vendor-counter', { detail: { count: 0 } })));
+    await expect(badge).toBeHidden();
+    await expect(btn).not.toHaveAttribute('aria-label', /Непрочитанных/);
+  });
+
+  test('sameOrigin: self — свои ссылки в той же вкладке, чужие в новой', async ({ page }) => {
+    const r = await page.evaluate(() => {
+      const host = document.createElement('div');
+      document.body.append(host);
+      const B = (window as unknown as { B24UI: { createVendor(el: HTMLElement, o: unknown): unknown } }).B24UI;
+      B.createVendor(host, { name: 'Тест', sameOrigin: 'self', links: { support: '/support/', privacy: '/privacy/', contacts: 'https://example.com/contacts' } });
+      const a = (label: string) => [...host.querySelectorAll<HTMLAnchorElement>('.b24-menu__item')].find((x) => x.textContent!.includes(label))!;
+      return { support: a('Мои обращения').target, contacts: a('Контакты').target };
+    });
+    expect(r).toEqual({ support: '', contacts: '_blank' });
+  });
+});

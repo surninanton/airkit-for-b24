@@ -101,4 +101,6 @@ export const enCore: Record<string, string> = {
   'Контакты': 'Contacts',
   'Сайт разработчика': 'Developer website',
   'Приложение в Маркетплейсе': 'App on Marketplace',
+  'Непрочитанных ответов: {n}': 'Unread replies: {n}',
+  'непрочитанных: {n}': 'unread: {n}',
 };
