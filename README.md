@@ -56,7 +56,7 @@
 
 Пользователь должен с первого взгляда понимать, что перед ним стороннее приложение, чьё оно и куда идти с вопросом. Поэтому в каждом приложении есть блок разработчика:
 
-- **Место:** правый конец верхней строки приложения (тулбар или шапка), последним элементом.
+- **Место:** правый конец верхней строки приложения (служебный угол шапки раздела `aside` или шапка `AppShell`), последним элементом.
 - **Логотип:** горизонтальный, **высота 24 px**, ширина до 140 px, SVG или PNG @2x. Для синей подложки Air можно дать светлую версию (`logoOnDark`).
 - **Нет горизонтального логотипа** (квадратный или вертикальный): иконка **24×24** плюс название компании текстом. На узких экранах остаётся только иконка.
 - **Меню по клику:**
@@ -68,7 +68,7 @@
 - **Обязательно:** название, поддержка, политика конфиденциальности, контакты. Если чего-то не хватает, кит пишет предупреждение в консоль (`checkVendor`).
 
 ```html
-<div class="b24-toolbar__right">
+<div class="b24-page-header__aside">
   …
   <span data-b24-vendor>
     <script type="application/json">
@@ -82,7 +82,7 @@
 ```
 
 ```tsx
-// React: проп vendor у <Toolbar> или <AppShell> сам ставит блок последним справа
+// React: проп vendor у <PageHeader> или <AppShell> сам ставит блок последним справа
 <AppShell vendor={{ name: 'Кедр Софт', logo, logoOnDark, icon, app: { name: 'Мини-CRM', version: '0.9.2' },
   links: { support: () => openSidePanel({ title: 'Мои обращения', content }), privacy: '…', contacts: '…' } }} … />
 ```
@@ -100,6 +100,22 @@ el.dispatchEvent(new CustomEvent('b24:vendor-counter', { detail: { count: 5 } })
 В React — проп `counter` у `<Vendor>` (блок не пересоздаётся). `getVendor` принимает контейнер, кнопку или селектор.
 
 **Ссылки своего сайта.** По умолчанию все ссылки меню открываются в новой вкладке: внутри фрейма Битрикс24 ссылка на `/…` иначе открылась бы в самом фрейме. На сайте разработчика задайте `"sameOrigin": "self"` — ссылки на `/…` и на тот же домен откроются в этой же вкладке, внешние по-прежнему в новой.
+
+### 2. Шапка раздела: как в портале
+
+Приложение выглядит как раздел портала, если его шапка устроена как в CRM и Задачах. Порядок задаёт компонент `createPageHeader` / `<PageHeader>` (и CSS `.b24-page-header`), переставить слоты нельзя:
+
+```
+[Обзор] [Действия] [Журнал 11] [Поддержка]                       сведения о портале  [Разработчик ▾]
+Обращения портала  [+ Создать ▾]  [Все ▾]  [фильтр и поиск ………]                                 [⚙]
+[Список|Доска]  [2 Без ответа] [0 Мои]                                                   [Роботы] [•••]
+```
+
+- вкладки приложения — меню раздела, первой строкой (как «Сделки · Товары · Клиенты» в CRM);
+- «Создать» сразу после заголовка, затем селекторы и фильтр; справа только кнопки-иконки (`tools`), второстепенное (`extra`) и служебный угол с блоком разработчика (`aside`);
+- `init()` и `<PageHeader>` пишут в консоль замечание, если основная кнопка или фильтр стоят справа (`checkLayout()`).
+
+Все правила и примеры для агентов — в [`AGENTS.md`](AGENTS.md), он же лежит в `dist/AGENTS.md`. В CLAUDE.md своего приложения достаточно строки: «UI — по правилам из …/dist/AGENTS.md».
 
 ## Быстрый старт
 
@@ -125,12 +141,12 @@ npm test         # сайт, экраны, редакторы, элементы 
 
 <body class="b24-root">
   <div class="b24-app b24-app--air">
-    <div class="b24-toolbar">
-      <div class="b24-toolbar__row">
-        <h1 class="b24-toolbar__title">Журнал</h1>
-        <button class="b24-btn b24-btn--success">Создать</button>
+    <header class="b24-page-header">
+      <div class="b24-page-header__main">
+        <h1 class="b24-page-header__title">Журнал</h1>
+        <div class="b24-page-header__create"><button class="b24-btn b24-btn--success">Создать</button></div>
       </div>
-    </div>
+    </header>
 
     <div class="b24-card">
       <div class="b24-card__header"><h2 class="b24-card__title">Правила</h2></div>
@@ -263,24 +279,23 @@ B24UI.createTagSelector(el, { name: 'ASSIGNED_BY_ID', load: B24UI.bx24UserLoader
 
 ### Фильтр → REST Битрикс24
 
-Фильтр — компонент тулбара: в портале строка «Фильтр и поиск» стоит рядом с заголовком страницы. Своей ширины у `.b24-filter` нет, её задаёт контейнер; в тулбаре это `.b24-toolbar__search` (растягивается, но не шире 560px). На подложке Air — `"glass": true`.
+Фильтр — часть шапки раздела: в портале строка «Фильтр и поиск» стоит после заголовка, «Создать» и селекторов. Своей ширины у `.b24-filter` нет, её задаёт контейнер; в шапке это `.b24-page-header__filter` (растягивается, но не шире 560px). На подложке Air — `"glass": true`.
 
 ```html
-<div class="b24-toolbar">
-  <div class="b24-toolbar__row">
-    <h1 class="b24-toolbar__title">Сделки</h1>
-    <button class="b24-btn b24-btn--success">Создать</button>
-    <div class="b24-toolbar__search">
+<header class="b24-page-header">
+  <div class="b24-page-header__main">
+    <h1 class="b24-page-header__title">Сделки</h1>
+    <div class="b24-page-header__create"><button class="b24-btn b24-btn--success">Создать</button></div>
+    <div class="b24-page-header__filter">
       <div data-b24-filter>
         <script type="application/json">{ "glass": true, "fields": [ … ], "presets": [ … ] }</script>
       </div>
     </div>
-    <div class="b24-toolbar__right">…</div>
   </div>
-</div>
+</header>
 ```
 
-В React то же даёт `<Toolbar search={<Filter glass … />}>`. Фильтр на всю ширину карточки — просто положите его в карточку без `.b24-toolbar__search`.
+В JS — `createPageHeader(host, { title, create, filter: { fields, presets } })`, в React — `<PageHeader filter={<Filter glass … />}>`. Фильтр на всю ширину карточки — просто положите его в карточку.
 
 Состояние фильтра само превращается в `filter` для `crm.*.list`: `toBitrixFilter(fields, state)`.
 
@@ -296,21 +311,21 @@ B24UI.createTagSelector(el, { name: 'ASSIGNED_BY_ID', load: B24UI.bx24UserLoader
 
 ```tsx
 import 'airkit-for-b24/css';
-import { B24Provider, App, Toolbar, SplitButton, SearchInput, DataTable, SidePanel, Stages, toast } from 'airkit-for-b24/react';
+import { B24Provider, App, PageHeader, SearchInput, DataTable, SidePanel, Stages, toast } from 'airkit-for-b24/react';
 
 <B24Provider theme="light">
   <App air>
-    <Toolbar
+    <PageHeader
       title="Сделки"
-      actions={<SplitButton icon="plus" onClick={create} menu={[{ label: 'Импорт', icon: 'upload' }]}>Создать</SplitButton>}
-      search={<SearchInput glass value={q} onChange={(e) => setQ(e.target.value)} />}
+      create={{ onClick: create, menu: [{ label: 'Импорт', icon: 'upload' }] }}
+      filter={<SearchInput glass value={q} onChange={(e) => setQ(e.target.value)} />}
     />
     <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} selectable selected={sel} onSelectionChange={setSel} />
   </App>
 </B24Provider>
 ```
 
-Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), раскладка: `B24Provider`, `App`, `Toolbar`, `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
+Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), раскладка: `B24Provider`, `App`, `PageHeader`, `Toolbar` (устарел для шапки раздела), `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
 
 Канбан в React контролируемый: DnD только сообщает о переносе, состояние обновляете вы.
 
@@ -324,11 +339,12 @@ import { B24Provider, App, Toolbar, SplitButton, SearchInput, DataTable, SidePan
 />
 ```
 
-Полный пример — `demo/react-demo.tsx`: вкладки «Список», «Канбан», «Календарь», фильтр в тулбаре. Карточка сделки (клик по названию) — это `EntityEditor` и `Timeline` с композером, делами и файлами. В «Создать» есть `EntitySelector`, `Combobox` и `Uploader`.
+Полный пример — `demo/react-demo.tsx`: шапка раздела `<PageHeader>`, вид «Список», «Канбан», «Календарь». Карточка сделки (клик по названию) — это `EntityEditor` и `Timeline` с композером, делами и файлами. В «Создать» есть `EntitySelector`, `Combobox` и `Uploader`.
 
 ## Раскладки
 
 - **`.b24-app`**: приложение внутри фрейма портала (плейсмент). Модификатор `--air` включает фирменную подложку, `--white` делает белый фон.
+- **`.b24-page-header`**: шапка раздела страницы — меню раздела, заголовок, «Создать», селекторы, фильтр, вид, счётчики (правило 2, `createPageHeader` / `<PageHeader>`).
 - **`.b24-shell`**: самостоятельное приложение с сайдбаром, шапкой и верхним меню, как сам портал. На мобильных сайдбар выезжает поверх контента.
 
 ## Экраны приложения
@@ -519,7 +535,7 @@ React: `<Scheduler resources events bands onChange …>`.
 - Фрейм не бывает ниже высоты, которую ему дал портал при открытии: `.b24-app` дотягивается до неё через `--b24-frame-min-height`, поэтому под коротким контентом не проступает подложка портала. Свой предел: `autoFitFrame({ minHeight: 900 })`, без предела: `{ minHeight: 0 }`.
 - `ResizeObserver` не срабатывает в фоновой вкладке браузера: фрейм подгоняется, когда вкладка снова отрисовывается. Для пользователя это незаметно, но учитывайте при автотестах.
 - Боковая панель (`openSidePanel`) во фрейме пока открывается на всю высоту фрейма, без привязки к месту клика.
-- Строка фильтра и поиска — часть тулбара страницы (`.b24-toolbar__search`), а не отдельный блок на всю ширину: так приложение выглядит как разделы портала. Пример — в разделе «Фильтр → REST Битрикс24».
+- Строка фильтра и поиска — часть шапки раздела (`.b24-page-header__filter`), а не отдельный блок на всю ширину: так приложение выглядит как разделы портала. Пример — в разделе «Фильтр → REST Битрикс24», правила — в [`AGENTS.md`](AGENTS.md).
 
 ## Язык подписей
 

@@ -102,7 +102,7 @@ function menuItem(label: string, link: VendorLink, iconName: IconName, external 
 
 export function createVendor(container: HTMLElement, options: VendorOptions): VendorHandle {
   checkVendor(options);
-  const onDark = options.onDark ?? !!container.closest('.b24-app--air, .b24-shell, .b24-toolbar--glass');
+  const onDark = options.onDark ?? !!container.closest('.b24-app--air, .b24-shell, .b24-toolbar--glass, .b24-page-header:not(.b24-page-header--light)');
   const trigger = h('button', {
     type: 'button',
     class: `b24-vendor${onDark ? ' b24-vendor--on-dark' : ''}`,

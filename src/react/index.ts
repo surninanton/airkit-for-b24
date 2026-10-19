@@ -35,7 +35,7 @@ export {
 } from './Controls';
 export { Credit } from './Credit';
 export { Vendor, type VendorOptions } from './Vendor';
-export { B24Provider, App, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, type ToolbarProps, type ShellProps, type NavItemProps } from './Layout';
+export { B24Provider, App, PageHeader, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, type PageHeaderProps, type PageHeaderCreateProps, type PageHeaderCounterProps, type ToolbarProps, type ShellProps, type NavItemProps } from './Layout';
 
 // Императивные API общие с vanilla-версией
 export { plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors, popover, startTour, type TourStep } from '../js/index';

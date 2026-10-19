@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { isValidElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Counter } from './Display';
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
@@ -7,6 +7,10 @@ import { setTheme, setAirPreset, type AirPreset, type Theme } from '../js/theme'
 import { Vendor } from './Vendor';
 import type { VendorOptions } from '../js/vendor';
 import { t } from '../js/i18n';
+import { warnLayout } from '../js/page-header';
+import { Button, SplitButton } from './Button';
+import type { MenuEntry } from './Overlay';
+import { Tabs, type TabItem } from './Tabs';
 
 /** Корень приложения: подключает базовые стили и тему. */
 export function B24Provider({ theme = 'light', air = 'blue', children }: { theme?: Theme; air?: AirPreset; children: ReactNode }) {
@@ -28,11 +32,117 @@ export function App({ air, white, flush, maxWidth, children, className }: { air?
   );
 }
 
+/* ── Шапка раздела (правило кита, dist/AGENTS.md) ─────────
+ * меню раздела → «Заголовок · Создать · селекторы · фильтр … tools» → «вид · счётчики … extra».
+ * Порядок задают слоты; основную кнопку справа поставить нельзя.
+ */
+export interface PageHeaderCreateProps {
+  /** по умолчанию «Создать» */
+  label?: ReactNode;
+  onClick?: () => void;
+  /** пункты у шеврона: «Создать ▾» */
+  menu?: MenuEntry[];
+}
+export interface PageHeaderCounterProps {
+  label: ReactNode;
+  count: number;
+  tone?: 'danger' | 'success' | 'warning' | 'gray';
+  onClick?: () => void;
+}
+export interface PageHeaderProps {
+  /** меню раздела: страницы приложения (как «Сделки · Товары · Клиенты» в CRM) */
+  menu?: NavItemProps[];
+  title: ReactNode;
+  /** основная кнопка сразу после заголовка; ReactNode — своя */
+  create?: PageHeaderCreateProps | ReactNode;
+  /** селекторы между «Создать» и фильтром (воронка, роли, период) */
+  selectors?: ReactNode;
+  /** обычно <Filter glass … /> */
+  filter?: ReactNode;
+  /** справа в первой строке: только кнопки-иконки */
+  tools?: ReactNode;
+  /** переключатель вида (Канбан · Список · Календарь) */
+  views?: { items: TabItem[]; value: string; onChange: (id: string) => void };
+  counters?: PageHeaderCounterProps[];
+  /** справа во второй строке: второстепенные кнопки и «•••» */
+  extra?: ReactNode;
+  /** служебный угол справа вверху (сведения о портале); блок разработчика — последним */
+  aside?: ReactNode;
+  vendor?: VendorOptions;
+  /** на светлом фоне без Air-подложки */
+  light?: boolean;
+}
+const isCreateProps = (v: unknown): v is PageHeaderCreateProps => !!v && typeof v === 'object' && !isValidElement(v);
+
+export function PageHeader({ menu, title, create, selectors, filter, tools, views, counters, extra, aside, vendor, light }: PageHeaderProps) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => { if (ref.current) warnLayout(ref.current); });
+  const corner = (aside || vendor) && (
+    <div className="b24-page-header__aside">{aside}{vendor && <Vendor onDark={!light} {...vendor} />}</div>
+  );
+  return (
+    <header ref={ref} className={cx('b24-page-header', light && 'b24-page-header--light')}>
+      {menu?.length ? (
+        <div className="b24-page-header__nav">
+          <nav className="b24-topnav b24-page-header__menu" aria-label={t('Разделы')}>
+            {menu.map((it, i) => (
+              <a
+                key={i}
+                className="b24-topnav__item"
+                href={it.href ?? '#'}
+                aria-current={it.active ? 'page' : undefined}
+                onClick={it.onClick ? (e) => { e.preventDefault(); it.onClick!(); } : undefined}
+              >
+                {it.label}
+                {it.counter ? <Counter value={it.counter} /> : null}
+              </a>
+            ))}
+          </nav>
+          {corner}
+        </div>
+      ) : null}
+      <div className="b24-page-header__main">
+        <h1 className="b24-page-header__title">{title}</h1>
+        {create ? (
+          <div className="b24-page-header__create">
+            {isCreateProps(create)
+              ? (create.menu?.length
+                ? <SplitButton variant="success" icon="plus" menu={create.menu} onClick={create.onClick}>{create.label ?? t('Создать')}</SplitButton>
+                : <Button variant="success" icon="plus" onClick={create.onClick}>{create.label ?? t('Создать')}</Button>)
+              : create}
+          </div>
+        ) : null}
+        {selectors ? <div className="b24-page-header__selectors">{selectors}</div> : null}
+        {filter ? <div className="b24-page-header__filter">{filter}</div> : null}
+        {tools ? <div className="b24-page-header__tools">{tools}</div> : null}
+        {!menu?.length && corner}
+      </div>
+      {views || counters?.length || extra ? (
+        <div className="b24-page-header__sub">
+          {views ? <div className="b24-page-header__views"><Tabs variant={light ? 'pills' : 'glass'} aria-label={t('Вид')} {...views} /></div> : null}
+          {counters?.length ? (
+            <div className="b24-page-header__counters">
+              {counters.map((c, i) => (
+                <button key={i} type="button" className={cx('b24-btn b24-btn--sm', light ? 'b24-btn--secondary' : 'b24-btn--glass')} onClick={c.onClick}>
+                  <span className={cx('b24-counter', c.tone && `b24-counter--${c.tone}`, !c.count && !c.tone && 'b24-counter--gray')}>{c.count}</span>
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {extra ? <div className="b24-page-header__extra">{extra}</div> : null}
+        </div>
+      ) : null}
+    </header>
+  );
+}
+
 export interface ToolbarProps {
   title: ReactNode;
   /** кнопки слева от поиска (например, «Создать») */
   actions?: ReactNode;
   search?: ReactNode;
+  /** только служебное (кнопки-иконки, второстепенное); «Создать» и фильтр сюда не ставить */
   right?: ReactNode;
   /** вторая строка: вкладки-вью, быстрые фильтры */
   bottom?: ReactNode;
@@ -40,6 +150,7 @@ export interface ToolbarProps {
   /** блок разработчика — всегда последним справа (правило кита) */
   vendor?: VendorOptions;
 }
+/** @deprecated для шапки раздела используйте <PageHeader>: в нём основную кнопку нельзя поставить справа */
 export function Toolbar({ title, actions, search, right, bottom, glass, vendor }: ToolbarProps) {
   return (
     <div className={cx('b24-toolbar', glass && 'b24-toolbar--glass')}>

@@ -2,8 +2,8 @@ import { StrictMode, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../src/styles/index.css';
 import {
-  B24Provider, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, Toolbar,
-  Button, SplitButton, Tabs, DataTable, Pagination, Badge, User, StageMini, Stages,
+  B24Provider, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, PageHeader,
+  Button, DataTable, Pagination, Badge, User, StageMini, Stages,
   SidePanel, Modal, Dropdown, Card, SectionTitle, Props, Field, Input, Select, Textarea, Switch,
   Alert, Stat, Kpi, Chart, toast, confirm, type Column, type Stage,
   Filter, emptyFilterState, Kanban, KanbanCard, applyKanbanMove, DatePicker, DateRangePicker, resolvePeriod, parseDate,
@@ -157,23 +157,18 @@ function DealsPage() {
 
   return (
     <div className="b24-stack" style={{ ['--b24-gap' as string]: '16px' }}>
-      <Toolbar
+      <PageHeader
         title="Сделки"
-        actions={
-          <SplitButton
-            icon="plus"
-            onClick={() => setCreateOpen(true)}
-            menu={[
-              { label: 'Сделку', icon: 'deal', onClick: () => setCreateOpen(true) },
-              { label: 'Из шаблона', icon: 'copy' },
-              { type: 'divider' },
-              { label: 'Импорт', icon: 'upload', hint: 'CSV' },
-            ]}
-          >
-            Создать
-          </SplitButton>
-        }
-        search={
+        create={{
+          onClick: () => setCreateOpen(true),
+          menu: [
+            { label: 'Сделку', icon: 'deal', onClick: () => setCreateOpen(true) },
+            { label: 'Из шаблона', icon: 'copy' },
+            { type: 'divider' },
+            { label: 'Импорт', icon: 'upload', hint: 'CSV' },
+          ],
+        }}
+        filter={
           <Filter
             glass
             fields={FILTER_FIELDS}
@@ -183,7 +178,7 @@ function DealsPage() {
             onChange={(st, rest) => { setFilter(st); setRestFilter(rest); setPage(1); }}
           />
         }
-        right={
+        tools={
           <Dropdown
             placement="bottom-end"
             trigger={<Button variant="glass" iconOnly icon="settings" aria-label="Настройки" />}
@@ -196,14 +191,13 @@ function DealsPage() {
             ]}
           />
         }
-        bottom={
-          <>
-            <Tabs variant="glass" value={view} onChange={setView} items={[
-              { id: 'kanban', label: 'Канбан' }, { id: 'list', label: 'Список' }, { id: 'activity', label: 'Дела' }, { id: 'calendar', label: 'Календарь' },
-            ]} />
-            <Button variant="glass" size="sm">Входящие <span className="b24-counter b24-counter--success">23</span></Button>
-          </>
-        }
+        views={{
+          value: view, onChange: setView, items: [
+            { id: 'kanban', label: 'Канбан' }, { id: 'list', label: 'Список' }, { id: 'activity', label: 'Дела' }, { id: 'calendar', label: 'Календарь' },
+          ],
+        }}
+        counters={[{ label: 'Входящие', count: 23, tone: 'success' }, { label: 'Запланированные', count: 0 }]}
+        extra={<Button variant="glass" size="sm">Роботы</Button>}
       />
 
       {view === 'list' ? (

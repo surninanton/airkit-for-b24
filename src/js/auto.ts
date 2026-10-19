@@ -21,6 +21,7 @@ import { initCheckGroup, initColors, initRange, initSecret } from './controls';
 import { copyText } from './logs';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 import { t } from './i18n';
+import { warnLayout } from './page-header';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -69,6 +70,7 @@ import { t } from './i18n';
  *   table[data-b24-grid="ключ"]    — грид: ширина/порядок/видимость столбцов th[data-key] (сохраняются), меню ☰ строк,
  *                                    групповые действия; JSON-конфиг GridOptions в <script> внутри .b24-table-wrap
  *                                    или data-b24-grid-config="#id"; data-resizable / data-reorderable / data-settings="false"
+ * В конце init() проверяет компоновку шапки (checkLayout): основная кнопка или фильтр справа — console.warn.
  * Повторный вызов безопасен.
  */
 export function init(root: ParentNode = document): void {
@@ -308,6 +310,9 @@ export function init(root: ParentNode = document): void {
     el.dataset.b24Ready = '1';
     initThemeSwitch(el);
   });
+
+  // правила компоновки шапки (dist/AGENTS.md): замечания в консоль; <html data-b24-layout-check="off"> — выключить
+  if (document.documentElement.dataset.b24LayoutCheck !== 'off') warnLayout(root);
 }
 
 /** data-min / data-max: дата или «today» */

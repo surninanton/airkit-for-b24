@@ -1,0 +1,64 @@
+/* ── Шапка раздела ───────────────────────────────────────
+ * Компоновка как в разделах портала (CRM, Задачи). Порядок задан здесь, переставить слоты разметкой нельзя:
+ *
+ * .b24-page-header [--light]
+ *   .b24-page-header__nav      меню раздела (.b24-topnav)                          ……  __aside (блок разработчика)
+ *   .b24-page-header__main     __title · __create · __selectors · __filter        ……  __tools (кнопки-иконки)
+ *   .b24-page-header__sub      __views · __counters                                ……  __extra (второстепенное, «•••»)
+ *
+ * Основная кнопка («Создать») — только в __create, сразу после заголовка. Справа — только служебное.
+ * Без строки меню __aside встаёт последним в __main.
+ */
+.b24-page-header { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.b24-page-header__nav,
+.b24-page-header__main,
+.b24-page-header__sub { display: flex; align-items: center; flex-wrap: wrap; gap: var(--b24-space-xs); min-width: 0; }
+.b24-page-header__main { gap: var(--b24-space-xs) 10px; min-height: var(--b24-size-md); }
+.b24-page-header__nav { margin-bottom: 4px; }
+
+/* меню раздела */
+.b24-page-header__menu { order: 1; flex: 1 1 auto; overflow-x: auto; scrollbar-width: none; }
+.b24-page-header__menu::-webkit-scrollbar { display: none; }
+.b24-page-header__menu .b24-topnav__item { flex: 0 0 auto; }
+.b24-page-header__menu .b24-topnav__item > .b24-counter { position: static; }
+
+/* строка 1 */
+.b24-page-header__title {
+  order: 1;
+  margin: 0 6px 0 0;
+  font-size: var(--b24-font-size-4xl);
+  font-weight: var(--b24-font-weight-medium);
+  line-height: 34px;
+  color: var(--b24-glass-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.b24-page-header__create { order: 2; display: inline-flex; gap: var(--b24-space-xs); }
+.b24-page-header__selectors { order: 3; display: inline-flex; flex-wrap: wrap; gap: var(--b24-space-xs); }
+.b24-page-header__filter { order: 4; flex: 1 1 240px; max-width: 560px; min-width: 0; }
+.b24-page-header__tools { order: 5; margin-left: auto; display: inline-flex; gap: var(--b24-space-xs); }
+
+/* строка 2 */
+.b24-page-header__views { order: 1; display: inline-flex; }
+.b24-page-header__counters { order: 2; display: inline-flex; flex-wrap: wrap; gap: var(--b24-space-xs); }
+.b24-page-header__extra { order: 3; margin-left: auto; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--b24-space-xs); }
+
+/* служебный угол: блок разработчика, сведения о портале */
+.b24-page-header__aside { order: 9; margin-left: auto; display: inline-flex; align-items: center; gap: var(--b24-space-sm); color: var(--b24-glass-text-secondary); font-size: var(--b24-font-size-sm); }
+.b24-page-header__main:has(> .b24-page-header__tools) > .b24-page-header__aside { margin-left: 0; }
+
+/* на светлом фоне (без Air-подложки) */
+.b24-page-header--light .b24-page-header__title { color: var(--b24-text-primary); }
+.b24-page-header--light .b24-page-header__aside { color: var(--b24-text-secondary); }
+.b24-page-header--light .b24-topnav__item { color: var(--b24-text-secondary); }
+.b24-page-header--light .b24-topnav__item:hover { color: var(--b24-text-primary); background: var(--b24-btn-neutral-bg); }
+.b24-page-header--light .b24-topnav__item[aria-current="page"],
+.b24-page-header--light .b24-topnav__item.is-active { color: var(--b24-text-primary); background: var(--b24-btn-neutral-bg); }
+
+@media (max-width: 768px) {
+  .b24-page-header__title { font-size: var(--b24-font-size-2xl); line-height: 30px; }
+  .b24-page-header__filter { order: 6; flex-basis: 100%; max-width: none; }
+  .b24-page-header__views { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+}

@@ -17,17 +17,57 @@
 <div class="b24-app b24-app--air">
   <div class="b24-page" style="--b24-page-max: 1200px">
 
-    <!-- Toolbar -->
-    <div class="b24-toolbar">
-      <div class="b24-toolbar__row">
-        <h1 class="b24-toolbar__title">B24 UI</h1>
-        <div class="b24-btn-split">
-          <button class="b24-btn b24-btn--success" id="create-btn"><span>Создать</span></button>
-          <button class="b24-btn b24-btn--success" data-b24-dropdown="#create-menu" aria-label="Ещё">
+    <!-- Шапка раздела: меню раздела → заголовок · «Создать» · селекторы · фильтр → вид · счётчики -->
+    <header class="b24-page-header">
+      <div class="b24-page-header__nav">
+        <nav class="b24-topnav b24-page-header__menu" aria-label="Разделы">
+          <a class="b24-topnav__item" href="#" aria-current="page">Сделки</a>
+          <a class="b24-topnav__item" href="#">Клиенты</a>
+          <a class="b24-topnav__item" href="#">Товары</a>
+          <a class="b24-topnav__item" href="#">Аналитика <span class="b24-counter">2</span></a>
+          <a class="b24-topnav__item" href="#">Настройки</a>
+        </nav>
+        <div class="b24-page-header__aside">
+          <div class="b24-tabs b24-tabs--pills b24-tabs--glass" id="theme-tabs">
+            <button class="b24-tabs__item is-active" data-theme="light">Светлая</button>
+            <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
+          </div>
+          <select class="b24-select b24-select--sm" id="air-select" style="width:130px" aria-label="Фон">
+            <option value="blue">Air: синий</option>
+            <option value="violet">Air: фиолет</option>
+            <option value="teal">Air: бирюза</option>
+            <option value="graphite">Air: графит</option>
+          </select>
+          <span data-b24-vendor data-counter="3">
+            <script type="application/json">
+            { "name": "Кедр Софт", "logo": "vendor-logo.svg", "logoOnDark": "vendor-logo-on-dark.svg", "icon": "vendor-icon.svg",
+              "app": { "name": "Планировщик", "version": "1.4.0" },
+              "links": { "support": "https://example.com/support", "newTicket": "https://example.com/support/new",
+                         "privacy": "https://example.com/privacy", "contacts": "https://example.com/contacts",
+                         "site": "https://example.com", "marketplace": "https://example.com/market" } }
+            </script>
+          </span>
+        </div>
+      </div>
+      <div class="b24-page-header__main">
+        <h1 class="b24-page-header__title">B24 UI</h1>
+        <div class="b24-page-header__create">
+          <div class="b24-btn-split">
+            <button class="b24-btn b24-btn--success" id="create-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Создать</span>
+            </button>
+            <button class="b24-btn b24-btn--success" data-b24-dropdown="#create-menu" aria-label="Ещё">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="b24-page-header__selectors">
+          <button class="b24-btn b24-btn--glass">Общая воронка
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
           </button>
         </div>
-        <div class="b24-toolbar__search">
+        <div class="b24-page-header__filter">
           <div id="demo-filter" data-b24-filter>
             <script type="application/json">
             {
@@ -50,45 +90,30 @@
             </script>
           </div>
         </div>
-        <div class="b24-toolbar__right">
-          <div class="b24-tabs b24-tabs--pills b24-tabs--glass" id="theme-tabs">
-            <button class="b24-tabs__item is-active" data-theme="light">Светлая</button>
-            <button class="b24-tabs__item" data-theme="dark">Тёмная</button>
-          </div>
-          <select class="b24-select b24-select--sm" id="air-select" style="width:130px" aria-label="Фон">
-            <option value="blue">Air: синий</option>
-            <option value="violet">Air: фиолет</option>
-            <option value="teal">Air: бирюза</option>
-            <option value="graphite">Air: графит</option>
-          </select>
-          <span data-b24-vendor data-counter="3">
-            <script type="application/json">
-            { "name": "Кедр Софт", "logo": "vendor-logo.svg", "logoOnDark": "vendor-logo-on-dark.svg", "icon": "vendor-icon.svg",
-              "app": { "name": "Планировщик", "version": "1.4.0" },
-              "links": { "support": "https://example.com/support", "newTicket": "https://example.com/support/new",
-                         "privacy": "https://example.com/privacy", "contacts": "https://example.com/contacts",
-                         "site": "https://example.com", "marketplace": "https://example.com/market" } }
-            </script>
-          </span>
-        </div>
-      </div>
-      <div class="b24-toolbar__row">
-        <div class="b24-tabs b24-tabs--pills b24-tabs--glass">
-          <button class="b24-tabs__item">Канбан</button>
-          <button class="b24-tabs__item is-active">Список</button>
-          <button class="b24-tabs__item">Дела</button>
-          <button class="b24-tabs__item">Календарь</button>
-        </div>
-        <button class="b24-btn b24-btn--glass b24-btn--sm"><span class="b24-counter b24-counter--success">23</span> Входящие</button>
-        <button class="b24-btn b24-btn--glass b24-btn--sm"><span class="b24-counter">1</span> Запланированные</button>
-        <div class="b24-toolbar__right">
-          <button class="b24-btn b24-btn--glass b24-btn--sm">Роботы</button>
-          <button class="b24-btn b24-btn--glass b24-btn--sm b24-btn--icon" aria-label="Настройки" data-b24-tooltip="Настройки" data-b24-tooltip-pos="bottom">
+        <div class="b24-page-header__tools">
+          <button class="b24-btn b24-btn--glass b24-btn--icon" aria-label="Настройки" data-b24-tooltip="Настройки" data-b24-tooltip-pos="bottom">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/></svg>
           </button>
         </div>
       </div>
-    </div>
+      <div class="b24-page-header__sub">
+        <div class="b24-page-header__views">
+          <div class="b24-tabs b24-tabs--pills b24-tabs--glass">
+            <button class="b24-tabs__item">Канбан</button>
+            <button class="b24-tabs__item is-active">Список</button>
+            <button class="b24-tabs__item">Дела</button>
+            <button class="b24-tabs__item">Календарь</button>
+          </div>
+        </div>
+        <div class="b24-page-header__counters">
+          <button class="b24-btn b24-btn--glass b24-btn--sm"><span class="b24-counter b24-counter--success">23</span> Входящие</button>
+          <button class="b24-btn b24-btn--glass b24-btn--sm"><span class="b24-counter">1</span> Запланированные</button>
+        </div>
+        <div class="b24-page-header__extra">
+          <button class="b24-btn b24-btn--glass b24-btn--sm">Роботы</button>
+        </div>
+      </div>
+    </header>
 
     <div class="b24-popup" id="create-menu" hidden>
       <div class="b24-menu">
@@ -101,6 +126,12 @@
         <button class="b24-menu__item b24-menu__item--danger">Удалить всё</button>
       </div>
     </div>
+
+    <!-- Шапка раздела приложения: createPageHeader -->
+    <section class="b24-stack" id="page-header-demo">
+      <h2 class="b24-h3" style="color:#fff">Шапка раздела <span class="b24-text-sm" style="opacity:.7;font-weight:400">— createPageHeader: страницы приложения → заголовок · «Создать» · селектор → вид. Правила — dist/AGENTS.md</span></h2>
+      <div id="demo-app-header" style="padding:16px;border-radius:var(--b24-radius-lg);background:rgba(0,0,0,.12)"></div>
+    </section>
 
     <!-- Buttons -->
     <section class="b24-card demo-section">
@@ -368,7 +399,7 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
     <section class="b24-card">
       <div class="b24-card__header"><h2 class="b24-card__title">Фильтр</h2><span class="b24-card__subtitle">&nbsp;data-b24-filter + JSON-конфиг → REST-фильтр</span></div>
       <div class="b24-card__body b24-stack">
-        <p class="b24-text-sm" style="margin:0">Фильтр стоит в тулбаре вверху страницы, как в разделах портала: <code>&lt;div class="b24-toolbar__search"&gt;&lt;div data-b24-filter&gt;…</code>. Ширину задаёт контейнер — в тулбаре это <code>.b24-toolbar__search</code> (до 560px).</p>
+        <p class="b24-text-sm" style="margin:0">Фильтр стоит в шапке раздела вверху страницы, как в портале: после «Создать» и селекторов, <code>&lt;div class="b24-page-header__filter"&gt;&lt;div data-b24-filter&gt;…</code>. Ширину задаёт контейнер — в шапке это <code>.b24-page-header__filter</code> (до 560px).</p>
         <pre class="demo-code" id="filter-output">Нажмите «Найти» — здесь появится filter для REST (crm.deal.list)</pre>
       </div>
     </section>
@@ -702,6 +733,23 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
 
 <script type="module">
   import * as B24UI from '../src/js/global.ts';
+
+  // шапка раздела приложения: вкладки приложения — меню раздела, под ним заголовок и «Создать»
+  const appHeader = B24UI.createPageHeader(document.getElementById('demo-app-header'), {
+    menu: [
+      { label: 'Обзор', value: 'overview', onClick: () => appHeader.setTitle('Обзор') },
+      { label: 'Действия', value: 'actions', onClick: () => appHeader.setTitle('Действия') },
+      { label: 'Журнал приложения', value: 'log', counter: 11, onClick: () => appHeader.setTitle('Журнал приложения') },
+      { label: 'Поддержка', value: 'support', active: true, onClick: () => appHeader.setTitle('Обращения портала') },
+    ],
+    title: 'Обращения портала',
+    create: { onClick: () => B24UI.toast('Новое обращение') },
+    selectors: [B24UI.html('<button type="button" class="b24-btn b24-btn--glass">Все обращения <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>')],
+    tools: [B24UI.html('<button type="button" class="b24-btn b24-btn--glass b24-btn--icon" aria-label="Настройки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/></svg></button>')],
+    views: { items: [{ value: 'list', label: 'Список' }, { value: 'board', label: 'Доска' }], value: 'list' },
+    counters: [{ label: 'Без ответа', value: 'open', count: 2, tone: 'danger' }, { label: 'Мои', value: 'mine', count: 0 }],
+    aside: ['datanika.bitrix24.ru'],
+  });
 
   document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
 
