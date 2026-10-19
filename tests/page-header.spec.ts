@@ -76,4 +76,31 @@ test.describe('шапка раздела', () => {
     expect(found.some((m) => m.includes('«Добавить»') && m.includes('после фильтра'))).toBe(true);
     await expect.poll(() => warned.length).toBe(4);
   });
+
+  test('меню раздела из вкладок на одной странице: кнопки без оформления браузера, панели переключаются', async ({ page }) => {
+    await open(page, '/index.html');
+    const res = await page.evaluate(async () => {
+      const B24UI = (window as unknown as { B24UI: typeof import('../src/js/index') }).B24UI;
+      const box = document.createElement('div');
+      box.setAttribute('data-b24-tabs-scope', '');
+      box.innerHTML = '<div id="ph"></div><div data-b24-tab-panel="overview">О</div><div data-b24-tab-panel="support">П</div>';
+      document.querySelector('.b24-page')!.append(box);
+      const ph = B24UI.createPageHeader(box.querySelector('#ph') as HTMLElement, {
+        menu: [{ label: 'Обзор', tab: 'overview' }, { label: 'Поддержка', tab: 'support', active: true }],
+        title: 'Поддержка',
+      });
+      const panels = () => [...box.querySelectorAll<HTMLElement>('[data-b24-tab-panel]')].map((p) => p.hidden);
+      const btn = box.querySelectorAll<HTMLElement>('button.b24-topnav__item');
+      const style = (el: HTMLElement) => { const c = getComputedStyle(el); return [c.backgroundColor, c.borderTopWidth]; };
+      const start = { panels: panels(), inactive: style(btn[0]), active: style(btn[1]) };
+      ph.setMenu('overview');
+      const after = { panels: panels(), selected: btn[0].getAttribute('aria-selected') };
+      box.remove();
+      return { start, after };
+    });
+    expect(res.start.panels).toEqual([true, false]);
+    expect(res.start.inactive).toEqual(['rgba(0, 0, 0, 0)', '0px']);
+    expect(res.start.active[0]).not.toBe('rgba(0, 0, 0, 0)');
+    expect(res.after).toEqual({ panels: [false, true], selected: 'true' });
+  });
 });

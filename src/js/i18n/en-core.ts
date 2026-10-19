@@ -99,6 +99,7 @@ export const enCore: Record<string, string> = {
   'Новое обращение': 'New ticket',
   'Политика конфиденциальности': 'Privacy policy',
   'Контакты': 'Contacts',
+  'Лицензионное соглашение': 'License agreement',
   'Сайт разработчика': 'Developer website',
   'Приложение в Маркетплейсе': 'App on Marketplace',
   'Непрочитанных ответов: {n}': 'Unread replies: {n}',

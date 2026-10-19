@@ -18,7 +18,7 @@ export function Vendor(props: VendorOptions) {
     const L = props.links;
     const v = vendor.current = createVendor(host.current, {
       ...props,
-      links: { support: wrap(L.support), newTicket: wrap(L.newTicket), privacy: wrap(L.privacy), contacts: wrap(L.contacts), site: wrap(L.site), marketplace: wrap(L.marketplace) },
+      links: { support: wrap(L.support), newTicket: wrap(L.newTicket), privacy: wrap(L.privacy), license: wrap(L.license), contacts: wrap(L.contacts), site: wrap(L.site), marketplace: wrap(L.marketplace) },
     });
     return () => { v.destroy(); vendor.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

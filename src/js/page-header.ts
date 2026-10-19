@@ -3,6 +3,7 @@ import { append, h, html, type Content } from './dom';
 import { dropdown, type DropdownHandle } from './dropdown';
 import { createFilter, type FilterHandle, type FilterOptions } from './filter';
 import { t } from './i18n';
+import { initTabs } from './tabs';
 import { createVendor, type VendorHandle, type VendorOptions } from './vendor';
 
 /* ── Шапка раздела ─────────────────────────────────────────
@@ -12,9 +13,11 @@ import { createVendor, type VendorHandle, type VendorOptions } from './vendor';
  */
 export interface PageHeaderMenuItem {
   label: string;
-  /** ключ пункта для setMenu(); по умолчанию — href или label */
+  /** ключ пункта для setMenu(); по умолчанию — tab, href или label */
   value?: string;
   href?: string;
+  /** вкладка на этой же странице: кнопка [data-b24-tab], панели [data-b24-tab-panel] переключает initTabs */
+  tab?: string;
   active?: boolean;
   counter?: number;
   onClick?: () => void;
@@ -93,21 +96,30 @@ export function createPageHeader(host: HTMLElement, options: PageHeaderOptions):
   const hasNav = !!o.menu?.length;
   const nav = hasNav ? slot('nav', root) : null;
   const main = slot('main', root);
-  const menuKey = (m: PageHeaderMenuItem) => m.value ?? m.href ?? m.label;
-  const menuLinks: Array<[string, HTMLAnchorElement]> = [];
+  const menuKey = (m: PageHeaderMenuItem) => m.value ?? m.tab ?? m.href ?? m.label;
+  const menuLinks: Array<[string, HTMLElement, PageHeaderMenuItem]> = [];
+  let tabsMenu: HTMLElement | null = null;
   if (nav && o.menu) {
     const menu = slot('menu', nav, 'nav');
     menu.classList.add('b24-topnav');
     menu.setAttribute('aria-label', t('Разделы'));
     for (const m of o.menu) {
-      const a = h('a', { class: 'b24-topnav__item', href: m.href ?? '#', 'aria-current': m.active ? 'page' : undefined }, m.label);
+      // ссылка — переход; кнопка — вкладка на странице (tab) или обработчик без href
+      const a = m.tab || (m.onClick && !m.href)
+        ? h('button', { type: 'button', class: 'b24-topnav__item', 'data-b24-tab': m.tab, 'aria-selected': m.tab ? String(!!m.active) : undefined, 'aria-current': !m.tab && m.active ? 'page' : undefined }, m.label)
+        : h('a', { class: 'b24-topnav__item', href: m.href ?? '#', 'aria-current': m.active ? 'page' : undefined }, m.label);
       if (m.counter) a.append(h('span', { class: 'b24-counter' }, String(m.counter)));
-      if (m.onClick) a.addEventListener('click', (e) => { e.preventDefault(); setMenu(menuKey(m)); m.onClick!(); });
-      menuLinks.push([menuKey(m), a]);
+      if (m.onClick) a.addEventListener('click', (e) => { if (!m.tab) { e.preventDefault(); setMenu(menuKey(m)); } m.onClick!(); });
+      menuLinks.push([menuKey(m), a, m]);
       menu.append(a);
     }
+    if (o.menu.some((m) => m.tab)) { menu.setAttribute('data-b24-tabs', ''); tabsMenu = menu; }
   }
-  const setMenu = (value: string) => menuLinks.forEach(([k, a]) => { if (k === value) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const setMenu = (value: string) => {
+    const hit = menuLinks.find(([k]) => k === value);
+    if (hit?.[2].tab) { hit[1].click(); return; } // вкладка: initTabs переключит панели
+    menuLinks.forEach(([k, a, m]) => { if (m.tab) return; if (k === value) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  };
 
   /* строка 1 */
   const title = slot('title', main, 'h1');
@@ -193,6 +205,7 @@ export function createPageHeader(host: HTMLElement, options: PageHeaderOptions):
   const setView = (value: string) => viewButtons.forEach(([k, b]) => b.setAttribute('aria-selected', String(k === value)));
 
   host.append(root);
+  if (tabsMenu) initTabs(tabsMenu);
 
   return {
     element: root,

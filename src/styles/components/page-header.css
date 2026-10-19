@@ -55,6 +55,7 @@
 .b24-page-header--light .b24-topnav__item { color: var(--b24-text-secondary); }
 .b24-page-header--light .b24-topnav__item:hover { color: var(--b24-text-primary); background: var(--b24-btn-neutral-bg); }
 .b24-page-header--light .b24-topnav__item[aria-current="page"],
+.b24-page-header--light .b24-topnav__item[aria-selected="true"],
 .b24-page-header--light .b24-topnav__item.is-active { color: var(--b24-text-primary); background: var(--b24-btn-neutral-bg); }
 
 @media (max-width: 768px) {

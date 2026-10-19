@@ -58,7 +58,7 @@ const header = createPageHeader(document.getElementById('header'), {
   counters: [{ label: 'Без ответа', value: 'open', count: 2, tone: 'danger' }],
   extra: [robotsButton],
   aside: ['datanika.bitrix24.ru'],
-  vendor: { name: 'Кедр Софт', links: { support, privacy, contacts } },
+  vendor: { name: 'Кедр Софт', links: { support, privacy, license } },
 });
 header.setMenu('#/log'); header.setTitle('Журнал'); header.setView('board'); header.setCounter('open', 0);
 header.filter;   // FilterHandle
@@ -79,6 +79,14 @@ header.slots;    // контейнеры слотов: create, selectors, filter
   vendor={vendor}
 />
 ```
+
+Вкладки на одной странице (панели `[data-b24-tab-panel]`, без перезагрузки): пункт меню с `tab` — это кнопка `[data-b24-tab]`, её переключает `initTabs`; `setMenu('support')` переключает и панели.
+
+```js
+createPageHeader(host, { menu: [{ label: 'Обзор', tab: 'overview' }, { label: 'Поддержка', tab: 'support', active: true }], title: 'Обращения портала', … });
+```
+
+Разметкой: `<nav class="b24-topnav b24-page-header__menu" data-b24-tabs><button type="button" class="b24-topnav__item" data-b24-tab="overview" aria-selected="true">Обзор</button>…</nav>` — оформление кнопок кит сбрасывает сам, активный пункт — по `aria-selected` / `aria-current` / `.is-active`.
 
 Разметкой (PHP/Jinja):
 
@@ -119,6 +127,6 @@ header.slots;    // контейнеры слотов: create, selectors, filter
 
 ## 4. Остальные правила кита
 
-- **Блок разработчика** есть в каждом приложении: правый конец верхней строки, последним (`vendor` у шапки). Обязательно: название, поддержка, политика конфиденциальности, контакты.
+- **Блок разработчика** есть в каждом приложении: правый конец верхней строки, последним (`vendor` у шапки). Обязательно: название, поддержка, политика конфиденциальности — в `links.privacy`, не в `extra`. По желанию: `license` (лицензионное соглашение, встаёт рядом с политикой), `contacts`.
 - **Подвал** «Сделано на airkit-for-b24» (`creditHtml()` / `<Credit>`) — просьба автора, не требование лицензии; если он уже стоит, не убирайте.
 - **Имена в примерах и демо** — вымышленные.

@@ -126,7 +126,10 @@
   transition: background-color var(--b24-duration-fast), color var(--b24-duration-fast);
 }
 .b24-topnav__item:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+/* пункт-кнопка (вкладки на одной странице: data-b24-tab) — без оформления браузера */
+button.b24-topnav__item { appearance: none; margin: 0; border: 0; background: transparent; font: inherit; font-size: var(--b24-font-size-md); }
 .b24-topnav__item[aria-current="page"],
+.b24-topnav__item[aria-selected="true"],
 .b24-topnav__item.is-active { color: #fff; background: rgba(255, 255, 255, 0.22); }
 .b24-topnav__item > .b24-counter { position: absolute; top: -7px; right: -4px; }
 

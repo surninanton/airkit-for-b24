@@ -85,7 +85,13 @@ export function PageHeader({ menu, title, create, selectors, filter, tools, view
       {menu?.length ? (
         <div className="b24-page-header__nav">
           <nav className="b24-topnav b24-page-header__menu" aria-label={t('Разделы')}>
-            {menu.map((it, i) => (
+            {menu.map((it, i) => (!it.href && it.onClick ? (
+              // вкладка на этой же странице — кнопка
+              <button key={i} type="button" className="b24-topnav__item" aria-current={it.active ? 'page' : undefined} onClick={it.onClick}>
+                {it.label}
+                {it.counter ? <Counter value={it.counter} /> : null}
+              </button>
+            ) : (
               <a
                 key={i}
                 className="b24-topnav__item"
@@ -96,7 +102,7 @@ export function PageHeader({ menu, title, create, selectors, filter, tools, view
                 {it.label}
                 {it.counter ? <Counter value={it.counter} /> : null}
               </a>
-            ))}
+            )))}
           </nav>
           {corner}
         </div>

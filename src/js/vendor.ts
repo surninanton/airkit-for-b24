@@ -13,7 +13,7 @@ import { t } from './i18n';
  *    на узких экранах остаётся только иконка;
  *  - по клику — меню: Поддержка (обращения / новое), Политика конфиденциальности, Контакты,
  *    Сайт разработчика, Страница в Маркетплейсе.
- *  Обязательно: название, поддержка, политика конфиденциальности, контакты.
+ *  Обязательно: название, поддержка, политика конфиденциальности. По желанию: лицензионное соглашение, контакты.
  */
 
 /** URL (откроется в новой вкладке) или обработчик (например, открыть слайдер с обращениями). */
@@ -34,7 +34,9 @@ export interface VendorOptions {
     newTicket?: VendorLink;
     /** обязательно */
     privacy?: VendorLink;
-    /** обязательно */
+    /** «Лицензионное соглашение» — рядом с политикой */
+    license?: VendorLink;
+    /** по желанию: связь и так есть через поддержку */
     contacts?: VendorLink;
     site?: VendorLink;
     marketplace?: VendorLink;
@@ -75,7 +77,6 @@ export function checkVendor(o: Partial<VendorOptions>): string[] {
   if (!o.name) problems.push('не указано название разработчика (name)');
   if (!o.links?.support && !o.links?.newTicket) problems.push('нет ссылки на поддержку (links.support или links.newTicket)');
   if (!o.links?.privacy) problems.push('нет политики конфиденциальности (links.privacy)');
-  if (!o.links?.contacts) problems.push('нет контактов (links.contacts)');
   if (problems.length) console.warn(`[airkit-for-b24] блок разработчика не соответствует правилу кита: ${problems.join('; ')}`);
   return problems;
 }
@@ -139,6 +140,7 @@ export function createVendor(container: HTMLElement, options: VendorOptions): Ve
     menu.append(h('div', { class: 'b24-menu__divider' }));
   }
   if (L.privacy) menu.append(menuItem(t('Политика конфиденциальности'), L.privacy, 'shield', false, so));
+  if (L.license) menu.append(menuItem(t('Лицензионное соглашение'), L.license, 'file', false, so));
   if (L.contacts) menu.append(menuItem(t('Контакты'), L.contacts, 'phone', false, so));
   if (L.site || L.marketplace || options.extra?.length) menu.append(h('div', { class: 'b24-menu__divider' }));
   if (L.site) menu.append(menuItem(t('Сайт разработчика'), L.site, 'link', true, so));

@@ -1,6 +1,6 @@
 {
   "name": "airkit-for-b24",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Неофициальный UI-кит в стиле Битрикс24 (Air): CSS-токены, vanilla JS и React-компоненты для приложений Битрикс24",
   "author": "Anton Surnin",
   "repository": {
