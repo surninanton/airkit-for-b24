@@ -13,7 +13,7 @@ UI — на airkit-for-b24 по правилам из <путь до кита>/d
 Каждая страница приложения начинается с шапки раздела. Она устроена как разделы самого портала (CRM, Задачи):
 
 ```
-[Обзор] [Действия] [Журнал 11] [Поддержка]                         datanika.bitrix24.ru  [Разработчик ▾]   ← меню раздела · служебный угол
+[Обзор] [Действия] [Журнал 11] [Поддержка]                         example.bitrix24.ru  [Разработчик ▾]   ← меню раздела · служебный угол
 Обращения портала  [+ Создать ▾]  [Все роли ▾]  [фильтр и поиск ………]                              [⚙] [⚡]   ← заголовок · создать · селекторы · фильтр · tools
 [Список|Сроки|Календарь]  [0 Просрочены] [2 Без ответа]                                 [Роботы] [••• ▾]   ← вид · счётчики · extra
 ```
@@ -57,7 +57,7 @@ const header = createPageHeader(document.getElementById('header'), {
   views: { items: [{ value: 'list', label: 'Список' }, { value: 'board', label: 'Доска' }], value: 'list', onChange },
   counters: [{ label: 'Без ответа', value: 'open', count: 2, tone: 'danger' }],
   extra: [robotsButton],
-  aside: ['datanika.bitrix24.ru'],
+  aside: ['example.bitrix24.ru'],
   vendor: { name: 'Кедр Софт', links: { support, privacy, license } },
 });
 header.setMenu('#/log'); header.setTitle('Журнал'); header.setView('board'); header.setCounter('open', 0);

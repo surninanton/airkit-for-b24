@@ -5,3 +5,5 @@ dist
 dist-demo
 test-results/
 playwright-report/
+*.iml
+.idea/

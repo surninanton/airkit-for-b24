@@ -131,7 +131,7 @@ npm run build    # dist/: b24ui.css, b24ui.min.css, tokens.css, b24ui.js (IIFE),
 npm test         # сайт, экраны, редакторы, элементы управления и компоненты приложения на 1280 и 390px
 ```
 
-Изменения по версиям — в [CHANGELOG.md](CHANGELOG.md), планы — в [BACKLOG.md](BACKLOG.md).
+Изменения по версиям — в [CHANGELOG.md](CHANGELOG.md).
 
 ## PHP / серверные шаблоны
 
