@@ -80,6 +80,13 @@
               <label class="b24-colors__swatch" style="--c:#a77bde"><input type="radio" name="color" value="#a77bde" aria-label="Фиолетовый"></label>
               <label class="b24-colors__custom" title="Свой цвет"><input type="color" value="#e66f9b"></label>
             </div></div>
+          <div class="b24-field"><span class="b24-field__label" id="rating-label">Оценка ответа поддержки</span>
+            <div class="b24-row" style="--b24-gap: var(--b24-space-md)">
+              <div id="demo-rating" data-b24-rating data-name="rating" data-value="0" data-max="5" data-label="Оценка ответа поддержки"></div>
+              <span class="b24-text-sm b24-text-secondary" id="rating-out">Не оценено</span>
+            </div></div>
+          <div class="b24-field"><span class="b24-field__label">Только показ</span>
+            <div class="b24-row"><div data-b24-rating data-value="4" data-readonly data-size="sm"></div><span class="b24-text-sm b24-text-secondary">4 из 5</span></div></div>
         </div>
       </div>
     </section>
@@ -139,6 +146,7 @@
 </div>
 <script type="module">
   import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-rating').addEventListener('b24:rating-change', (e) => { document.getElementById('rating-out').textContent = e.detail.value ? `Оценка: ${e.detail.value}` : 'Не оценено'; });
   document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
   document.getElementById('theme-tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-theme]'); if (!b) return;

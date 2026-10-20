@@ -30,8 +30,8 @@ export { KeyValueEditor, FieldMapper, LogViewer, CodeBlock, JsonView, type KeyVa
 export type { LogEntry, LogLevel, LogPage } from '../js/logs';
 export type { FieldMapping, FieldTransform, UpdateRule, KeyValuePair, ComboItem } from '../js/index';
 export {
-  Accordion, AccordionItem, RadioCards, CheckGroup, Segmented, Range, RangePair, ColorPicker, B24_COLORS, SecretInput, Tree,
-  type RadioCardOption, type CheckGroupOption, type TreeProps, type TreeItem,
+  Accordion, AccordionItem, RadioCards, CheckGroup, Segmented, Range, RangePair, ColorPicker, B24_COLORS, SecretInput, Tree, Rating,
+  type RadioCardOption, type CheckGroupOption, type TreeProps, type TreeItem, type RatingProps,
 } from './Controls';
 export { Credit } from './Credit';
 export { Vendor, type VendorOptions } from './Vendor';

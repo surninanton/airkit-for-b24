@@ -26,6 +26,9 @@ import { intlLocale, t } from './i18n';
  *
  * Столбцы с data-key можно перетаскивать, менять ширину (двойной клик по ручке — по содержимому),
  * скрывать через ⚙. Состояние хранится в localStorage под ключом data-b24-grid.
+ * Открытие записи кликом по строке: tr[data-href] (Ctrl/⌘ или средняя кнопка — новая вкладка) или для всех строк —
+ * rowOpen: true / onRowOpen / table[data-row-open]. Клики по ссылкам, кнопкам, чекбоксу, ☰ и редактируемым
+ * ячейкам строку не открывают. Событие b24:row-open { id, row, href, newTab } (preventDefault — не переходить по href).
  * События: b24:grid-change { state }, b24:row-action { action, id, row }, b24:group-action { action, ids, scope },
  * b24:page-change { page, pageSize }, b24:page-size-change { pageSize }, b24:load-more { respond(rows) }.
  */
@@ -101,6 +104,10 @@ export interface GridOptions {
   onLoadMore?: () => Promise<string | HTMLTableRowElement[] | { rows: string | HTMLTableRowElement[]; hasMore?: boolean }>;
   onChange?: (state: GridState) => void;
   onRowAction?: (action: string, id: string, row: HTMLTableRowElement) => void;
+  /** открывать запись кликом по любой строке (tr[data-href] открываются и без этого) */
+  rowOpen?: boolean;
+  /** клик по строке; если задан — переход по data-href не делается, решаете вы */
+  onRowOpen?: (id: string, row: HTMLTableRowElement, event: MouseEvent) => void;
   /** ids — отмеченные строки; у действий «по фильтру» (when: none) — пустой массив */
   onGroupAction?: (action: string, ids: string[]) => void;
   /**
@@ -762,6 +769,31 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
     table.addEventListener('keydown', onKey);
     cleanups.push(() => { table.removeEventListener('dblclick', onDbl); table.removeEventListener('keydown', onKey); editing?.cleanup(); });
   }
+
+  /* ── Открытие записи кликом по строке ── */
+  const rowOpenAll = !!(options.rowOpen || options.onRowOpen || table.dataset.rowOpen !== undefined);
+  table.classList.toggle('b24-table--row-open', rowOpenAll);
+  const SKIP_OPEN = 'a,button,input,select,textarea,label,[contenteditable],[data-no-open],.b24-table__cell-check,.b24-table__cell-menu,td.b24-cell-editable,.is-editing';
+  const onRowOpen = (e: MouseEvent) => {
+    if (e.type === 'auxclick' && e.button !== 1) return;
+    const target = e.target as HTMLElement;
+    const row = target.closest<HTMLTableRowElement>('tbody > tr');
+    if (!row || !table.contains(row) || row.dataset.open === 'false') return;
+    if (!rowOpenAll && row.dataset.href === undefined) return;
+    if (target.closest(SKIP_OPEN)) return;
+    if (window.getSelection()?.toString()) return; // выделяли текст — не открываем
+    const id = row.dataset.id ?? '';
+    const href = row.dataset.href;
+    const newTab = e.type === 'auxclick' || e.ctrlKey || e.metaKey;
+    const ev = new CustomEvent('b24:row-open', { detail: { id, row, href, newTab }, bubbles: true, cancelable: true });
+    if (!table.dispatchEvent(ev)) return;
+    if (options.onRowOpen) { options.onRowOpen(id, row, e); return; }
+    if (!href) return;
+    if (newTab) window.open(href, '_blank', 'noopener'); else location.href = href;
+  };
+  table.addEventListener('click', onRowOpen);
+  table.addEventListener('auxclick', onRowOpen);
+  cleanups.push(() => { table.removeEventListener('click', onRowOpen); table.removeEventListener('auxclick', onRowOpen); });
 
   /* ── init ── */
   ensureCorner();

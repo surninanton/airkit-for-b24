@@ -46,6 +46,11 @@
 
 .b24-table tbody tr { transition: background-color var(--b24-duration-fast); }
 .b24-table tbody tr:hover > td { background: var(--b24-bg-surface-2); }
+/* открытие записи кликом по строке (grid: tr[data-href] или rowOpen) */
+.b24-table--row-open tbody tr:not([data-open="false"]),
+.b24-table tbody tr[data-href] { cursor: pointer; }
+.b24-table--row-open tbody tr :is(.b24-table__cell-check, .b24-table__cell-menu),
+.b24-table tbody tr[data-href] :is(.b24-table__cell-check, .b24-table__cell-menu) { cursor: default; }
 .b24-table tbody tr[aria-selected="true"] > td,
 .b24-table tbody tr.is-selected > td { background: var(--b24-bg-selected); }
 .b24-table tbody tr:last-child > td { border-bottom: 0; }

@@ -241,6 +241,15 @@ JS: `B24UI.timepicker(input, { step, min, max, strict, onChange, onSelect })`, `
   groupActions={[{ id: 'delete', label: 'Удалить', variant: 'tinted-danger', confirm: 'Удалить ({n})?', onClick: (ids) => remove(ids) }]} />
 ```
 
+#### Открытие записи кликом по строке
+
+Как в списках Битрикс24: клик по строке открывает запись.
+
+- **Со ссылкой**: `<tr data-id="42" data-href="/deal/42/">` — переход по ссылке; Ctrl/⌘-клик или средняя кнопка — новая вкладка.
+- **Своим кодом**: `<table data-b24-grid="deals" data-row-open>` (или `rowOpen: true`) — для всех строк; слушайте `b24:row-open { id, row, href, newTab }`. Или колбэк `onRowOpen(id, row, event)` в `initGrid` — тогда переход по `data-href` не делается.
+- **Не открывают** клики по ссылкам, кнопкам, полям, чекбоксу, ☰, редактируемым ячейкам и по `[data-no-open]`, а также выделение текста. `e.preventDefault()` в `b24:row-open` отменяет переход, `tr[data-open="false"]` — строку не открывать.
+- **React**: `onRowClick={(row) => open(row)}` у `DataTable`.
+
 #### Подвал грида: действия, «Всего», страницы
 
 Под таблицей — одна панель, как в списках Битрикс24: «Отмечено: N / M», «Всего: N» (или ссылка «Показать количество»), кнопки действий и постраничный вывод. Панель прилипает к низу окна, пока таблица на экране.
@@ -429,8 +438,9 @@ const mapper = B24UI.createFieldMapper(el, {
 | `plural(n, ['запись', 'записи', 'записей'])`, `formatCount` | русское множественное число |
 | `.b24-badge > .b24-spinner`, `.b24-dot--pulse` | бейдж со спиннером и пульсирующая точка «идёт» |
 | `toast(…)` | одинаковые тосты склеиваются со счётчиком «×3», видимых не больше четырёх |
+| `[data-b24-rating]`, `createRating(host, { name, value, max, readonly })` | оценка звёздами: скрытое поле `data-name`, `data-value`, `data-max` (5), `data-readonly` — только показ, `data-disabled`, `data-size="sm\|lg"`; наведение, клик (повторный — сброс, `data-clearable="false"` — без сброса), стрелки, Home/End, цифры. Событие `b24:rating-change { value }`, `getRating(el).setValue(n)` |
 
-React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `Range`, `RangePair`, `ColorPicker`, `SecretInput`, `Tree`.
+React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `Range`, `RangePair`, `ColorPicker`, `SecretInput`, `Tree`, `Rating` (`<Rating value onChange readOnly max name />`).
 
 ## Планировщик: сотрудники и время
 

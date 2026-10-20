@@ -251,7 +251,7 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
     <!-- Table -->
     <section class="b24-demo-section">
       <div class="b24-table-wrap">
-        <table class="b24-table" data-b24-sortable data-b24-grid="demo-deals">
+        <table class="b24-table" data-b24-sortable data-b24-grid="demo-deals" data-row-open>
           <thead>
             <tr>
               <th class="b24-table__cell-check"><label class="b24-check"><input type="checkbox" data-b24-check-all aria-label="Выбрать все" /></label></th>
@@ -866,6 +866,8 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
 
   // Грид: действия строки и групповые
   document.addEventListener('b24:row-action', (e) => B24UI.toast(`Строка #${e.detail.id}: ${e.detail.action}`));
+  // клик по строке грида — открыть запись (data-row-open; с tr[data-href] переход по ссылке)
+  document.addEventListener('b24:row-open', (e) => B24UI.toast(`Открыть сделку #${e.detail.id}${e.detail.newTab ? ' в новой вкладке' : ''}`));
   document.addEventListener('b24:group-action', (e) => B24UI.toast(`${e.detail.action}: ${e.detail.ids.join(', ')}`, { type: e.detail.action === 'delete' ? 'danger' : 'default' }));
 
 

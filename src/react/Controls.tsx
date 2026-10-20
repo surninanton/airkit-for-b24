@@ -185,3 +185,64 @@ export function Tree({ selected, onSelect, items, className, ...options }: TreeP
   return <div ref={host} className={className} />;
 }
 export type { TreeItem };
+
+/* ── Оценка звёздами ── */
+const STAR_PATH = 'M12 2.8l2.83 5.73 6.32.92-4.57 4.46 1.08 6.3L12 17.24l-5.66 2.97 1.08-6.3-4.57-4.46 6.32-.92z';
+export interface RatingProps {
+  value: number;
+  onChange?: (value: number) => void;
+  max?: number;
+  /** только показ: без наведения, клика и фокуса */
+  readOnly?: boolean;
+  disabled?: boolean;
+  /** повторный клик по текущей оценке сбрасывает в 0 (по умолчанию да) */
+  clearable?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  /** скрытое поле для обычной формы */
+  name?: string;
+  label?: string;
+  className?: string;
+}
+export function Rating({ value, onChange, max = 5, readOnly, disabled, clearable = true, size = 'md', name, label = t('Оценка'), className }: RatingProps) {
+  const [hover, setHover] = useState<number | null>(null);
+  const v = Math.min(max, Math.max(0, Math.round(value || 0)));
+  const active = !readOnly && !disabled;
+  const shown = active && hover != null ? hover : v;
+  const set = (n: number) => { const next = Math.min(max, Math.max(0, n)); if (next !== v) onChange?.(next); };
+  const text = t('{label}: {value} из {max}', { label, value: v, max });
+  const onKey = (e: React.KeyboardEvent) => {
+    if (!active) return;
+    const k = e.key;
+    let next: number | null = null;
+    if (k === 'ArrowRight' || k === 'ArrowUp') next = v + 1;
+    else if (k === 'ArrowLeft' || k === 'ArrowDown') next = v - 1;
+    else if (k === 'Home' || k === 'Delete' || k === 'Backspace') next = 0;
+    else if (k === 'End') next = max;
+    else if (/^\d$/.test(k) && Number(k) <= max) next = Number(k);
+    if (next === null) return;
+    e.preventDefault();
+    set(next);
+  };
+  return (
+    <div
+      className={cx('b24-rating', size !== 'md' && `b24-rating--${size}`, readOnly && 'is-readonly', disabled && 'is-disabled', className)}
+      {...(readOnly
+        ? { role: 'img', 'aria-label': text }
+        : { role: 'slider', 'aria-label': label, 'aria-valuemin': 0, 'aria-valuemax': max, 'aria-valuenow': v, 'aria-valuetext': text, 'aria-disabled': disabled || undefined, tabIndex: disabled ? undefined : 0 })}
+      onKeyDown={onKey}
+      onMouseLeave={() => setHover(null)}
+    >
+      {Array.from({ length: max }, (_, i) => (
+        <span
+          key={i}
+          className={cx('b24-rating__star', i < shown && 'is-on')}
+          onMouseEnter={active ? () => setHover(i + 1) : undefined}
+          onClick={active ? () => set(i + 1 === v && clearable ? 0 : i + 1) : undefined}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d={STAR_PATH} /></svg>
+        </span>
+      ))}
+      {name && <input type="hidden" name={name} value={v} />}
+    </div>
+  );
+}

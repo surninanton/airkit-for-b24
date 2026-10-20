@@ -22,6 +22,7 @@ import { copyText } from './logs';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 import { t } from './i18n';
 import { warnLayout } from './page-header';
+import { createRating } from './rating';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -55,6 +56,9 @@ import { warnLayout } from './page-header';
  *   .b24-toc[data-b24-toc]         — оглавление статьи: подсветка раздела; пустой <ol> + data-source — собрать из h2/h3
  *   [data-b24-cookie]              — уведомление о cookie (показывается, пока не принято)
  *   [data-b24-theme-switch]        — переключатель светлой/тёмной темы (запоминается)
+ *   [data-b24-rating]              — оценка звёздами: data-name (скрытое поле), data-value, data-max, data-readonly,
+ *                                    data-disabled, data-size="sm|lg", data-clearable="false"; событие b24:rating-change { value }
+ *   table[data-b24-grid][data-row-open] — открыть запись кликом по строке (или tr[data-href]); событие b24:row-open
  *   .b24-table__expander[aria-controls] — раскрыть строку .b24-table__details (событие b24:row-expand)
  *   .b24-check-group[data-b24-check-group] — «Выбрано N из M», ссылки [data-b24-check-group-all/none]
  *   input.b24-range[data-b24-range], .b24-range-pair[data-b24-range] — закраска дорожки и значение рядом
@@ -309,6 +313,17 @@ export function init(root: ParentNode = document): void {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';
     initThemeSwitch(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-b24-rating]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    const d = el.dataset;
+    createRating(el, {
+      name: d.name, value: Number(d.value ?? 0), max: d.max ? Number(d.max) : undefined,
+      readonly: d.readonly !== undefined && d.readonly !== 'false', disabled: d.disabled !== undefined && d.disabled !== 'false',
+      clearable: d.clearable !== 'false', size: d.size as 'sm' | 'lg' | undefined, label: d.label,
+    });
   });
 
   // правила компоновки шапки (dist/AGENTS.md): замечания в консоль; <html data-b24-layout-check="off"> — выключить
