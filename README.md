@@ -1,6 +1,10 @@
 # airkit-for-b24
 
-Неофициальный UI-кит для приложений Битрикс24 в стиле портала (дизайн **Air**). Три слоя, используйте любой:
+Неофициальный UI-кит для приложений Битрикс24 в стиле портала (дизайн **Air**).
+
+**Демо:** [airkit.appb24.ru](https://airkit.appb24.ru) — все компоненты, экраны приложения, React-пример и страницы сайта.
+
+Три слоя, используйте любой:
 
 | Слой | Что это | Где удобно |
 |---|---|---|
@@ -122,6 +126,7 @@ el.dispatchEvent(new CustomEvent('b24:vendor-counter', { detail: { count: 5 } })
 ```bash
 npm install
 npm run dev      # витрина: demo/index.html (чистый HTML) и demo/react.html (React CRM-пример)
+npm run build:demo   # сборка витрины в dist-demo/ (её публикует .github/workflows/pages.yml на airkit.appb24.ru)
 npm run build    # dist/: b24ui.css, b24ui.min.css, tokens.css, b24ui.js (IIFE), js/, react/, icons/ (ESM + d.ts)
 ```
 
