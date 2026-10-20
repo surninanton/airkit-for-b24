@@ -23,6 +23,12 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+/* Автоинициализация содержимого окон: auto.ts регистрирует init(), modal() и openSidePanel() вызывают её
+ * для тела окна после вставки в документ — разметка data-b24-* из <template> оживает без ручного init(). */
+let autoInit: ((root: ParentNode) => void) | null = null;
+export const setAutoInit = (fn: (root: ParentNode) => void): void => { autoInit = fn; };
+export const runAutoInit = (root: ParentNode): void => autoInit?.(root);
+
 /** Строки вставляются как текст; для готовой разметки передайте Node. */
 export function append(parent: Element, content: Content): void {
   if (content == null) return;

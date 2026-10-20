@@ -79,3 +79,37 @@ test.describe('оценка звёздами', () => {
     expect(errors()).toEqual([]);
   });
 });
+
+test.describe('автоинициализация содержимого окон', () => {
+  test('modal() и openSidePanel() оживляют data-b24-* из <template>; autoInit: false — нет; без двойной инициализации', async ({ page }) => {
+    const { errors } = await open(page, '/controls.html');
+    const res = await page.evaluate(async () => {
+      const B24UI = (window as unknown as { B24UI: typeof import('../src/js/index') }).B24UI;
+      const tpl = document.createElement('template');
+      tpl.innerHTML = '<form><div data-b24-rating data-name="score" data-value="3"></div></form>';
+      const stars = (el: Element) => el.querySelectorAll('.b24-rating').length;
+
+      const m = B24UI.modal({ title: 'Оценка', content: tpl.content.cloneNode(true) as DocumentFragment });
+      const inModal = stars(m.body);
+      const host = m.body.querySelector<HTMLElement>('[data-b24-rating]')!;
+      const value = B24UI.getRating(host)?.getValue();
+      B24UI.init(m.body); // повторный init — без второго экземпляра
+      const afterInit = stars(m.body);
+      await m.close();
+
+      const off = B24UI.modal({ content: tpl.content.cloneNode(true) as DocumentFragment, autoInit: false });
+      const inOff = stars(off.body);
+      await off.close();
+
+      // содержимое собрано вручную до открытия — второй экземпляр не создаётся
+      const pre = tpl.content.cloneNode(true) as DocumentFragment;
+      B24UI.createRating(pre.querySelector<HTMLElement>('[data-b24-rating]')!, { value: 1 });
+      const sp = B24UI.openSidePanel({ title: 'Панель', content: pre });
+      const inPanel = stars(sp.element);
+      await sp.close();
+      return { inModal, value, afterInit, inOff, inPanel };
+    });
+    expect(res).toEqual({ inModal: 1, value: 3, afterInit: 1, inOff: 0, inPanel: 1 });
+    expect(errors()).toEqual([]);
+  });
+});

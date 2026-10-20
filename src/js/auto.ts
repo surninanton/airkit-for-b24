@@ -22,7 +22,8 @@ import { copyText } from './logs';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
 import { t } from './i18n';
 import { warnLayout } from './page-header';
-import { createRating } from './rating';
+import { createRating, getRating } from './rating';
+import { setAutoInit } from './dom';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -316,7 +317,7 @@ export function init(root: ParentNode = document): void {
   });
 
   root.querySelectorAll<HTMLElement>('[data-b24-rating]').forEach((el) => {
-    if (el.dataset.b24Ready) return;
+    if (el.dataset.b24Ready || getRating(el)) return;
     el.dataset.b24Ready = '1';
     const d = el.dataset;
     createRating(el, {
@@ -329,6 +330,7 @@ export function init(root: ParentNode = document): void {
   // правила компоновки шапки (dist/AGENTS.md): замечания в консоль; <html data-b24-layout-check="off"> — выключить
   if (document.documentElement.dataset.b24LayoutCheck !== 'off') warnLayout(root);
 }
+setAutoInit(init);
 
 /** data-min / data-max: дата или «today» */
 const dateAttr = (v?: string) => (v === 'today' ? startOfDay(new Date()) : parseDate(v));

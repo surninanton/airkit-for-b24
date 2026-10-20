@@ -186,6 +186,7 @@ B24UI.toast('Удалено', { action: { label: 'Отменить', onClick: re
 const ok = await B24UI.confirm('Удалить сделку?', { danger: true, okText: 'Удалить' });
 const m = B24UI.modal({ title: 'Настройки', content: node, buttons: [{ text: 'Сохранить', variant: 'success', onClick: save }] });
 const panel = B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true, footer });
+// содержимое окна и панели инициализируется само (data-b24-rating, -datepicker, -combobox… из <template>); autoInit: false — выключить
 B24UI.setTheme('dark');            // light | dark | auto
 B24UI.setAirPreset('violet');      // blue | violet | teal | graphite
 B24UI.bx24.autoFitFrame();         // высота фрейма = высота контента (растёт и уменьшается); во фрейме модалки и тосты — у места клика

@@ -1,5 +1,5 @@
 import { icon } from '../icons';
-import { anchorOverlayInFrame, animateOut, bringToFront, append, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
+import { anchorOverlayInFrame, animateOut, bringToFront, append, runAutoInit, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
 import { t } from './i18n';
 
 export interface ModalButton {
@@ -23,6 +23,8 @@ export interface ModalOptions {
   closeOnOverlay?: boolean;
   closable?: boolean;
   onClose?: (value: unknown) => void;
+  /** false — не инициализировать data-b24-* в содержимом (по умолчанию init() запускается для тела окна) */
+  autoInit?: boolean;
 }
 
 export interface ModalHandle {
@@ -35,7 +37,7 @@ export interface ModalHandle {
 
 /** Модальное окно (BX.PopupWindow / MessageBox). */
 export function modal(options: ModalOptions): ModalHandle {
-  const { title, content, buttons = [], size = 'md', width, closeOnOverlay = true, closable = true, onClose } = options;
+  const { title, content, buttons = [], size = 'md', width, closeOnOverlay = true, closable = true, onClose, autoInit = true } = options;
   const titleId = `b24-modal-${Math.random().toString(36).slice(2, 8)}`;
 
   const overlay = h('div', { class: 'b24-overlay b24-root', style: 'background-color:var(--b24-bg-overlay)' });
@@ -119,6 +121,7 @@ export function modal(options: ModalOptions): ModalHandle {
 
   overlay.append(dialog);
   document.body.append(overlay);
+  if (autoInit) runAutoInit(body);
   bringToFront(overlay);
   anchorOverlayInFrame(overlay, dialog);
   focusFirst(dialog);

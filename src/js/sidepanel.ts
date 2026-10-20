@@ -1,5 +1,5 @@
 import { icon } from '../icons';
-import { animateOut, append, bringToFront, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
+import { animateOut, append, runAutoInit, bringToFront, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
 import { t } from './i18n';
 
 export interface SidePanelOptions {
@@ -13,6 +13,8 @@ export interface SidePanelOptions {
   footer?: Content;
   closeLabel?: string;
   onClose?: () => void;
+  /** false — не инициализировать data-b24-* в содержимом (по умолчанию init() запускается для тела панели) */
+  autoInit?: boolean;
 }
 
 export interface SidePanelHandle {
@@ -26,7 +28,7 @@ const openPanels: SidePanelHandle[] = [];
 
 /** Слайдер справа — аналог BX.SidePanel.Instance.open(). Вложенные панели сдвигаются «лесенкой». */
 export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
-  const { title, content, url, width = 900, air = false, footer, closeLabel = t('Закрыть'), onClose } = options;
+  const { title, content, url, width = 900, air = false, footer, closeLabel = t('Закрыть'), onClose, autoInit = true } = options;
   const depth = openPanels.length;
   const overlay = h('div', { class: 'b24-sidepanel-overlay b24-root', style: `background-color:var(--b24-bg-overlay)` });
   const panel = h('div', {
@@ -88,6 +90,7 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) void handle.close(); });
 
   document.body.append(overlay);
+  if (autoInit && !url) runAutoInit(panel);
   bringToFront(overlay);
   openPanels.push(handle);
   focusFirst(panel);
