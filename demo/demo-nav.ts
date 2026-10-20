@@ -8,7 +8,8 @@ const SECTIONS: Array<{ title: string; items: Array<[string, string, IconName]> 
 ];
 
 const css = `
-.demo-nav { position: fixed; z-index: 900; top: 0; bottom: 0; left: 0; width: var(--b24-sidebar-width, 240px); overflow-y: auto; scrollbar-width: none;
+/* .demo-nav.b24-root: сильнее .b24-root кита, даже если его CSS подключён позже (артефакт вставляет страницу в свой body) */
+.demo-nav.b24-root { position: fixed; z-index: 900; top: 0; bottom: 0; left: 0; width: var(--b24-sidebar-width, 240px); overflow-y: auto; scrollbar-width: none;
   background-color: var(--b24-air-bg-color); background-image: var(--b24-air-bg-image); background-attachment: fixed; background-size: cover;
   transition: transform .2s ease; }
 html.has-demo-nav body { padding-left: var(--b24-sidebar-width, 240px); }
