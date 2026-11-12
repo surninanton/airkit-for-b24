@@ -117,6 +117,7 @@ export const enData: Record<string, string> = {
   'Вне рабочего времени': 'Outside working hours',
   'Нет сотрудников': 'No employees',
   'Занят': 'Busy',
+  '{n} дн.': '{n} days',
   'Экран блокировки': 'Lock screen',
   'Кто продолжит работу?': 'Who is continuing?',
   'Выберите свой профиль': 'Choose your profile',

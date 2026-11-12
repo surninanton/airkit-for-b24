@@ -333,3 +333,36 @@ test('легенда: пункты графика — только виды из
   expect(res.withBands).toEqual(['Встреча', 'Рабочее время', 'Нерабочее время', 'Больничный', 'Пересечение']);
   expect(res.later).toEqual(['Смена', 'Отпуск', 'Командировка', 'Пересечение']);
 });
+
+test("view: 'days' — N дней от даты, листание на N, пункт «N дн.»; высота под все строки — рисуются все", async ({ page }) => {
+  await open(page, '/scheduler.html');
+  const res = await page.evaluate(async () => {
+    const { createScheduler } = (window as unknown as { B24UI: typeof import('../src/js/index') }).B24UI;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const resources = Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, name: `Сотрудник ${i + 1}` }));
+    const s = createScheduler(host, { view: 'days', days: 7, date: '2026-11-12', resources, height: 30 * 44 + 80, legend: false });
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    const iso = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const first = { start: iso(s.range.start), end: iso(s.range.end) };
+    const dayTicks = host.querySelectorAll('.b24-scheduler__tick--top').length;
+    const segment = [...host.querySelectorAll('.b24-segmented label')].map((l) => l.textContent);
+    const checked = host.querySelector<HTMLInputElement>('.b24-segmented input:checked')?.value;
+    const rows = host.querySelectorAll('.b24-scheduler__row').length;
+    s.next();
+    const second = { start: iso(s.range.start), end: iso(s.range.end) };
+    s.prev();
+    s.prev();
+    const back = iso(s.range.start);
+    s.destroy();
+    host.remove();
+    return { first, dayTicks, segment, checked, rows, second, back };
+  });
+  expect(res.first).toEqual({ start: '2026-11-12', end: '2026-11-19' }); // с четверга, не с понедельника
+  expect(res.dayTicks).toBe(7);
+  expect(res.segment).toEqual(['День', 'Неделя', '7 дн.', 'Месяц']);
+  expect(res.checked).toBe('days');
+  expect(res.rows).toBe(30);
+  expect(res.second).toEqual({ start: '2026-11-19', end: '2026-11-26' });
+  expect(res.back).toBe('2026-11-5');
+});

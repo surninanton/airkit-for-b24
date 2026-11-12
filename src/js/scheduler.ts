@@ -17,7 +17,8 @@ export type { SchedulerMenuItem } from './scheduler-editor';
  * eventTypes — типы с цветом, contextMenu — меню по правой кнопке, масштаб — кнопками и Ctrl/⌘ + колесо,
  * копирование: Ctrl/⌘+C / V, Alt + перетаскивание, «Дублировать» в меню.
  */
-export type SchedulerView = 'day' | 'week' | 'month';
+/** day — сутки, week — неделя с понедельника, days — N дней от date (опция days), month — месяц */
+export type SchedulerView = 'day' | 'week' | 'days' | 'month';
 export type DateInput = Date | string | number;
 export type BandKind = 'work' | 'vacation' | 'sick' | 'trip' | 'off';
 
@@ -113,7 +114,10 @@ export interface SchedulerOptions {
   /** загрузка данных периода (вызывается при смене вида и дат) */
   load?: (range: { start: Date; end: Date }, signal: AbortSignal) => Promise<{ events?: SchedulerEvent[]; bands?: SchedulerBand[] }>;
   view?: SchedulerView;
-  /** дата, вокруг которой показывается период (по умолчанию сегодня) */
+  /** длина периода для view: 'days' — N дней начиная с date (по умолчанию 7); «назад / вперёд» листают на N дней.
+   *  Задана — в переключателе вида появляется пункт «N дн.» */
+  days?: number;
+  /** дата, вокруг которой показывается период (по умолчанию сегодня); для 'days' — первый день */
   date?: DateInput;
   /** шаг привязки, минуты (по умолчанию 15; в месяце — 60) */
   step?: number;
@@ -183,13 +187,14 @@ const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
 /** пикселей в часе по виду (умножается на зум) */
-const PX: Record<SchedulerView, number> = { day: 64, week: 24, month: 2 };
+const PX: Record<SchedulerView, number> = { day: 64, week: 24, days: 24, month: 2 };
 const ROW_PAD = 4;
 const GROUP_H = 32;
 
 export function createScheduler(host: HTMLElement, options: SchedulerOptions): SchedulerHandle {
   const o = options;
   let view: SchedulerView = o.view ?? 'week';
+  const nDays = Math.min(62, Math.max(1, Math.floor(o.days ?? 7)));
   let anchor = startOfDay(o.date ? toDate(o.date) : new Date());
   /** желаемые пиксели в часе после «−»/«+»/колеса; null — по умолчанию (окно часов на ширину области, не уже PX) */
   let pxTarget: number | null = null;
@@ -232,6 +237,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   const range = () => {
     if (view === 'day') return { start: anchor, end: addDays(anchor, 1) };
     if (view === 'week') { const mon = addDays(anchor, -((anchor.getDay() + 6) % 7)); return { start: mon, end: addDays(mon, 7) }; }
+    if (view === 'days') return { start: anchor, end: addDays(anchor, nDays) };
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
     return { start: first, end: new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1) };
   };
@@ -317,7 +323,10 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       btn('', t('Назад'), () => handle.prev(), 'chevronLeft'), btn(t('Сегодня'), t('Сегодня'), () => handle.today()), btn('', t('Вперёд'), () => handle.next(), 'chevronRight'));
     const seg = h('div', { class: 'b24-segmented', role: 'radiogroup', 'aria-label': t('Вид') });
     const name = `b24-sch-${Math.random().toString(36).slice(2, 7)}`;
-    for (const [v, label] of [['day', t('День')], ['week', t('Неделя')], ['month', t('Месяц')]] as const) {
+    const viewList: Array<[SchedulerView, string]> = [['day', t('День')], ['week', t('Неделя')]];
+    if (o.days || view === 'days') viewList.push(['days', t('{n} дн.', { n: nDays })]);
+    viewList.push(['month', t('Месяц')]);
+    for (const [v, label] of viewList) {
       const input = h('input', { type: 'radio', name, value: v }) as HTMLInputElement;
       input.checked = v === view;
       input.addEventListener('change', () => handle.setView(v));
@@ -435,7 +444,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
         col((hh - h0) * pxh(), hh === h0 ? '' : ' is-minor');
         subTicks((hh - h0) * pxh());
       }
-    } else if (view === 'week') {
+    } else if (view === 'week' || view === 'days') {
       // подписи часов — каждый час при увеличении, иначе каждые 2 часа (или реже, если узко)
       const every = pxh() >= 40 ? 1 : pxh() * 2 >= 40 ? 2 : pxh() * 4 >= 40 ? 4 : 6;
       for (let i = 0; i < days(); i++) {
@@ -465,7 +474,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     if (today >= start && today < end && nowH >= h0 && nowH <= h1) grid.append(h('div', { class: 'b24-scheduler__now', style: `left:${x(today)}px` }));
     title.textContent = view === 'day'
       ? new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'long', year: 'numeric' }).format(start)
-      : view === 'week'
+      : view === 'week' || view === 'days'
         ? `${new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short' }).format(start)} — ${new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', year: 'numeric' }).format(addDays(end, -1))}`
         : new Intl.DateTimeFormat(loc, { month: 'long', year: 'numeric' }).format(start);
     if (zoomOutBtn) zoomOutBtn.disabled = pxh() <= minPx() + 0.5;
@@ -1017,8 +1026,8 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       void reload();
     },
     setDate(d) { anchor = startOfDay(toDate(d)); render(); initialScroll(); void reload(); },
-    prev() { handle.setDate(view === 'day' ? addDays(anchor, -1) : view === 'week' ? addDays(anchor, -7) : new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1)); },
-    next() { handle.setDate(view === 'day' ? addDays(anchor, 1) : view === 'week' ? addDays(anchor, 7) : new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1)); },
+    prev() { handle.setDate(view === 'day' ? addDays(anchor, -1) : view === 'week' ? addDays(anchor, -7) : view === 'days' ? addDays(anchor, -nDays) : new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1)); },
+    next() { handle.setDate(view === 'day' ? addDays(anchor, 1) : view === 'week' ? addDays(anchor, 7) : view === 'days' ? addDays(anchor, nDays) : new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1)); },
     today() { handle.setDate(new Date()); },
     setResources(r) { resources = r; render(); },
     setEvents(list) { events = normEvents(list); render(); },
