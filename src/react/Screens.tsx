@@ -1,6 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { createChart, sparkline, type ChartHandle, type ChartOptions } from '../js/chart';
 import { createScheduler, type SchedulerHandle, type SchedulerOptions } from '../js/scheduler';
+import { createLockScreen, type LockScreenOptions } from '../js/lock-screen';
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
@@ -181,4 +182,27 @@ export function Scheduler({ className, ...options }: SchedulerProps) {
   }, [rKey, eKey, bKey]);
   useEffect(() => { if (options.view && sch.current && sch.current.view !== options.view) sch.current.setView(options.view); }, [options.view]);
   return <div ref={host} className={className} />;
+}
+
+/* ── Экран блокировки ──────────────────────────────────── */
+export interface LockScreenProps extends LockScreenOptions {
+  /** показать экран; после успешного кода вызывается onUnlock — выставьте open={false} */
+  open: boolean;
+}
+/** Экран блокировки с кодом-паролем: обёртка над createLockScreen. Рисуется поверх страницы, сам ничего не рендерит на месте. */
+export function LockScreen({ open, ...options }: LockScreenProps) {
+  const opts = useRef(options);
+  opts.current = options;
+  useEffect(() => {
+    if (!open) return;
+    const lock = createLockScreen({
+      ...opts.current,
+      onSubmit: (pin, user) => opts.current.onSubmit(pin, user),
+      onOtherUser: opts.current.onOtherUser ? () => opts.current.onOtherUser?.() : undefined,
+      onUnlock: (user) => opts.current.onUnlock?.(user),
+    });
+    return () => lock.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  return null;
 }

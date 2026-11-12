@@ -25,6 +25,7 @@
           <button class="b24-tabs__item" data-b24-tab="settings">Настройки</button>
           <button class="b24-tabs__item" data-b24-tab="wizard">Мастер настройки</button>
           <button class="b24-tabs__item" data-b24-tab="empty">Пустые состояния</button>
+          <button class="b24-tabs__item" data-b24-tab="lock">Экран блокировки</button>
         </div>
         <div class="b24-toolbar__right"></div>
       </div>
@@ -213,6 +214,26 @@
       </div>
     </section>
 
+    <!-- ── Экран блокировки ── -->
+    <section data-b24-tab-panel="lock" aria-label="Экран блокировки" hidden>
+      <div class="b24-card"><div class="b24-card__body b24-form">
+        <p style="margin: 0">Быстрый вход по коду-паролю на доверенном устройстве: часы, выбор профиля, точки кода, экранная клавиатура и ввод с клавиатуры. Код в демо — <b>1234</b>; после трёх неверных — «устройство отвязано».</p>
+        <div class="b24-row" style="flex-wrap: wrap; gap: 8px">
+          <button class="b24-btn b24-btn--primary" id="lock-many">Заблокировать: несколько профилей</button>
+          <button class="b24-btn b24-btn--secondary" id="lock-one">Один профиль</button>
+          <button class="b24-btn b24-btn--secondary" id="pin-setup">Установить код</button>
+          <button class="b24-btn b24-btn--plain" id="lock-idle">Блокировать через 1 минуту простоя</button>
+        </div>
+        <div class="b24-code"><pre><code>const lock = B24UI.createLockScreen({
+  users, length: 4,
+  onSubmit: (pin, user) =&gt; api.pinLogin(user.id, pin),   // отказ — throw new Error('Неверный код')
+  onOtherUser: () =&gt; location.assign('/login'),
+});
+await lock.unlocked;
+B24UI.idleLock({ minutes: 15, onIdle: () =&gt; B24UI.createLockScreen({ … }) });</code></pre></div>
+      </div></div>
+    </section>
+
   </div>
   <footer class="b24-credit-footer" id="demo-credit"></footer>
 </div>
@@ -230,6 +251,42 @@
     const b = e.target.closest('[data-theme]'); if (!b) return;
     B24UI.setTheme(b.dataset.theme);
     document.querySelectorAll('#theme-tabs .b24-tabs__item').forEach((x) => x.classList.toggle('is-active', x === b));
+  });
+
+  // Экран блокировки: вымышленные профили, «сервер» принимает 1234
+  const lockUsers = [
+    { id: 'u1', name: 'Алиса Мельникова', meta: 'Менеджер' },
+    { id: 'u2', name: 'Тимур Сафонов', meta: 'Кассир' },
+    { id: 'u3', name: 'Злата Фомина', meta: 'Старший смены' },
+  ];
+  let wrong = 0;
+  const checkPin = async (pin) => {
+    await new Promise((r) => setTimeout(r, 400));
+    if (pin === '1234') { wrong = 0; return; }
+    wrong += 1;
+    if (wrong >= 3) { wrong = 0; throw new Error('Устройство отвязано — войдите по паролю'); }
+    throw new Error(`Неверный код, осталось попыток: ${3 - wrong}`);
+  };
+  const lock = (opts) => {
+    const l = B24UI.createLockScreen({
+      users: lockUsers, length: 4, onSubmit: checkPin,
+      onOtherUser: () => { l.close(); B24UI.toast('Здесь был бы полный вход по паролю'); },
+      onUnlock: (u) => B24UI.toast(`С возвращением${u ? `, ${u.name.split(' ')[0]}` : ''}!`, { type: 'success' }),
+      ...opts,
+    });
+    window.lockScreen = l;
+  };
+  document.getElementById('lock-many').addEventListener('click', () => lock());
+  document.getElementById('lock-one').addEventListener('click', () => lock({ users: [lockUsers[0]] }));
+  document.getElementById('pin-setup').addEventListener('click', async () => {
+    const ok = await B24UI.openPinSetup({ length: 4, onSave: async () => { await new Promise((r) => setTimeout(r, 300)); } });
+    if (ok) B24UI.toast('Код сохранён', { type: 'success' });
+  });
+  let stopIdle = null;
+  document.getElementById('lock-idle').addEventListener('click', (e) => {
+    if (stopIdle) { stopIdle(); stopIdle = null; e.target.textContent = 'Блокировать через 1 минуту простоя'; return; }
+    stopIdle = B24UI.idleLock({ minutes: 1, onIdle: () => lock() });
+    e.target.textContent = 'Выключить блокировку по простою';
   });
 
   // График с переключением вида

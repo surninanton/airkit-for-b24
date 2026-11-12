@@ -26,6 +26,7 @@
 @import "./components/editors.css";
 @import "./components/controls.css";
 @import "./components/scheduler.css";
+@import "./components/lock.css";
 @import "./components/site.css";
 @import "./components/site-layout.css";
 @import "./components/site-blocks.css";

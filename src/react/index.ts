@@ -23,7 +23,8 @@ export { Combobox, EntitySelector, type ComboOption, type ComboboxProps, type En
 export { Uploader, type UploaderProps, type UploaderFile, type UploaderHandle } from './Uploader';
 export { EntityEditor, type EntityEditorProps, type EditorField, type EditorSection, type EditorValues, type EntityEditorHandle } from './EntityEditor';
 export { Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer, formatTimelineTime, type TimelineItemProps, type TimelineActivityProps, type TimelineComposerProps, type ComposerTab } from './Timeline';
-export { Chart, Sparkline, Kpi, Stepper, SettingRow, SaveBar, EmptyScreen, Scheduler, type ChartProps, type StepItem, type SchedulerProps } from './Screens';
+export { Chart, Sparkline, Kpi, Stepper, SettingRow, SaveBar, EmptyScreen, Scheduler, LockScreen, type ChartProps, type StepItem, type SchedulerProps, type LockScreenProps } from './Screens';
+export { openPinSetup, idleLock, type LockUser } from '../js/lock-screen';
 export type { SchedulerResource, SchedulerEvent, SchedulerBand, SchedulerChange, SchedulerView, SchedulerEventType, SchedulerEditorField, SchedulerEditorOptions, SchedulerMenuContext, SchedulerMenuItem, SchedulerDraft } from '../js/scheduler';
 export type { ChartOptions, ChartSeries, ChartType } from '../js/chart';
 export { KeyValueEditor, FieldMapper, LogViewer, CodeBlock, JsonView, type KeyValueEditorProps, type FieldMapperProps, type LogViewerProps } from './Editors';

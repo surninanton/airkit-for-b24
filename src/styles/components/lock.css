@@ -1,0 +1,113 @@
+/* ── Экран блокировки с кодом-паролем ─────────────────────
+ * .b24-lock — полноэкранный слой поверх всего (и модалок): подложка Air или видео, часы, профили, точки, клавиатура.
+ */
+.b24-lock {
+  position: fixed; inset: 0; z-index: calc(var(--b24-z-toast) - 1);
+  overflow: hidden auto; color: #fff;
+  background-color: var(--b24-air-bg-color); background-image: var(--b24-air-bg-image); background-size: cover;
+  animation: b24-fade-in var(--b24-duration) ease both;
+}
+.b24-lock.is-closing { animation: b24-fade-out 0.25s ease forwards; pointer-events: none; }
+.b24-lock__bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.b24-lock__bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.b24-lock__shade { position: absolute; inset: 0; background: rgba(8, 12, 24, 0.45); }
+/* мягкие облака поверх подложки */
+.b24-lock__cloud {
+  position: absolute; left: 0; border-radius: 50%; filter: blur(30px);
+  background: radial-gradient(ellipse at 50% 45%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.08) 45%, transparent 72%);
+  animation: b24-lock-drift linear infinite;
+}
+.b24-lock__cloud--1 { top: 12%; width: 360px; height: 110px; animation-duration: 80s; }
+.b24-lock__cloud--2 { top: 48%; width: 460px; height: 140px; animation-duration: 120s; animation-delay: -60s; opacity: 0.7; }
+.b24-lock__cloud--3 { top: 76%; width: 320px; height: 100px; animation-duration: 95s; animation-delay: -30s; opacity: 0.8; }
+@keyframes b24-lock-drift { from { transform: translateX(-40vw); } to { transform: translateX(140vw); } }
+
+/* часы стоят на одной высоте на обоих экранах — ничего не прыгает */
+.b24-lock__body { position: relative; min-height: 100%; display: flex; flex-direction: column; align-items: center; padding: clamp(24px, 9vh, 120px) 16px clamp(16px, 4vh, 48px); box-sizing: border-box; }
+.b24-lock__time { font-size: 76px; font-weight: 300; line-height: 1; letter-spacing: 1px; font-variant-numeric: tabular-nums; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.35); }
+.b24-lock__date { margin: 8px 0 clamp(16px, 4vh, 48px); font-size: var(--b24-font-size-md); color: rgba(255, 255, 255, 0.78); }
+.b24-lock__date::first-letter { text-transform: uppercase; }
+.b24-lock__stage { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 760px; }
+.b24-lock__stage.is-shake { animation: b24-lock-shake 0.4s ease; }
+@keyframes b24-lock-shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.b24-lock__title { margin: 0 0 4px; font-size: 22px; font-weight: var(--b24-font-weight-semibold); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+.b24-lock__hint { margin: 0 0 18px; font-size: var(--b24-font-size-sm); color: rgba(255, 255, 255, 0.72); }
+.b24-lock__name { margin: 12px 0 2px; font-size: 20px; font-weight: var(--b24-font-weight-semibold); }
+
+/* профили */
+.b24-lock__users { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; margin-top: 8px; }
+.b24-lock__user {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; width: 112px; padding: 8px 4px; border: 0; border-radius: var(--b24-radius-lg);
+  background: none; color: inherit; font: inherit; cursor: pointer; transition: background-color var(--b24-duration-fast), transform var(--b24-duration-fast);
+  animation: b24-lock-float calc(5s + var(--_i, 0) * 0.7s) ease-in-out calc(var(--_i, 0) * -0.4s) infinite;
+}
+.b24-lock__user:hover, .b24-lock__user:focus-visible { background: rgba(255, 255, 255, 0.1); animation-play-state: paused; }
+.b24-lock__user:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.b24-lock__user-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-sm); }
+.b24-lock__user-meta { margin-top: -6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-xs); color: rgba(255, 255, 255, 0.65); }
+@keyframes b24-lock-float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, -5px); } }
+
+.b24-lock__avatar {
+  position: relative; display: grid; place-items: center; overflow: hidden; flex: 0 0 auto;
+  background: var(--_c, var(--b24-color-primary)); color: #fff; font-weight: 700; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.b24-lock__avatar > img { width: 100%; height: 100%; object-fit: cover; }
+.b24-lock__avatar--lg { width: 84px; height: 84px; border-radius: 24px; font-size: 32px; }
+.b24-lock__avatar--md { width: 64px; height: 64px; border-radius: 18px; font-size: 24px; }
+
+/* точки и ошибка */
+.b24-lock__dots { display: flex; gap: 12px; height: 18px; margin-bottom: 6px; }
+.b24-lock__dots > i { width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, 0.4); border-radius: 50%; box-sizing: border-box; transition: background-color var(--b24-duration-fast), border-color var(--b24-duration-fast), transform var(--b24-duration-fast); }
+.b24-lock__dots > i.is-on { background: #fff; border-color: #fff; transform: scale(1.08); }
+.b24-lock.is-busy .b24-lock__dots > i.is-on { animation: b24-lock-pulse 0.8s ease-in-out infinite; }
+@keyframes b24-lock-pulse { 50% { opacity: 0.45; } }
+.b24-lock__error { min-height: 20px; margin-bottom: 10px; font-size: var(--b24-font-size-sm); color: #ffb3b0; text-align: center; }
+/* скрытое поле: ввод с клавиатуры телефона, фокус для скринридера */
+.b24-lock__input { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+
+/* экранная клавиатура */
+.b24-lock__keypad { display: grid; grid-template-columns: repeat(3, 64px); gap: 12px 16px; justify-items: center; }
+.b24-lock__key {
+  width: 64px; height: 64px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); color: #fff; font: inherit; font-size: 24px; font-weight: var(--b24-font-weight-medium);
+  cursor: pointer; backdrop-filter: blur(6px); transition: background-color var(--b24-duration-fast), transform 0.08s;
+}
+.b24-lock__key:hover { background: rgba(255, 255, 255, 0.16); }
+.b24-lock__key:active { background: rgba(255, 255, 255, 0.26); transform: scale(0.95); }
+.b24-lock__key--erase { color: rgba(255, 255, 255, 0.7); font-size: 20px; }
+.b24-lock.is-busy .b24-lock__key { cursor: default; opacity: 0.6; }
+
+.b24-lock__back {
+  margin-top: 18px; padding: 9px 18px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: var(--b24-radius-md);
+  background: rgba(255, 255, 255, 0.08); color: #fff; font: inherit; font-size: var(--b24-font-size-md); cursor: pointer; backdrop-filter: blur(6px);
+}
+.b24-lock__back:hover { background: rgba(255, 255, 255, 0.16); }
+.b24-lock__other {
+  margin-top: auto; padding: 20px 10px 4px; border: 0; background: none; color: rgba(255, 255, 255, 0.85); font: inherit; font-size: var(--b24-font-size-md); cursor: pointer; white-space: nowrap;
+}
+.b24-lock__other:hover { color: #fff; text-decoration: underline; }
+.b24-lock__key:focus-visible, .b24-lock__back:focus-visible, .b24-lock__other:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* окно установки кода */
+.b24-pin-setup__input { font-size: 20px; letter-spacing: 6px; text-align: center; }
+.b24-pin-setup__text { margin: 0; }
+
+@media (max-height: 760px) {
+  .b24-lock__time { font-size: 56px; }
+  .b24-lock__keypad { grid-template-columns: repeat(3, 56px); gap: 10px 14px; }
+  .b24-lock__key { width: 56px; height: 56px; font-size: 22px; }
+}
+@media (max-height: 700px) {
+  .b24-lock__body { padding-top: 16px; }
+  .b24-lock__time { font-size: 44px; }
+  .b24-lock__date { margin-bottom: 12px; }
+  .b24-lock__avatar--md { width: 52px; height: 52px; border-radius: 15px; font-size: 20px; }
+  .b24-lock__name { margin-top: 8px; }
+  .b24-lock__hint { margin-bottom: 12px; }
+  .b24-lock__keypad { grid-template-columns: repeat(3, 52px); gap: 8px 14px; }
+  .b24-lock__key { width: 52px; height: 52px; font-size: 20px; }
+  .b24-lock__back { margin-top: 12px; padding: 7px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b24-lock, .b24-lock__cloud, .b24-lock__user, .b24-lock__stage.is-shake, .b24-lock.is-busy .b24-lock__dots > i.is-on { animation: none; }
+}
