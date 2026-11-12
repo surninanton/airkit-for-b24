@@ -84,6 +84,9 @@
 .b24-scheduler__col { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--b24-divider); }
 .b24-scheduler__col.is-day { border-left-color: var(--b24-divider-accent); }
 .b24-scheduler__col.is-minor { border-left: 1px dashed var(--b24-divider); }
+/* деления внутри часа (:15, :30, :45) — светлее часовых */
+.b24-scheduler__tick.is-sub { padding: 0 4px; border-left-style: dotted; color: color-mix(in srgb, var(--b24-text-subtle) 70%, transparent); font-size: 11px; }
+.b24-scheduler__col.is-sub { border-left: 1px dotted color-mix(in srgb, var(--b24-divider) 70%, transparent); }
 .b24-scheduler__col.is-weekend { background: color-mix(in srgb, var(--b24-text-subtle) 6%, transparent); bottom: 0; }
 .b24-scheduler__now { position: absolute; top: 0; bottom: 0; z-index: 2; width: 2px; margin-left: -1px; background: var(--b24-color-danger); pointer-events: none; }
 .b24-scheduler__now::before { content: ""; position: absolute; top: 0; left: -3px; width: 8px; height: 8px; border-radius: 50%; background: inherit; }

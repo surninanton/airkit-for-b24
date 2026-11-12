@@ -228,9 +228,18 @@ test.describe('планировщик', () => {
     await plus.click();
     expect(await w()).toBeGreaterThan(fit * 1.4);
     await expect(minus).toBeEnabled();
+    // деления внутри часа: :30 при увеличении, потом :15 и :45
+    const subs = () => page.locator('.b24-scheduler__tick.is-sub').allTextContents();
+    expect(await subs()).toEqual([]);
+    for (let i = 0; i < 8 && (await plus.isEnabled()); i++) await plus.click();
+    const at4 = await subs();
+    expect(at4).toContain(':15');
+    expect(at4).toContain(':30');
+    expect(at4).toContain(':45');
     await sch.getByRole('button', { name: 'По размеру' }).click();
     expect(Math.abs((await w()) - fit)).toBeLessThan(2);
     await expect(minus).toBeDisabled();
+    expect(await subs()).toEqual([]);
   });
 });
 

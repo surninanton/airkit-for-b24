@@ -393,21 +393,34 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     };
     const col = (left: number, cls = '') => grid.append(h('div', { class: `b24-scheduler__col${cls}`, style: `left:${left}px` }));
     const [h0, h1] = win();
+    // деления внутри часа при увеличении: :30 от 100 px на час, :15 и :45 от 200 px
+    const sub = pxh() >= 200 ? 4 : pxh() >= 100 ? 2 : 1;
+    const subTicks = (left: number) => {
+      for (let q = 1; q < sub; q++) {
+        const l = left + (q * pxh()) / sub;
+        tick('bottom', l, pxh() / sub, `:${String((60 / sub) * q).padStart(2, '0')}`, ' is-sub');
+        col(l, ' is-minor is-sub');
+      }
+    };
     if (view === 'day') {
       tick('top', 0, w, new Intl.DateTimeFormat(loc, { weekday: 'long', day: 'numeric', month: 'long' }).format(start));
       for (let hh = h0; hh < h1; hh++) {
-        tick('bottom', (hh - h0) * pxh(), pxh(), `${String(hh).padStart(2, '0')}:00`);
+        tick('bottom', (hh - h0) * pxh(), pxh() / sub, `${String(hh).padStart(2, '0')}:00`);
         col((hh - h0) * pxh(), hh === h0 ? '' : ' is-minor');
+        subTicks((hh - h0) * pxh());
       }
     } else if (view === 'week') {
-      // подписи часов — каждые 2 часа (или реже, если узко)
-      const every = pxh() * 2 >= 40 ? 2 : pxh() * 4 >= 40 ? 4 : 6;
+      // подписи часов — каждый час при увеличении, иначе каждые 2 часа (или реже, если узко)
+      const every = pxh() >= 40 ? 1 : pxh() * 2 >= 40 ? 2 : pxh() * 4 >= 40 ? 4 : 6;
       for (let i = 0; i < days(); i++) {
         const d = addDays(start, i);
         const left = i * dayW();
         const wd = new Intl.DateTimeFormat(loc, { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
         tick('top', left, dayW(), wd, `${sameDay(d, today) ? ' is-today' : ''}${isWeekend(d) ? ' is-weekend' : ''}`);
-        for (let hh = h0; hh < h1; hh += every) tick('bottom', left + (hh - h0) * pxh(), every * pxh(), String(hh).padStart(2, '0'));
+        for (let hh = h0; hh < h1; hh += every) {
+          tick('bottom', left + (hh - h0) * pxh(), (every * pxh()) / sub, every === 1 && sub > 1 ? `${String(hh).padStart(2, '0')}:00` : String(hh).padStart(2, '0'));
+          if (every === 1) subTicks(left + (hh - h0) * pxh());
+        }
         col(left, ` is-day${isWeekend(d) ? ' is-weekend' : ''}`);
         if (isWeekend(d)) grid.lastElementChild!.setAttribute('style', `left:${left}px;width:${dayW()}px`);
         for (let hh = h0 + every; hh < h1; hh += every) col(left + (hh - h0) * pxh(), ' is-minor');
