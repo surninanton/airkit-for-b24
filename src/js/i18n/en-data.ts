@@ -136,7 +136,6 @@ export const enData: Record<string, string> = {
   'Укажите дату и время': 'Enter date and time',
   'Конец должен быть позже начала': 'End must be after start',
   'Заполните поле': 'Fill in the field',
-  'Не удалось сохранить': 'Could not save',
   'есть комментарий': 'has a comment',
   'Масштаб': 'Zoom',
   'Уменьшить масштаб': 'Zoom out',

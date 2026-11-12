@@ -201,7 +201,12 @@ test.describe('планировщик', () => {
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
     await page.mouse.down();
     await page.mouse.move(b.x + b.width / 2 + 40, b.y + b.height / 2, { steps: 6 });
+    // едет «тень», оригинал стоит на месте
+    await expect(page.locator('.b24-scheduler__event.is-copy')).toHaveCount(1);
+    const still = (await c2.boundingBox())!;
+    expect(Math.abs(still.x - b.x)).toBeLessThan(1);
     await page.mouse.up();
+    await expect(page.locator('.b24-scheduler__event.is-copy')).toHaveCount(0);
     await page.keyboard.up('Alt');
     await expect.poll(count).toBe(n0 + 3);
     expect(await model(page, 'e-overlap-a')).toEqual(before);
@@ -278,4 +283,31 @@ test('планировщик: 24:00, событие без времени, вы�
   expect([end.getDate(), end.getHours(), end.getMinutes()]).toEqual([8, 0, 0]);
   expect(new Date(created[0].start).getDate()).toBe(7);
   expect(errors()).toEqual([]);
+});
+
+test('легенда: пункты графика — только виды из bands; legend: \'types\' — только типы', async ({ page }) => {
+  await open(page, '/scheduler.html');
+  const res = await page.evaluate(async () => {
+    const { createScheduler } = (window as unknown as { B24UI: typeof import('../src/js/index') }).B24UI;
+    const mk = (opts: Record<string, unknown>) => {
+      const host = document.createElement('div');
+      document.body.append(host);
+      const s = createScheduler(host, { resources: [{ id: 'a', name: 'Алиса' }], toolbar: false, ...opts } as Parameters<typeof createScheduler>[1]);
+      const labels = [...host.querySelectorAll('.b24-scheduler__legend > span')].map((x) => x.textContent);
+      return { s, host, labels };
+    };
+    const types = [{ id: 'shift', label: 'Смена' }, { id: 'vac', label: 'Отпуск', allDay: true }];
+    const noBands = mk({ eventTypes: types });
+    const onlyTypes = mk({ eventTypes: types, legend: 'types', bands: [{ resourceId: 'a', start: '2026-10-05T09:00', end: '2026-10-05T18:00', kind: 'work' }] });
+    const withBands = mk({ bands: [{ resourceId: 'a', start: '2026-10-05T09:00', end: '2026-10-05T18:00', kind: 'work' }, { resourceId: 'a', start: '2026-10-06', end: '2026-10-07', kind: 'sick' }] });
+    // bands пришли позже — легенда обновилась
+    noBands.s.setBands([{ resourceId: 'a', start: '2026-10-06', end: '2026-10-07', kind: 'trip' }]);
+    const later = [...noBands.host.querySelectorAll('.b24-scheduler__legend > span')].map((x) => x.textContent);
+    [noBands, onlyTypes, withBands].forEach((x) => { x.s.destroy(); x.host.remove(); });
+    return { noBands: noBands.labels, onlyTypes: onlyTypes.labels, withBands: withBands.labels, later };
+  });
+  expect(res.noBands).toEqual(['Смена', 'Отпуск', 'Пересечение']);
+  expect(res.onlyTypes).toEqual(['Смена', 'Отпуск']);
+  expect(res.withBands).toEqual(['Встреча', 'Рабочее время', 'Нерабочее время', 'Больничный', 'Пересечение']);
+  expect(res.later).toEqual(['Смена', 'Отпуск', 'Командировка', 'Пересечение']);
 });

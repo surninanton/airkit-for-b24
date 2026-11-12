@@ -122,7 +122,8 @@ export interface SchedulerOptions {
   /** высота области, px */
   height?: number;
   toolbar?: boolean;
-  legend?: boolean;
+  /** легенда под шкалой: true — типы и виды графика, которые есть в bands (по умолчанию); 'types' — только типы событий; false — без легенды */
+  legend?: boolean | 'types';
   readonly?: boolean;
   /** выделение для onCreate — в пределах одного дня (по умолчанию нет: можно протянуть через полночь) */
   createWithinDay?: boolean;
@@ -305,20 +306,30 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     root.append(bar);
   }
   root.append(viewport);
-  if (o.legend !== false) {
+  // легенда пересобирается при каждой отрисовке: пункты графика — только тех видов, что есть в bands
+  const legend = o.legend !== false ? h('div', { class: 'b24-scheduler__legend' }) : null;
+  if (legend) root.append(legend);
+  let legendKey = '';
+  const renderLegend = () => {
+    if (!legend) return;
     const item = (label: string, bg: string) => `<span><i style="background:${bg}"></i>${escapeHtml(label)}</span>`;
-    root.append(h('div', { class: 'b24-scheduler__legend' }, html([
-      ...(o.eventTypes?.length
-        ? o.eventTypes.map((ty) => item(ty.label, `color-mix(in srgb, ${ty.color ?? 'var(--b24-color-primary)'} 25%, var(--b24-bg-surface)); box-shadow: inset 2px 0 0 ${ty.color ?? 'var(--b24-color-primary)'}`))
-        : [item(t('Встреча'), 'color-mix(in srgb, var(--b24-color-primary) 25%, var(--b24-bg-surface))')]),
-      item(t('Рабочее время'), 'var(--b24-bg-surface); box-shadow: inset 0 0 0 1px var(--b24-divider-accent)'),
-      item(t('Нерабочее время'), 'color-mix(in srgb, var(--b24-text-subtle) 10%, transparent); background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 22%, transparent) 0 1px, transparent 1px 4px)'),
-      item(t('Отпуск'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-violet-1) 0 3px, transparent 3px 6px)'),
-      item(t('Больничный'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-red-2) 0 3px, transparent 3px 6px)'),
-      item(t('Командировка'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-blue-1) 0 3px, transparent 3px 6px)'),
-      item(t('Пересечение'), 'transparent; box-shadow: inset 0 0 0 1.5px var(--b24-color-danger)'),
-    ].join(''))));
-  }
+    const kinds = new Set(bands.map((b) => b.kind));
+    const out = o.eventTypes?.length
+      ? o.eventTypes.map((ty) => item(ty.label, `color-mix(in srgb, ${ty.color ?? 'var(--b24-color-primary)'} 25%, var(--b24-bg-surface)); box-shadow: inset 2px 0 0 ${ty.color ?? 'var(--b24-color-primary)'}`))
+      : [item(t('Встреча'), 'color-mix(in srgb, var(--b24-color-primary) 25%, var(--b24-bg-surface))')];
+    if (o.legend !== 'types') {
+      if (kinds.has('work')) {
+        out.push(item(t('Рабочее время'), 'var(--b24-bg-surface); box-shadow: inset 0 0 0 1px var(--b24-divider-accent)'));
+        out.push(item(t('Нерабочее время'), 'color-mix(in srgb, var(--b24-text-subtle) 10%, transparent); background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 22%, transparent) 0 1px, transparent 1px 4px)'));
+      }
+      if (kinds.has('vacation')) out.push(item(t('Отпуск'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-violet-1) 0 3px, transparent 3px 6px)'));
+      if (kinds.has('sick')) out.push(item(t('Больничный'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-red-2) 0 3px, transparent 3px 6px)'));
+      if (kinds.has('trip')) out.push(item(t('Командировка'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-blue-1) 0 3px, transparent 3px 6px)'));
+      out.push(item(t('Пересечение'), 'transparent; box-shadow: inset 0 0 0 1.5px var(--b24-color-danger)'));
+    }
+    const markup = out.join('');
+    if (markup !== legendKey) { legendKey = markup; legend.replaceChildren(html(markup)); }
+  };
   host.append(root);
   document.body.append(tip);
 
@@ -532,6 +543,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   const render = (relayout = true) => {
     if (relayout) computeLayout();
     renderScale();
+    renderLegend();
     rendered.forEach((el) => el.remove());
     rendered.clear();
     if (!resources.length) rowsLayer.replaceChildren(h('div', { class: 'b24-scheduler__empty' }, t('Нет сотрудников')));
@@ -741,7 +753,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
 
   /* ── перетаскивание, растягивание, создание ── */
   type Drag =
-    | { kind: 'move' | 'start' | 'end'; ev: Ev; el: HTMLElement; x0: number; y0: number; moved: boolean; rowTop: number; copy?: boolean; next?: { start: Date; end: Date; resourceId: string } }
+    | { kind: 'move' | 'start' | 'end'; ev: Ev; el: HTMLElement; x0: number; y0: number; moved: boolean; rowTop: number; copy?: boolean; ghost?: HTMLElement; next?: { start: Date; end: Date; resourceId: string } }
     | { kind: 'create'; resourceId: string; track: HTMLElement; sel: HTMLElement; from: Date; to: Date; x0: number };
   let drag: Drag | null = null;
   const bodyY = (clientY: number) => clientY - body.getBoundingClientRect().top;
@@ -802,10 +814,24 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     if (d.ev.readonly || o.readonly) return;
     if (!d.moved && Math.abs(e.clientX - d.x0) < 3 && Math.abs(e.clientY - d.y0) < 3) return;
     d.moved = true;
-    d.el.classList.add('is-dragging');
-    // Alt при переносе — копия, оригинал остаётся на месте
+    // Alt при переносе — копия: едет «тень», оригинал остаётся на месте (Alt можно нажать и отпустить на ходу)
     d.copy = d.kind === 'move' && e.altKey && canCreate();
-    d.el.classList.toggle('is-copy', !!d.copy);
+    if (d.copy && !d.ghost) {
+      d.ghost = d.el.cloneNode(true) as HTMLElement;
+      d.ghost.removeAttribute('data-event');
+      d.ghost.removeAttribute('tabindex');
+      d.ghost.setAttribute('aria-hidden', 'true');
+      d.ghost.classList.add('is-dragging', 'is-copy');
+      d.ghost.classList.remove('is-conflict', 'is-outside');
+      d.el.after(d.ghost);
+      d.el.style.transform = '';
+      d.el.classList.remove('is-dragging');
+    } else if (!d.copy && d.ghost) {
+      d.ghost.remove();
+      d.ghost = undefined;
+    }
+    if (!d.copy) d.el.classList.add('is-dragging');
+    const moving = d.ghost ?? d.el;
     // сдвиг считаем через шкалу: окно часов делает её нелинейной по времени
     const shiftTo = (base: Date) => snap(timeAt(x(base) + (e.clientX - d.x0)));
     const delta = shiftTo(d.kind === 'end' ? d.ev.e : d.ev.s).getTime() - (d.kind === 'end' ? d.ev.e : d.ev.s).getTime();
@@ -818,7 +844,9 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       const target = resourceAtY(bodyY(e.clientY));
       if (target) resourceId = target.res.id;
       const dy = target ? target.top - d.rowTop : 0;
-      d.el.style.transform = `translate(${x(start) - x(d.ev.s)}px, ${dy}px)`;
+      moving.style.transform = `translate(${x(start) - x(d.ev.s)}px, ${dy}px)`;
+      const tm = d.ghost?.querySelector('.b24-scheduler__event-time');
+      if (tm) tm.textContent = fmtRange(start, end);
     } else if (d.kind === 'start') {
       start = new Date(Math.min(d.ev.s.getTime() + delta, d.ev.e.getTime() - stepMs()));
       d.el.style.left = `${x(start)}px`;
@@ -848,6 +876,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       else if (editorOpts() && !d.ev.readonly) openEditorFor(pub(d.ev), d.ev);
       return;
     }
+    d.ghost?.remove();
     if (d.copy && d.next) { render(); await copyAt(pub(d.ev), d.next.resourceId, d.next.start); return; }
     await commit(d.ev, d.next ?? { start: d.ev.s, end: d.ev.e, resourceId: d.ev.resourceId });
   };
