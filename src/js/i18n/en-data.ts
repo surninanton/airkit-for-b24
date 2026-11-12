@@ -169,4 +169,6 @@ export const enData: Record<string, string> = {
   'На странице:': 'Per page:',
   'Страницы': 'Pages',
   'Отмечено: {n} / {m}': 'Selected: {n} / {m}',
+  'Быстрое добавление': 'Quick add',
+  'Стадия': 'Stage',
 };

@@ -276,7 +276,10 @@ function DealsPage() {
             const stage = STAGES.find((s) => s.id === m.to)!;
             if (m.from !== m.to) toast(`Сделка перенесена в «${stage.name}»`, { type: 'success' });
           }}
-          onAdd={() => setCreateOpen(true)}
+          onQuickAdd={(stage, v) => {
+            setDeals((l) => [{ id: Math.max(0, ...l.map((x) => x.id)) + 1, title: v.title, kind: 'Первичная', stage, sum: Number(v.sum) || 0, owner: OWNERS[0], created: new Date().toLocaleDateString('ru-RU') }, ...l]);
+          }}
+          quickAddFields={[{ name: 'title', placeholder: 'Название', required: true }, { name: 'sum', placeholder: 'Сумма, ₽', type: 'number' }]}
           onCardClick={(d) => setOpenDeal(d)}
           emptyText="Перетащите сюда сделку"
           renderCard={(d) => (

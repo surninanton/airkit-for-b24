@@ -50,7 +50,7 @@
   text-transform: uppercase;
   color: var(--b24-text-subtle);
 }
-.b24-props { display: grid; gap: var(--b24-space-sm); }
+.b24-props { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--b24-space-sm); }
 .b24-prop { display: flex; flex-direction: column; gap: 2px; }
 .b24-prop__label { font-size: var(--b24-font-size-sm); color: var(--b24-text-subtle); }
 .b24-prop__value { font-size: var(--b24-font-size-md); color: var(--b24-text-primary); word-break: break-word; }

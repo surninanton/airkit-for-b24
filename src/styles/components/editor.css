@@ -28,7 +28,7 @@
   border-bottom: 1px dashed transparent;
 }
 .b24-editor-section__edit:hover { color: var(--b24-color-link); border-bottom-color: var(--b24-color-link-underline); }
-.b24-editor-section__fields { display: grid; gap: 12px; }
+.b24-editor-section__fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .b24-editor-section--2col .b24-editor-section__fields { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 
 .b24-editor-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }

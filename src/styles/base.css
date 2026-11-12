@@ -55,6 +55,8 @@ body.b24-root { margin: 0; }
 
 /* Layout helpers */
 .b24-stack { display: flex; flex-direction: column; gap: var(--b24-gap, var(--b24-space-sm)); }
+/* сетка в одну колонку, которая не растягивается по самому широкому ребёнку (плашки, таблица) — для панелей и карточек */
+.b24-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--b24-gap, var(--b24-space-sm)); }
 .b24-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--b24-gap, var(--b24-space-xs)); }
 .b24-grid { display: grid; gap: var(--b24-gap, var(--b24-space-md)); grid-template-columns: repeat(auto-fill, minmax(var(--b24-grid-min, 260px), 1fr)); }
 .b24-spacer { flex: 1 1 auto; }

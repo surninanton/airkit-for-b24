@@ -172,7 +172,7 @@ npm test         # сайт, экраны, редакторы, элементы 
 | `data-b24-tooltip="Текст"` | тултип (только CSS) |
 | `data-b24-shell-toggle` | свернуть сайдбар `.b24-shell` (на мобильном — открыть меню). Место бургера — строка логотипа: `<div class="b24-sidebar__brand"><button class="b24-sidebar__toggle" data-b24-shell-toggle aria-label="Меню">…</button><a class="b24-sidebar__brand-link" href="/"><span class="b24-sidebar__brand-mark">24</span><span class="b24-sidebar__brand-text">Мой портал</span></a></div>` (логотип-ссылка — рядом с кнопкой, не вокруг неё; без ссылки — те же `span` прямо в `__brand`; в React — `<Sidebar brandHref="/">`); в свёрнутом сайдбаре он встаёт вместо логотипа, а такая же кнопка в `.b24-shell__header` остаётся только на мобильном |
 | `input[data-b24-datepicker]` | календарь; `="range"` — период в одном поле, `data-b24-to="#id"` — второе поле, `data-min`/`data-max` (дата или `today`), `data-time` |
-| `[data-b24-kanban]` | drag & drop карточек `.b24-kanban-card[data-id]` между `.b24-kanban__column[data-column]`; цвет колонки — `data-color`; событие `b24:kanban-move` (`preventDefault()` — откат) |
+| `[data-b24-kanban]` | drag & drop карточек `.b24-kanban-card[data-id]` между `.b24-kanban__column[data-column]`; цвет колонки — `data-color`; событие `b24:kanban-move` (`preventDefault()` — откат). Нужен **либо** атрибут, **либо** `enableKanbanDnd(board)`; повторный вызов безопасен — обработчики не дублируются |
 | `select[data-b24-combobox]` | select с поиском, группами (`optgroup`) и тегами для `multiple`; сам `<select>` остаётся в форме |
 | `[data-b24-entity-selector]` | выбор сотрудников/отделов/сущностей тегами; конфиг `TagSelectorOptions` в JSON; `name` → скрытые поля формы |
 | `[data-b24-uploader]` | загрузчик: `data-name`, `data-url`, `data-accept`, `data-max-size` (МБ), `data-single`, `data-view="grid"`; без `data-url` файлы уходят с формой |
@@ -201,6 +201,15 @@ B24UI.bx24.scrollParent(0);        // прокрутить страницу по
 
 B24UI.datepicker(input, { mode: 'range', min: new Date() });
 B24UI.enableKanbanDnd(board, { onMove: async (m) => (await save(m)) !== false }); // false → карточка вернётся
+// повторный вызов для той же доски не навешивает обработчики второй раз, а заменяет опции; колонки с data-color красит сам
+B24UI.paintKanbanColumns(board);   // после перерисовки innerHTML — перекрасить шапки (--column-color, --column-text)
+// «+ Быстрый элемент», как на портале: <button class="b24-kanban__add b24-kanban__add--round"> под шапкой колонки
+B24UI.enableKanbanQuickAdd(board, {
+  fields: [{ name: 'title', placeholder: 'Имя', required: true }, { name: 'vacancy', type: 'select', options }],
+  onSave: async (values, columnId) => { await api.add(values, columnId); },  // Enter — сохранить и ввести ещё, Esc — закрыть
+});
+// выбор стадии в карточке: одна строка с прокруткой, края затухают, текущая — по центру
+B24UI.stagePicker(el, { stages: [{ id: 'new', title: 'Отклик', color: '#2fc6f6' }, …], value: 'new', onChange: (id, prev) => save(id) }); // false → вернуть
 B24UI.createFilter(el, { fields, presets, submit: 'get' });  // 'get' → ?filter[STAGE_ID]=NEW… для $_GET
 ```
 
@@ -342,7 +351,7 @@ import { B24Provider, App, PageHeader, SearchInput, DataTable, SidePanel, Stages
 </B24Provider>
 ```
 
-Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), раскладка: `B24Provider`, `App`, `PageHeader`, `Toolbar` (устарел для шапки раздела), `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
+Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`, `StagePicker`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), раскладка: `B24Provider`, `App`, `PageHeader`, `Toolbar` (устарел для шапки раздела), `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
 
 Канбан в React контролируемый: DnD только сообщает о переносе, состояние обновляете вы.
 
@@ -353,8 +362,12 @@ import { B24Provider, App, PageHeader, SearchInput, DataTable, SidePanel, Stages
   getId={(d) => d.id}
   onMove={(m) => setByStage((prev) => applyKanbanMove(prev, m, (d) => d.id))}
   renderCard={(d) => <KanbanCard title={d.title} price={money(d.sum)} footerRight={d.date} />}
+  onQuickAdd={(stageId, values) => api.add(values, stageId)}   // круглый «+» и форма в колонке; quickAddFields — поля
 />
+<StagePicker stages={stages} value={stage} onChange={(id) => setStage(id)} />
 ```
+
+Колонка канбана не сжимает шапку и карточки: прокручивается только список. Внутри боковой панели одноколоночную сетку делайте через `.b24-rows` (`grid-template-columns: minmax(0, 1fr)`) — тогда строка плашек или таблица не раздвинет панель шире экрана.
 
 Полный пример — `demo/react-demo.tsx`: шапка раздела `<PageHeader>`, вид «Список», «Канбан», «Календарь». Карточка сделки (клик по названию) — это `EntityEditor` и `Timeline` с композером, делами и файлами. В «Создать» есть `EntitySelector`, `Combobox` и `Uploader`.
 

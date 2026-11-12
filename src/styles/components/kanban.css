@@ -1,8 +1,9 @@
 /* ── Kanban ──────────────────────────────────────────────
  * .b24-kanban > .b24-kanban__column[--column-color] >
  *     .b24-kanban__header (.b24-kanban__title, .b24-kanban__count)
- *     .b24-kanban__total, .b24-kanban__add
+ *     .b24-kanban__total, .b24-kanban__add (--round), .b24-kanban__quick
  *     .b24-kanban__items > .b24-kanban-card[data-id]
+ * Высоту задаёт доска; шапка, сумма, «+» и форма не сжимаются, прокручивается только список карточек.
  */
 .b24-kanban {
   display: flex;
@@ -32,6 +33,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
   height: 32px;
   margin-right: 8px;
   padding: 0 10px 0 12px;
@@ -60,6 +62,7 @@
 .b24-kanban__header:hover .b24-kanban__header-actions { opacity: 1; }
 
 .b24-kanban__total {
+  flex: 0 0 auto;
   display: flex;
   justify-content: center;
   margin: 10px 8px 2px 4px;
@@ -75,6 +78,7 @@
   border-radius: var(--b24-radius-xs);
 }
 .b24-kanban__add {
+  flex: 0 0 auto;
   display: grid; place-items: center;
   height: 28px; margin: 4px 8px 6px 4px; padding: 0;
   color: var(--b24-glass-text);
@@ -83,20 +87,46 @@
 }
 .b24-kanban__add:hover { background: rgba(255, 255, 255, 0.14); opacity: 1; }
 .b24-kanban__add svg { width: 18px; height: 18px; }
+/* Круглый «+» по центру под шапкой — «Быстрый элемент», как на портале */
+.b24-kanban__add--round {
+  justify-self: center; align-self: center;
+  width: 30px; height: 30px; margin: 8px auto 8px; padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  opacity: 1;
+}
+.b24-kanban__add--round:hover, .b24-kanban__add--round[aria-expanded="true"] { background: rgba(255, 255, 255, 0.3); }
+.b24-kanban--light .b24-kanban__add--round { background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-2xs); }
+.b24-kanban--light .b24-kanban__add--round:hover { background: var(--b24-bg-hover); }
+/* Форма быстрого добавления: поля во всю ширину колонки (и в узкой, 150–250px) */
 .b24-kanban__quick {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
   margin: 0 8px 6px 4px;
   padding: 8px;
+  box-sizing: border-box;
   background: var(--b24-bg-surface);
   border-radius: var(--b24-radius-md);
   box-shadow: var(--b24-shadow-sm);
 }
+.b24-kanban__quick > *, .b24-kanban__quick .b24-input, .b24-kanban__quick .b24-select, .b24-kanban__quick .b24-textarea {
+  width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
+}
+.b24-kanban__quick-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.b24-kanban__quick-actions > .b24-btn { flex: 0 1 auto; min-width: 0; }
+.b24-kanban__quick-error:empty { display: none; }
+.b24-kanban__quick-error { font-size: var(--b24-font-size-xs); color: var(--b24-color-danger); }
+.b24-kanban__quick.is-busy { opacity: 0.7; }
 
 .b24-kanban__items {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  flex: 1 1 auto;
-  min-height: 60px;
+  flex: 1 1 0;
+  min-height: 0;
   padding: 0 8px 12px 4px;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -118,6 +148,7 @@
 /* Card */
 .b24-kanban-card {
   position: relative;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -187,3 +218,47 @@ a.b24-kanban-card__title:hover { color: var(--b24-color-link); }
   opacity: 0.96;
 }
 body.b24-dragging, body.b24-dragging * { cursor: grabbing !important; user-select: none !important; }
+
+/* ── Выбор стадии в карточке (stagePicker / <StagePicker>) ──────────
+ * одна строка с прокруткой без полосы, края затухают, текущая — сплошным цветом и по центру
+ */
+.b24-stage-picker {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  --_fade-l: 0px;
+  --_fade-r: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--_fade-l), #000 calc(100% - var(--_fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--_fade-l), #000 calc(100% - var(--_fade-r)), transparent 100%);
+}
+.b24-stage-picker::-webkit-scrollbar { display: none; }
+.b24-stage-picker.is-fade-start { --_fade-l: 24px; }
+.b24-stage-picker.is-fade-end { --_fade-r: 24px; }
+.b24-stage-picker__item {
+  --_c: var(--b24-color-primary);
+  --_t: #fff;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 12px;
+  margin: 0;
+  font: inherit;
+  font-size: var(--b24-font-size-sm);
+  font-weight: var(--b24-font-weight-medium);
+  white-space: nowrap;
+  color: var(--b24-text-primary);
+  background: color-mix(in srgb, var(--_c) 22%, transparent);
+  border: 0;
+  border-radius: var(--b24-radius-pill);
+  cursor: pointer;
+  transition: background-color var(--b24-duration-fast), color var(--b24-duration-fast);
+}
+.b24-stage-picker__item:hover { background: color-mix(in srgb, var(--_c) 36%, transparent); }
+.b24-stage-picker__item.is-active { background: var(--_c); color: var(--_t); }
+.b24-stage-picker__item:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-stage-picker.is-disabled .b24-stage-picker__item { cursor: default; }
+.b24-stage-picker.is-disabled .b24-stage-picker__item:not(.is-active) { opacity: 0.6; }

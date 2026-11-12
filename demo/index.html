@@ -446,7 +446,7 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
         <section class="b24-kanban__column" data-column="new" data-color="#2fc6f6">
           <header class="b24-kanban__header"><span class="b24-kanban__title">Новая заявка</span><span class="b24-kanban__count">2</span></header>
           <div class="b24-kanban__total"><span>150 000 ₽</span></div>
-          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="b24-kanban__add b24-kanban__add--round" aria-label="Быстрое добавление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
           <div class="b24-kanban__items">
             <div class="b24-kanban-card" data-id="1" tabindex="0">
               <a class="b24-kanban-card__title" href="#">Поставка оборудования</a>
@@ -465,7 +465,7 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
         <section class="b24-kanban__column" data-column="work" data-color="#faa72c">
           <header class="b24-kanban__header"><span class="b24-kanban__title">В работе</span><span class="b24-kanban__count">1</span></header>
           <div class="b24-kanban__total"><span>1 290 000 ₽</span></div>
-          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="b24-kanban__add b24-kanban__add--round" aria-label="Быстрое добавление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
           <div class="b24-kanban__items">
             <div class="b24-kanban-card" data-id="3" tabindex="0">
               <span class="b24-kanban-card__title">Годовая лицензия</span>
@@ -478,16 +478,29 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
         <section class="b24-kanban__column" data-column="won" data-color="#1bce7b">
           <header class="b24-kanban__header"><span class="b24-kanban__title">Сделка успешна</span><span class="b24-kanban__count">0</span></header>
           <div class="b24-kanban__total"><span>0 ₽</span></div>
-          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="b24-kanban__add b24-kanban__add--round" aria-label="Быстрое добавление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
           <div class="b24-kanban__items"></div>
         </section>
         <section class="b24-kanban__column" data-column="lost" data-color="#ff5752">
           <header class="b24-kanban__header"><span class="b24-kanban__title">Провалена</span><span class="b24-kanban__count">0</span></header>
           <div class="b24-kanban__total"><span>0 ₽</span></div>
-          <button class="b24-kanban__add" aria-label="Добавить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="b24-kanban__add b24-kanban__add--round" aria-label="Быстрое добавление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
           <div class="b24-kanban__items"></div>
         </section>
       </div>
+      <p class="b24-text-sm" style="color:#fff;opacity:.8;margin:0">«+» под шапкой — быстрое добавление: Enter — сохранить и ввести ещё, Esc — закрыть.</p>
+      <div class="b24-card">
+        <div class="b24-card__header"><h3 class="b24-card__title">Выбор стадии</h3><span class="b24-card__subtitle">&nbsp;B24UI.stagePicker — одна строка с прокруткой, текущая стадия по центру</span></div>
+        <div class="b24-card__body b24-rows">
+          <div id="demo-stage-picker" style="max-width:420px"></div>
+          <span class="b24-text-sm b24-text-secondary" id="demo-stage-value"></span>
+        </div>
+      </div>
+      <pre class="demo-code">B24UI.enableKanbanQuickAdd(board, {
+  fields: [{ name: 'title', placeholder: 'Название', required: true }, { name: 'sum', placeholder: 'Сумма', type: 'number' }],
+  onSave: async (values, columnId) =&gt; { await api.add(values, columnId); },   // false или исключение — форма остаётся
+});
+B24UI.stagePicker(el, { stages: [{ id: 'new', title: 'Новая', color: '#2fc6f6' }, …], value: 'work', onChange: (id) =&gt; save(id) });</pre>
     </section>
 
     <!-- Selectors & uploader: всё внутри обычной <form> -->
@@ -824,10 +837,34 @@ B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true });</p
   });
   // Канбан: пересчёт счётчиков, отмена переноса в «Провалена» через confirm
   const board = document.getElementById('demo-kanban');
-  board.addEventListener('b24:kanban-move', (e) => {
-    board.querySelectorAll('.b24-kanban__column').forEach((col) => {
-      col.querySelector('.b24-kanban__count').textContent = col.querySelectorAll('.b24-kanban-card').length;
-    });
+  const recount = () => board.querySelectorAll('.b24-kanban__column').forEach((col) => {
+    col.querySelector('.b24-kanban__count').textContent = col.querySelectorAll('.b24-kanban-card').length;
+  });
+  board.addEventListener('b24:kanban-move', recount);
+  // Быстрое добавление: «+» под шапкой колонки
+  let nextId = 100;
+  B24UI.enableKanbanQuickAdd(board, {
+    fields: [{ name: 'title', placeholder: 'Название', required: true }, { name: 'sum', placeholder: 'Сумма, ₽', type: 'number' }],
+    onSave: (v, columnId) => new Promise((resolve) => setTimeout(() => {
+      const card = B24UI.h('div', { class: 'b24-kanban-card', 'data-id': String(nextId++), tabindex: '0' },
+        B24UI.h('span', { class: 'b24-kanban-card__title' }, v.title),
+        v.sum ? B24UI.h('span', { class: 'b24-kanban-card__price' }, Number(v.sum).toLocaleString('ru-RU') + ' ₽') : null);
+      board.querySelector(`[data-column="${columnId}"] .b24-kanban__items`).prepend(card);
+      recount();
+      resolve();
+    }, 300)),
+  });
+  // Выбор стадии
+  const stageOut = document.getElementById('demo-stage-value');
+  B24UI.stagePicker(document.getElementById('demo-stage-picker'), {
+    stages: [
+      { id: 'new', title: 'Новая заявка', color: '#2fc6f6' }, { id: 'call', title: 'Звонок', color: '#9dcf00' },
+      { id: 'meet', title: 'Собеседование', color: '#ffe86b' }, { id: 'work', title: 'В работе', color: '#faa72c' },
+      { id: 'offer', title: 'Оффер', color: '#c3a9ff' }, { id: 'won', title: 'Принят', color: '#1bce7b' },
+      { id: 'reserve', title: 'Резерв', color: '#00bdb5' }, { id: 'lost', title: 'Отказ', color: '#ff5752' },
+    ],
+    value: 'work',
+    onChange: (id) => { stageOut.textContent = 'Стадия: ' + id; },
   });
 
 

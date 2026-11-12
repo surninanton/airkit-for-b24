@@ -17,7 +17,7 @@ export type { GridState } from '../js/grid-core';
 export { Modal, SidePanel, Dropdown, Menu, Tooltip, type ModalProps, type SidePanelProps, type DropdownProps, type MenuEntry } from './Overlay';
 export { Calendar, DatePicker, DateRangePicker, PeriodPicker, type CalendarProps, type DatePickerProps, type DateRangePickerProps, type PeriodPickerProps } from './DatePicker';
 export { Filter, emptyFilterState, type FilterProps, type FilterField, type FilterPreset, type FilterState } from './Filter';
-export { Kanban, KanbanCard, applyKanbanMove, type KanbanProps, type KanbanColumn, type KanbanCardProps, type KanbanMove } from './Kanban';
+export { Kanban, KanbanCard, StagePicker, applyKanbanMove, type KanbanProps, type KanbanColumn, type KanbanCardProps, type KanbanMove, type StagePickerProps, type KanbanQuickField, type StagePickerStage } from './Kanban';
 export { Popover, type PopoverProps } from './Overlay';
 export { Combobox, EntitySelector, type ComboOption, type ComboboxProps, type EntitySelectorProps, type DialogItem, type DialogTab } from './Select';
 export { Uploader, type UploaderProps, type UploaderFile, type UploaderHandle } from './Uploader';

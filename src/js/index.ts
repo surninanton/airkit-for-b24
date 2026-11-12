@@ -6,7 +6,11 @@ export { initTabs } from './tabs';
 export { initSortableTable, diffHtml, chipHtml, type DiffOptions } from './table';
 export { createCalendar, datepicker, type CalendarOptions, type CalendarHandle, type DatePickerOptions, type DatePickerHandle } from './calendar';
 export * from './date';
-export { enableKanbanDnd, paintKanbanColumns, readableTextColor, type KanbanMove, type KanbanDndOptions } from './kanban';
+export {
+  enableKanbanDnd, paintKanbanColumns, readableTextColor, openKanbanQuickAdd, enableKanbanQuickAdd, stagePicker, scrollIntoCenter,
+  type KanbanMove, type KanbanDndOptions, type KanbanQuickField, type KanbanQuickAddOptions, type KanbanQuickAddHandle,
+  type StagePickerStage, type StagePickerOptions, type StagePickerHandle,
+} from './kanban';
 export { createFilter, readJsonConfig, type FilterOptions, type FilterHandle } from './filter';
 export * from './filter-model';
 export { openEntityDialog, bx24UserLoader, itemKey, isCreatedItem, type DialogItem, type DialogTab, type EntityDialogOptions, type EntityDialogHandle } from './entity-dialog';

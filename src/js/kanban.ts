@@ -11,6 +11,9 @@
  * mutateDom=false (React): DOM не трогается, состояние обновляет onMove.
  */
 
+import { h } from './dom';
+import { t } from './i18n';
+
 export interface KanbanMove {
   id: string;
   from: string;
@@ -37,8 +40,24 @@ function cardsOf(items: Element, except?: Element): HTMLElement[] {
   return Array.from(items.querySelectorAll<HTMLElement>(`:scope > ${CARD}`)).filter((c) => c !== except);
 }
 
-export function enableKanbanDnd(board: HTMLElement, options: KanbanDndOptions = {}): () => void {
-  const { mutateDom = true, touchDelay = 250 } = options;
+const instances = new WeakMap<HTMLElement, { off: () => void; options: KanbanDndOptions }>();
+
+/**
+ * Включает перетаскивание на доске. Повторный вызов для той же доски не навешивает обработчики второй раз:
+ * возвращает прежнюю функцию отключения, а переданные опции заменяют прежние.
+ * Заодно красит колонки с data-color (paintKanbanColumns).
+ */
+export function enableKanbanDnd(board: HTMLElement, opts?: KanbanDndOptions): () => void {
+  paintKanbanColumns(board);
+  const existing = instances.get(board);
+  if (existing) {
+    if (opts) existing.options = opts;
+    return existing.off;
+  }
+  const state = { options: opts ?? {}, off: () => {} };
+  instances.set(board, state);
+  // опции читаются при каждом событии — их можно заменить повторным вызовом
+  const mutateDomOf = () => state.options.mutateDom ?? true;
 
   let pending: { card: HTMLElement; x: number; y: number; pointerId: number; type: string; timer?: ReturnType<typeof setTimeout> } | null = null;
   let drag: {
@@ -163,14 +182,14 @@ export function enableKanbanDnd(board: HTMLElement, options: KanbanDndOptions = 
       fromIndex: d.fromIndex,
     };
     const unchanged = move.from === move.to && move.index === move.fromIndex;
-    const allowed = !cancel && !unchanged && toColumn && (options.canDrop?.(move) ?? true);
+    const allowed = !cancel && !unchanged && toColumn && (state.options.canDrop?.(move) ?? true);
 
-    if (allowed && mutateDom) d.placeholder.replaceWith(d.card);
+    if (allowed && mutateDomOf()) d.placeholder.replaceWith(d.card);
     else d.placeholder.remove();
     if (!allowed) return;
 
     const revert = () => {
-      if (!mutateDom) return;
+      if (!mutateDomOf()) return;
       const origItems = d.fromColumn.querySelector(ITEMS)!;
       if (d.origNext && d.origNext.parentNode === origItems) origItems.insertBefore(d.card, d.origNext);
       else origItems.insertBefore(d.card, cardsOf(origItems, d.card)[d.fromIndex] ?? null);
@@ -179,7 +198,7 @@ export function enableKanbanDnd(board: HTMLElement, options: KanbanDndOptions = 
     const event = new CustomEvent<KanbanMove>('b24:kanban-move', { detail: move, bubbles: true, cancelable: true });
     if (!board.dispatchEvent(event)) return revert();
     try {
-      const result = await options.onMove?.(move);
+      const result = await state.options.onMove?.(move);
       if (result === false) revert();
     } catch (err) {
       revert();
@@ -200,7 +219,7 @@ export function enableKanbanDnd(board: HTMLElement, options: KanbanDndOptions = 
         pending = null;
         navigator.vibrate?.(10);
         start(p.card, p.x, p.y);
-      }, touchDelay);
+      }, state.options.touchDelay ?? 250);
     }
   };
 
@@ -270,18 +289,18 @@ export function enableKanbanDnd(board: HTMLElement, options: KanbanDndOptions = 
       if (index === fromIndex) return;
     }
     const move: KanbanMove = { id: card.dataset.id!, from: fromColumn.dataset.column!, to: toColumn.dataset.column!, index, fromIndex };
-    if (options.canDrop && !options.canDrop(move)) return;
+    if (state.options.canDrop && !state.options.canDrop(move)) return;
     const toItems = toColumn.querySelector(ITEMS)!;
     const doMove = () => {
       const siblings = cardsOf(toItems, card);
       toItems.insertBefore(card, siblings[index] ?? null);
       card.focus();
     };
-    if (mutateDom) doMove();
+    if (mutateDomOf()) doMove();
     const event = new CustomEvent<KanbanMove>('b24:kanban-move', { detail: move, bubbles: true, cancelable: true });
-    const ok = board.dispatchEvent(event) && (await options.onMove?.(move)) !== false;
-    if (!ok && mutateDom) fromItems.insertBefore(card, cardsOf(fromItems, card)[fromIndex] ?? null);
-    if (!mutateDom) requestAnimationFrame(() => board.querySelector<HTMLElement>(`${CARD}[data-id="${CSS.escape(move.id)}"]`)?.focus());
+    const ok = board.dispatchEvent(event) && (await state.options.onMove?.(move)) !== false;
+    if (!ok && mutateDomOf()) fromItems.insertBefore(card, cardsOf(fromItems, card)[fromIndex] ?? null);
+    if (!mutateDomOf()) requestAnimationFrame(() => board.querySelector<HTMLElement>(`${CARD}[data-id="${CSS.escape(move.id)}"]`)?.focus());
   };
 
   board.addEventListener('pointerdown', onDown);
@@ -293,7 +312,8 @@ export function enableKanbanDnd(board: HTMLElement, options: KanbanDndOptions = 
   board.addEventListener('click', onClickCapture, true);
   board.addEventListener('keydown', onCardKey);
 
-  return () => {
+  state.off = () => {
+    if (instances.get(board) === state) instances.delete(board);
     if (drag) void finish(true);
     board.removeEventListener('pointerdown', onDown);
     window.removeEventListener('pointermove', onMove);
@@ -304,6 +324,7 @@ export function enableKanbanDnd(board: HTMLElement, options: KanbanDndOptions = 
     board.removeEventListener('click', onClickCapture, true);
     board.removeEventListener('keydown', onCardKey);
   };
+  return state.off;
 }
 
 /** Контрастный цвет текста для цветной шапки колонки. */
@@ -325,4 +346,254 @@ export function paintKanbanColumns(board: HTMLElement): void {
     col.style.setProperty('--column-color', color);
     col.style.setProperty('--column-text', readableTextColor(color));
   });
+}
+
+/* ── Быстрое добавление в колонку («+ Быстрый элемент», как на портале) ───────── */
+
+export interface KanbanQuickField {
+  name: string;
+  placeholder?: string;
+  type?: 'text' | 'number' | 'select';
+  options?: Array<{ value: string; label: string }>;
+  required?: boolean;
+  value?: string;
+}
+
+export interface KanbanQuickAddOptions {
+  /** поля формы; по умолчанию одно — «Название» (name: 'title') */
+  fields?: KanbanQuickField[];
+  /** сохранение; false или исключение — форма остаётся с введёнными значениями */
+  onSave: (values: Record<string, string>, columnId: string) => void | boolean | Promise<void | boolean>;
+  /** после сохранения форма очищается и остаётся открытой (как на портале); false — закрыть */
+  keepOpen?: boolean;
+  submitText?: string;
+  onClose?: () => void;
+}
+
+export interface KanbanQuickAddHandle {
+  element: HTMLFormElement;
+  close: () => void;
+}
+
+const openForms = new WeakMap<HTMLElement, KanbanQuickAddHandle>();
+
+/** Открывает форму быстрого добавления в колонке (под шапкой и «+»). Повторный вызов — фокус на открытой форме. */
+export function openKanbanQuickAdd(column: HTMLElement, options: KanbanQuickAddOptions): KanbanQuickAddHandle {
+  const opened = openForms.get(column);
+  if (opened) {
+    opened.element.querySelector<HTMLElement>('input,select')?.focus();
+    return opened;
+  }
+  const fields = options.fields?.length ? options.fields : [{ name: 'title', placeholder: t('Название'), required: true }];
+  const controls = fields.map((f) => {
+    if (f.type === 'select') {
+      const sel = h('select', { class: 'b24-select', name: f.name, 'aria-label': f.placeholder, required: f.required });
+      for (const o of f.options ?? []) sel.append(h('option', { value: o.value }, o.label));
+      if (f.value !== undefined) sel.value = f.value;
+      return sel;
+    }
+    const input = h('input', {
+      class: 'b24-input', name: f.name, type: f.type === 'number' ? 'number' : 'text',
+      placeholder: f.placeholder, 'aria-label': f.placeholder, required: f.required, autocomplete: 'off',
+    });
+    if (f.value !== undefined) input.value = f.value;
+    return input;
+  });
+  const error = h('div', { class: 'b24-kanban__quick-error', role: 'alert' });
+  const save = h('button', { type: 'submit', class: 'b24-btn b24-btn--success b24-btn--xs' }, options.submitText ?? t('Сохранить'));
+  const cancel = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--xs' }, t('Отмена'));
+  const form = h('form', { class: 'b24-kanban__quick', novalidate: true, 'aria-label': t('Быстрое добавление') }, ...controls, error, h('div', { class: 'b24-kanban__quick-actions' }, save, cancel));
+
+  const columnId = column.dataset.column ?? '';
+  const close = () => {
+    if (openForms.get(column) !== handle) return;
+    openForms.delete(column);
+    form.remove();
+    column.querySelector<HTMLElement>('.b24-kanban__add')?.setAttribute('aria-expanded', 'false');
+    options.onClose?.();
+  };
+  const handle: KanbanQuickAddHandle = { element: form, close };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (form.classList.contains('is-busy')) return;
+    const values: Record<string, string> = {};
+    let missing: HTMLElement | null = null;
+    fields.forEach((f, i) => {
+      const v = controls[i].value.trim();
+      values[f.name] = v;
+      if (f.required && !v && !missing) missing = controls[i];
+    });
+    if (missing) { (missing as HTMLElement).focus(); return; }
+    error.textContent = '';
+    form.classList.add('is-busy');
+    save.disabled = true;
+    try {
+      const result = await options.onSave(values, columnId);
+      if (result === false) return;
+      if (options.keepOpen === false) return close();
+      controls.forEach((c, i) => { c.value = fields[i].value ?? (c instanceof HTMLSelectElement ? c.options[0]?.value ?? '' : ''); });
+      controls[0]?.focus();
+    } catch (err) {
+      error.textContent = err instanceof Error && err.message ? err.message : t('Не удалось сохранить');
+    } finally {
+      form.classList.remove('is-busy');
+      save.disabled = false;
+    }
+  });
+  form.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+  });
+  cancel.addEventListener('click', close);
+
+  const after = column.querySelector('.b24-kanban__add') ?? column.querySelector('.b24-kanban__total') ?? column.querySelector('.b24-kanban__header');
+  if (after) after.after(form); else column.prepend(form);
+  column.querySelector<HTMLElement>('.b24-kanban__add')?.setAttribute('aria-expanded', 'true');
+  openForms.set(column, handle);
+  controls[0]?.focus();
+  return handle;
+}
+
+/** Клик по «+» (.b24-kanban__add) в любой колонке доски открывает форму быстрого добавления. Возвращает функцию отключения. */
+export function enableKanbanQuickAdd(board: HTMLElement, options: KanbanQuickAddOptions): () => void {
+  const onClick = (e: MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.b24-kanban__add');
+    const column = btn?.closest<HTMLElement>(COLUMN);
+    if (!btn || !column || !board.contains(column)) return;
+    const opened = openForms.get(column);
+    if (opened) opened.close(); else openKanbanQuickAdd(column, options);
+  };
+  board.addEventListener('click', onClick);
+  return () => board.removeEventListener('click', onClick);
+}
+
+/* ── Выбор стадии в карточке: одна строка с прокруткой, текущая — по центру ───── */
+
+export interface StagePickerStage { id: string; title: string; color?: string }
+
+export interface StagePickerOptions {
+  stages: StagePickerStage[];
+  value?: string;
+  /** смена стадии; false или исключение — вернуть прежнюю */
+  onChange?: (id: string, prev: string | undefined) => void | boolean | Promise<void | boolean>;
+  disabled?: boolean;
+  label?: string;
+}
+
+export interface StagePickerHandle {
+  element: HTMLElement;
+  getValue: () => string | undefined;
+  setValue: (id: string | undefined, smooth?: boolean) => void;
+  setStages: (stages: StagePickerStage[], value?: string) => void;
+  destroy: () => void;
+}
+
+/** Прокручивает строку так, чтобы элемент стоял по центру (у краёв — прижимается к началу/концу). */
+export function scrollIntoCenter(row: HTMLElement, item: HTMLElement, smooth = false): void {
+  const left = item.offsetLeft - row.offsetLeft * (item.offsetParent === row ? 0 : 1) - (row.clientWidth - item.offsetWidth) / 2;
+  const max = row.scrollWidth - row.clientWidth;
+  row.scrollTo({ left: Math.max(0, Math.min(max, left)), behavior: smooth ? 'smooth' : 'auto' });
+}
+
+export function stagePicker(el: HTMLElement, options: StagePickerOptions): StagePickerHandle {
+  let stages = options.stages;
+  let value = options.value;
+  el.classList.add('b24-stage-picker');
+  el.setAttribute('role', 'radiogroup');
+  el.setAttribute('aria-label', options.label ?? t('Стадия'));
+  el.classList.toggle('is-disabled', !!options.disabled);
+
+  const updateEdges = () => {
+    const max = el.scrollWidth - el.clientWidth;
+    el.classList.toggle('is-fade-start', el.scrollLeft > 1);
+    el.classList.toggle('is-fade-end', el.scrollLeft < max - 1);
+  };
+
+  const paint = () => {
+    el.querySelectorAll<HTMLButtonElement>('.b24-stage-picker__item').forEach((b) => {
+      const on = b.dataset.id === value;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on || (value === undefined && b === el.firstElementChild) ? 0 : -1;
+    });
+  };
+
+  const center = (smooth: boolean) => {
+    const chip = el.querySelector<HTMLElement>('.b24-stage-picker__item.is-active');
+    if (chip) scrollIntoCenter(el, chip, smooth);
+    updateEdges();
+  };
+
+  const render = () => {
+    el.replaceChildren(...stages.map((s) => {
+      const b = h('button', { type: 'button', class: 'b24-stage-picker__item', role: 'radio', 'data-id': s.id, disabled: options.disabled }, s.title);
+      if (s.color) {
+        b.style.setProperty('--_c', s.color);
+        b.style.setProperty('--_t', readableTextColor(s.color));
+      }
+      return b;
+    }));
+    paint();
+  };
+
+  const select = async (id: string) => {
+    if (id === value || options.disabled) return;
+    const prev = value;
+    value = id;
+    paint();
+    center(true);
+    try {
+      if ((await options.onChange?.(id, prev)) === false) { value = prev; paint(); center(true); }
+    } catch (err) {
+      value = prev; paint(); center(true);
+      throw err;
+    }
+  };
+
+  const onClick = (e: MouseEvent) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.b24-stage-picker__item');
+    if (b && el.contains(b)) void select(b.dataset.id!);
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    const items = Array.from(el.querySelectorAll<HTMLButtonElement>('.b24-stage-picker__item'));
+    const i = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (i < 0) return;
+    e.preventDefault();
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : Math.max(0, Math.min(items.length - 1, i + (e.key === 'ArrowRight' ? 1 : -1)));
+    items[next].focus();
+    void select(items[next].dataset.id!);
+  };
+  // колесо мыши прокручивает строку по горизонтали, пока есть куда
+  const onWheel = (e: WheelEvent) => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max <= 0 || (e.deltaY < 0 && el.scrollLeft <= 0) || (e.deltaY > 0 && el.scrollLeft >= max)) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+  };
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => center(false)) : null;
+
+  render();
+  el.addEventListener('click', onClick);
+  el.addEventListener('keydown', onKey);
+  el.addEventListener('scroll', updateEdges, { passive: true });
+  el.addEventListener('wheel', onWheel, { passive: false });
+  ro?.observe(el);
+  requestAnimationFrame(() => center(false));
+
+  return {
+    element: el,
+    getValue: () => value,
+    setValue: (id, smooth = true) => { value = id; paint(); center(smooth); },
+    setStages: (next, v) => { stages = next; if (v !== undefined) value = v; render(); center(false); },
+    destroy: () => {
+      el.removeEventListener('click', onClick);
+      el.removeEventListener('keydown', onKey);
+      el.removeEventListener('scroll', updateEdges);
+      el.removeEventListener('wheel', onWheel);
+      ro?.disconnect();
+      el.classList.remove('is-disabled', 'is-fade-start', 'is-fade-end');
+    },
+  };
 }
