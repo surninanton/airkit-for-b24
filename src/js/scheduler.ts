@@ -191,7 +191,8 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   const o = options;
   let view: SchedulerView = o.view ?? 'week';
   let anchor = startOfDay(o.date ? toDate(o.date) : new Date());
-  let zoom = 1;
+  /** желаемые пиксели в часе после «−»/«+»/колеса; null — по умолчанию (окно часов на ширину области, не уже PX) */
+  let pxTarget: number | null = null;
   let resources = o.resources;
   let events: Array<SchedulerEvent & { s: Date; e: Date }> = [];
   let bands: Array<SchedulerBand & { s: Date; e: Date }> = [];
@@ -234,12 +235,37 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
     return { start: first, end: new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1) };
   };
-  /** пикселей в часе: по виду и зуму, но шкала не уже видимой области */
-  let fitPx = 0;
-  const pxh = () => Math.max(PX[view] * zoom, fitPx);
+  /* Масштаб. Шкала всегда не уже области. Сжатие ниже «окна часов на ширину» не оставляет пустоты:
+   * в день/неделю добавляются часы за пределами окна hours (8–20 → 6–22 → … → 0–24), час становится уже. */
+  /** окно часов из настроек: в месяце — сутки целиком */
+  const baseWin = (): [number, number] => (view === 'month' ? [0, 24] : o.hours ?? [8, 20]);
+  let winCur: [number, number] = baseWin();
+  let pxCur: number = PX[view];
+  let availW = 0;
+  const pxh = () => pxCur;
   const stepMs = () => (o.step ?? (view === 'month' ? 60 : 15)) * 60_000;
-  /** окно часов суток: в месяце — сутки целиком */
-  const win = (): [number, number] => (view === 'month' ? [0, 24] : o.hours ?? [8, 20]);
+  /** видимое окно часов суток (может быть шире hours при сжатии) */
+  const win = (): [number, number] => winCur;
+  /** px в часе, когда окно hours ровно на ширину области */
+  const fitBase = () => { const [b0, b1] = baseWin(); return availW > 0 ? availW / (days() * (b1 - b0)) : PX[view]; };
+  /** самый мелкий масштаб: сутки 0–24 на ширину области (в месяце — месяц на ширину) */
+  const minPx = () => (view === 'month' ? fitBase() : availW > 0 ? Math.min(fitBase(), availW / (days() * 24)) : PX[view]);
+  const maxPx = () => PX[view] * MAX_ZOOM;
+  const applyScale = () => {
+    const [b0, b1] = baseWin();
+    const fit = fitBase();
+    const target = pxTarget ?? Math.max(PX[view], fit);
+    if (view === 'month' || target >= fit - 0.01 || availW <= 0) { winCur = [b0, b1]; pxCur = Math.max(target, fit); return; }
+    // уже окна hours — расширяем окно на целые часы, поровну в обе стороны, в пределах суток
+    const span = Math.min(24, Math.max(b1 - b0, Math.ceil(availW / (days() * target) - 0.01)));
+    const extra = span - (b1 - b0);
+    let a = b0 - Math.floor(extra / 2);
+    let b = b1 + Math.ceil(extra / 2);
+    if (a < 0) { b -= a; a = 0; }
+    if (b > 24) { a = Math.max(0, a - (b - 24)); b = 24; }
+    winCur = [a, b];
+    pxCur = availW / (days() * (b - a));
+  };
   const dayW = () => (win()[1] - win()[0]) * pxh();
   const days = () => Math.round((range().end.getTime() - range().start.getTime()) / DAY);
   /** время → x: каждый день — окно часов, время вне окна прижимается к его краю */
@@ -345,8 +371,8 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     root.dataset.view = view;
     laneH = parseFloat(getComputedStyle(root).getPropertyValue('--_lane-h')) || 30;
     const resW = parseFloat(getComputedStyle(root).getPropertyValue('--_res-w')) || 240;
-    const avail = viewport.clientWidth - resW;
-    fitPx = avail > 0 ? avail / (days() * (win()[1] - win()[0])) : 0;
+    availW = viewport.clientWidth - resW;
+    applyScale();
     const out: Item[] = [];
     let top = 0;
     const groups = new Map<string, SchedulerResource[]>();
@@ -442,8 +468,8 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       : view === 'week'
         ? `${new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short' }).format(start)} — ${new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', year: 'numeric' }).format(addDays(end, -1))}`
         : new Intl.DateTimeFormat(loc, { month: 'long', year: 'numeric' }).format(start);
-    if (zoomOutBtn) zoomOutBtn.disabled = pxh() <= fitPx + 0.5;
-    if (zoomInBtn) zoomInBtn.disabled = pxh() >= PX[view] * MAX_ZOOM - 0.5;
+    if (zoomOutBtn) zoomOutBtn.disabled = pxh() <= minPx() + 0.5;
+    if (zoomInBtn) zoomInBtn.disabled = pxh() >= maxPx() - 0.5;
   };
 
   /* ── загрузка и конфликты ── */
@@ -935,19 +961,18 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     }
   };
 
-  /* ── масштаб: кнопки и Ctrl/⌘ + колесо; не уже «весь период на ширину области» ── */
-  const minZoom = () => Math.min(MAX_ZOOM, fitPx / PX[view]);
-  const zoomAround = (next: number, offset: number) => {
+  /* ── масштаб: кнопки и Ctrl/⌘ + колесо; минимум — сутки 0–24 на ширину области ── */
+  const zoomAround = (nextPx: number, offset: number) => {
     const at = timeAt(viewport.scrollLeft + offset);
-    zoom = Math.min(MAX_ZOOM, Math.max(minZoom(), next));
-    render(false);
+    pxTarget = Math.min(maxPx(), Math.max(minPx(), nextPx));
+    render();
     viewport.scrollLeft = Math.max(0, x(at) - offset);
   };
   const zoomCenter = (next: number) => zoomAround(next, (viewport.clientWidth - resW()) / 2);
   const onWheel = (e: WheelEvent) => {
     if (!(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    zoomAround(Math.max(zoom, minZoom()) * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX - viewport.getBoundingClientRect().left - resW());
+    zoomAround(pxh() * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX - viewport.getBoundingClientRect().left - resW());
   };
   let scrollRaf = 0;
   const onScroll = () => { if (!scrollRaf) scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; renderRows(); }); };
@@ -986,7 +1011,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     setView(v) {
       view = v;
       root.querySelectorAll<HTMLInputElement>('.b24-segmented input').forEach((i) => { i.checked = i.value === v; });
-      zoom = 1;
+      pxTarget = null;
       render();
       initialScroll();
       void reload();
@@ -1002,9 +1027,10 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     scrollToTime,
     editEvent(id) { const ev = evById(id); if (ev) openEditorFor(pub(ev), ev); },
     createEvent(draft) { if (editorOpts()) openEditorFor({ id: '', title: draft.title ?? '', ...draft }); },
-    zoomIn() { zoomCenter(Math.max(zoom, minZoom()) * 1.25); },
-    zoomOut() { zoomCenter(Math.max(zoom, minZoom()) / 1.25); },
-    zoomToFit() { zoomCenter(minZoom()); },
+    zoomIn() { zoomCenter(pxh() * 1.25); },
+    zoomOut() { zoomCenter(pxh() / 1.25); },
+    /** окно часов (hours) — или весь месяц — ровно на ширину области */
+    zoomToFit() { zoomCenter(fitBase()); },
     destroy() {
       closeMenu?.();
       abort?.abort();

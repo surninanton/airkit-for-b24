@@ -212,34 +212,47 @@ test.describe('планировщик', () => {
     expect(await model(page, 'e-overlap-a')).toEqual(before);
   });
 
-  test('масштаб кнопками: «−» до размера области, «+», «По размеру»', async ({ page }) => {
+  test('масштаб кнопками: «−» добавляет часы до 0–24, «+» — деления :30/:15, «По размеру» — окно hours', async ({ page }) => {
     const sch = page.locator('.b24-scheduler');
     await sch.locator('.b24-segmented label', { hasText: 'День' }).click();
     const w = () => page.locator('.b24-scheduler__scale').evaluate((el) => el.getBoundingClientRect().width);
+    const hours = () => page.locator('.b24-scheduler__tick--bottom:not(.is-sub)').allTextContents();
+    const subs = () => page.locator('.b24-scheduler__tick.is-sub').allTextContents();
     const minus = sch.getByRole('button', { name: 'Уменьшить масштаб' });
     const plus = sch.getByRole('button', { name: 'Увеличить масштаб' });
-    // «−» до упора: шкала не уже видимой области
-    for (let i = 0; i < 8 && (await minus.isEnabled()); i++) await minus.click();
-    await expect(minus).toBeDisabled();
-    const fit = await w();
+    const fitBtn = sch.getByRole('button', { name: 'По размеру' });
     const area = await page.locator('.b24-scheduler__viewport').evaluate((v) => v.clientWidth - (parseFloat(getComputedStyle(v.closest('.b24-scheduler')!).getPropertyValue('--_res-w')) || 240));
-    expect(Math.abs(fit - area)).toBeLessThan(3);
-    await plus.click();
-    await plus.click();
-    expect(await w()).toBeGreaterThan(fit * 1.4);
+
+    // «По размеру» — окно 8–20 ровно на ширину области
+    await fitBtn.click();
+    expect(Math.abs((await w()) - area)).toBeLessThan(3);
+    expect((await hours())[0]).toBe('08:00');
     await expect(minus).toBeEnabled();
-    // деления внутри часа: :30 при увеличении, потом :15 и :45
-    const subs = () => page.locator('.b24-scheduler__tick.is-sub').allTextContents();
-    expect(await subs()).toEqual([]);
-    for (let i = 0; i < 8 && (await plus.isEnabled()); i++) await plus.click();
-    const at4 = await subs();
-    expect(at4).toContain(':15');
-    expect(at4).toContain(':30');
-    expect(at4).toContain(':45');
-    await sch.getByRole('button', { name: 'По размеру' }).click();
-    expect(Math.abs((await w()) - fit)).toBeLessThan(2);
+
+    // «−» дальше: ширина та же, часов больше — до суток 0–24, только часовые деления
+    await minus.click();
+    expect(Math.abs((await w()) - area)).toBeLessThan(3);
+    expect((await hours()).length).toBeGreaterThan(12);
+    for (let i = 0; i < 12 && (await minus.isEnabled()); i++) await minus.click();
     await expect(minus).toBeDisabled();
+    const all = await hours();
+    expect(all[0]).toBe('00:00');
+    expect(all).toHaveLength(24);
     expect(await subs()).toEqual([]);
+
+    // «+» до упора: окно сужается обратно, потом шкала шире области и появляются :15/:30/:45
+    for (let i = 0; i < 20 && (await plus.isEnabled()); i++) await plus.click();
+    await expect(plus).toBeDisabled();
+    expect(await w()).toBeGreaterThan(area * 1.4);
+    expect((await hours())[0]).toBe('08:00');
+    const fine = await subs();
+    expect(fine).toContain(':15');
+    expect(fine).toContain(':30');
+    expect(fine).toContain(':45');
+
+    await fitBtn.click();
+    expect(Math.abs((await w()) - area)).toBeLessThan(3);
+    expect((await hours())[0]).toBe('08:00');
   });
 });
 
