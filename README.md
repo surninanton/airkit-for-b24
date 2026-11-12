@@ -458,6 +458,12 @@ React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `R
 - **Шкала** — день, неделя, месяц; кнопки «назад / сегодня / вперёд». В дне и неделе показаны часы `hours: [8, 20]` — ночь не занимает место. Ctrl/⌘ + колесо — масштаб. Линия «сейчас».
 - **График работы** (`bands`): смены `kind: 'work'` светлые, остальное время приглушено; отпуск, больничный, командировка — штриховкой с подписью.
 - **Встречи** (`events`): перетаскивание по времени и на другого сотрудника, растягивание за края, создание выделением пустого места, шаг привязки `step` (15 минут). С клавиатуры: Alt+←/→ — сдвиг, Alt+Shift+←/→ — длительность, Enter — открыть, Delete — удалить.
+- **Окно редактирования** (`editor: true` или `{ fields, comment, duration }`): клик (или Enter, «Изменить» в меню) — название, тип, сотрудник, дата и время начала и конца, «Весь день», комментарий и свои поля (`fields: [{ name, label, type: 'text' | 'textarea' | 'number' | 'select', options, required }]`, значения — в `event.data[name]`). Выделение пустого места тоже открывает окно. Сохранение — `onSave(event, { isNew, previous })`: отклонённый промис оставляет окно открытым и показывает текст ошибки; для новой верните встречу с id сервера. Без `onSave` новые уходят в `onCreate`, изменения — в `onChange`. «Удалить» в окне — через `onDelete`. Есть свой `onClick` — окно по двойному клику или `scheduler.editEvent(id)`.
+- **Типы событий** (`eventTypes: [{ id, label, color, allDay }]`, у события — `type`): цвет и «весь день» по умолчанию, легенда, пункт «Тип» в меню и окне.
+- **Контекстное меню** (правая кнопка, клавиша меню / Shift+F10 на встрече): на встрече — Изменить · Тип · Дублировать · Копировать · Удалить, на пустом месте — Создать (по типам) · Вставить. `contextMenu: (ctx) => items` меняет пункты (`ctx.kind`: `'event'` / `'slot'`, `ctx.items` — пункты по умолчанию), `false` — без меню.
+- **Копии**: Ctrl/⌘+C на встрече и Ctrl/⌘+V — на место под курсором, Alt + перетаскивание, «Дублировать» — сразу после оригинала; уходят как новые (`onSave` / `onCreate` с `copyOf`).
+- **Масштаб**: кнопки «−», «+», «По размеру» в панели (и Ctrl/⌘ + колесо); шкала не бывает уже области. API: `zoomIn()`, `zoomOut()`, `zoomToFit()`.
+- **Комментарий** (`comment`) — значок на встрече и текст в подсказке.
 - **Без времени**: `allDay: true` у события (выходной, отпуск, больничный, которые нужно кликать и двигать) — полоса на свои `start–end`, подпись только названием, не помечается «вне рабочего времени» и «отсутствует». Конец ровно в полночь подписывается «24:00».
 - **Создание**: `createWithinDay: true` не даёт протянуть выделение через полночь. **Прокрутка при открытии**: `initialScroll: 'now'` (к сегодня, по умолчанию) или `'start'` (к началу недели / месяца, в дне — к первому видимому часу).
 - **Сервер решает**: `onChange({ event, start, end, resourceId, previous })` — отклонённый промис откатывает изменение; `onCreate`, `onClick`, `onDelete`. Данные периода — `load({ start, end }, signal)`.
@@ -473,6 +479,10 @@ B24UI.createScheduler(el, {
     { id: 'off', resourceId: '1', start: '2026-10-06T09:00', end: '2026-10-06T18:00', title: 'Выходной', allDay: true },
   ],
   createWithinDay: true, initialScroll: 'start',
+  eventTypes: [{ id: 'meeting', label: 'Встреча' }, { id: 'off', label: 'Выходной', color: '#828b95', allDay: true }],
+  editor: { fields: [{ name: 'place', label: 'Место', type: 'select', options: [{ value: 'office', label: 'Офис' }, { value: 'online', label: 'Онлайн' }] }] },
+  onSave: async (event, { isNew }) => (isNew ? api.createMeeting(event) : api.updateMeeting(event)), // вернуть встречу с id
+  onDelete: (event) => api.deleteMeeting(event.id),
   onChange: ({ event, start, end, resourceId }) => api.moveMeeting(event.id, start, end, resourceId),
 });
 ```

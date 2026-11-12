@@ -161,6 +161,8 @@ export function Scheduler({ className, ...options }: SchedulerProps) {
       ...opts.current,
       onChange: cb('onChange'), onCreate: options.onCreate ? cb('onCreate') : undefined, onClick: cb('onClick'),
       onDelete: options.onDelete ? cb('onDelete') : undefined, onRangeChange: cb('onRangeChange'),
+      onSave: options.onSave ? cb('onSave') : undefined,
+      contextMenu: typeof options.contextMenu === 'function' ? (ctx) => { const f = opts.current.contextMenu; return typeof f === 'function' ? f(ctx) : undefined; } : options.contextMenu,
       load: options.load ? (r, s) => opts.current.load!(r, s) : undefined,
     });
     return () => sch.current?.destroy();

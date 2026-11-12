@@ -2,6 +2,9 @@ import { icon } from '../icons';
 import { avatarHtml } from './avatar';
 import { escapeHtml, h, html } from './dom';
 import { intlLocale, t } from './i18n';
+import { openEventEditor, openMenuAt, type SchedulerMenuItem } from './scheduler-editor';
+
+export type { SchedulerMenuItem } from './scheduler-editor';
 
 /* ── Планировщик: сотрудники × время ──────────────────────
  * Строки — сотрудники (с группировкой по отделам), шкала — день, неделя или месяц.
@@ -10,6 +13,9 @@ import { intlLocale, t } from './i18n';
  * Каждое изменение уходит в onChange/onCreate: промис отклонён — изменение откатывается.
  * Пересечения встреч у одного сотрудника и встречи вне рабочего времени подсвечиваются,
  * у сотрудника показана загрузка за видимый период. Строки виртуализированы.
+ * editor — окно редактирования (название, тип, сотрудник, время, «весь день», комментарий, свои поля),
+ * eventTypes — типы с цветом, contextMenu — меню по правой кнопке, масштаб — кнопками и Ctrl/⌘ + колесо,
+ * копирование: Ctrl/⌘+C / V, Alt + перетаскивание, «Дублировать» в меню.
  */
 export type SchedulerView = 'day' | 'week' | 'month';
 export type DateInput = Date | string | number;
@@ -36,7 +42,54 @@ export interface SchedulerEvent {
   /** без времени: выходной, отпуск, больничный — полоса на свои start–end, но в подписи, подсказке и aria-label только название
    *  (и день в подсказке); не помечается «вне рабочего времени» и «сотрудник отсутствует» */
   allDay?: boolean;
+  /** id из eventTypes: цвет и «весь день» по умолчанию берутся из типа */
+  type?: string;
+  /** комментарий: поле в окне редактирования, значок на встрече, текст в подсказке */
+  comment?: string;
+  /** данные приложения; свои поля окна редактирования (editor.fields) пишутся сюда по name */
   data?: unknown;
+}
+/** тип события: «Встреча», «Звонок», «Выходной»… — цвет, подпись в легенде, пункт меню «Тип» */
+export interface SchedulerEventType {
+  id: string;
+  label: string;
+  color?: string;
+  /** события этого типа — без времени (выходной, отпуск) */
+  allDay?: boolean;
+}
+/** своё поле окна редактирования; значение — в event.data[name] */
+export interface SchedulerEditorField {
+  name: string;
+  label: string;
+  type?: 'text' | 'textarea' | 'number' | 'select';
+  options?: Array<{ value: string; label: string }>;
+  required?: boolean;
+  placeholder?: string;
+}
+export interface SchedulerEditorOptions {
+  fields?: SchedulerEditorField[];
+  /** поле «Комментарий» (по умолчанию есть) */
+  comment?: boolean;
+  /** длительность новой встречи из меню «Создать», минуты (по умолчанию 60) */
+  duration?: number;
+}
+/** что передаётся в contextMenu: где нажали и пункты по умолчанию */
+export type SchedulerMenuContext =
+  | { kind: 'event'; event: SchedulerEvent; items: SchedulerMenuItem[] }
+  | { kind: 'slot'; resourceId: string; start: Date; end: Date; items: SchedulerMenuItem[] };
+/** черновик новой встречи: выделение, меню «Создать», копия */
+export interface SchedulerDraft {
+  resourceId: string;
+  start: Date;
+  end: Date;
+  title?: string;
+  type?: string;
+  allDay?: boolean;
+  color?: string;
+  comment?: string;
+  data?: unknown;
+  /** id встречи, с которой сделана копия */
+  copyOf?: string;
 }
 /** интервал графика: смена (work) или отсутствие */
 export interface SchedulerBand {
@@ -78,7 +131,18 @@ export interface SchedulerOptions {
   /** подсказка над встречей; по умолчанию — название, время, сотрудник */
   tooltip?: (event: SchedulerEvent, resource?: SchedulerResource) => string;
   onChange?: (change: SchedulerChange) => void | Promise<unknown>;
-  onCreate?: (draft: { resourceId: string; start: Date; end: Date }) => void | SchedulerEvent | Promise<SchedulerEvent | void>;
+  onCreate?: (draft: SchedulerDraft) => void | SchedulerEvent | Promise<SchedulerEvent | void>;
+  /** окно редактирования: клик, двойной клик или Enter по встрече, «Изменить» в меню; новая встреча после выделения — тоже через окно */
+  editor?: boolean | SchedulerEditorOptions;
+  /** типы событий: цвет, «весь день», легенда, пункт меню «Тип» */
+  eventTypes?: SchedulerEventType[];
+  /** меню по правой кнопке (и клавише меню / Shift+F10 на встрече): true — пункты по умолчанию (по умолчанию),
+   *  функция — получает контекст с пунктами по умолчанию и возвращает свои; false — без меню */
+  contextMenu?: boolean | ((ctx: SchedulerMenuContext) => SchedulerMenuItem[] | false | void);
+  /** сохранение из окна редактирования, смена типа в меню, копия. Если не задан — новые встречи уходят в onCreate,
+   *  изменения — в onChange. Отклонённый промис — изменение не применяется (окно показывает ошибку).
+   *  Для новой вернуть встречу с id сервера (иначе id сгенерируется) */
+  onSave?: (event: SchedulerEvent, info: { isNew: boolean; previous?: SchedulerEvent }) => void | SchedulerEvent | Promise<SchedulerEvent | void>;
   onClick?: (event: SchedulerEvent) => void;
   onDelete?: (event: SchedulerEvent) => void | Promise<unknown>;
   onRangeChange?: (range: { view: SchedulerView; start: Date; end: Date }) => void;
@@ -98,6 +162,14 @@ export interface SchedulerHandle {
   getEvents(): SchedulerEvent[];
   /** прокрутить к моменту времени */
   scrollToTime(date: DateInput): void;
+  /** открыть окно редактирования встречи */
+  editEvent(id: string): void;
+  /** открыть окно новой встречи с заполненными полями */
+  createEvent(draft: SchedulerDraft): void;
+  zoomIn(): void;
+  zoomOut(): void;
+  /** весь период на ширину области */
+  zoomToFit(): void;
   destroy(): void;
 }
 
@@ -136,6 +208,23 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   const normBands = (list: SchedulerBand[]) => list.map((b) => ({ ...b, s: toDate(b.start), e: toDate(b.end) }));
   events = normEvents(o.events ?? []);
   bands = normBands(o.bands ?? []);
+  type Ev = SchedulerEvent & { s: Date; e: Date };
+  const typeOf = (e: { type?: string }) => (e.type ? o.eventTypes?.find((x) => x.id === e.type) : undefined);
+  const isAllDay = (e: SchedulerEvent) => e.allDay ?? typeOf(e)?.allDay ?? false;
+  const colorOf = (e: SchedulerEvent) => e.color ?? typeOf(e)?.color;
+  const editorOpts = (): SchedulerEditorOptions | null => (!o.editor || o.readonly ? null : o.editor === true ? {} : o.editor);
+  const canCreate = () => !o.readonly && !!(o.onCreate || o.onSave);
+  /** внутренняя встреча → для приложения: start/end — Date, без служебных s/e */
+  const pub = (ev: Ev): SchedulerEvent => { const { s, e, ...rest } = ev; return { ...rest, start: s, end: e }; };
+  const isEvent = (r: unknown): r is SchedulerEvent => !!r && typeof r === 'object' && 'id' in r;
+  /** поля, которые переносятся в копию */
+  const copyFields = (ev: SchedulerEvent) => ({ title: ev.title, type: ev.type, allDay: ev.allDay, color: ev.color, comment: ev.comment, data: ev.data });
+  let copied: SchedulerEvent | null = null;
+  /** последнее место под курсором — сюда вставляется копия по Ctrl/⌘+V */
+  let lastSlot: { resourceId: string; time: Date } | null = null;
+  let zoomInBtn: HTMLButtonElement | null = null;
+  let zoomOutBtn: HTMLButtonElement | null = null;
+  const MAX_ZOOM = 4;
 
   /* ── период и масштаб ── */
   const range = () => {
@@ -207,14 +296,21 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       input.addEventListener('change', () => handle.setView(v));
       seg.append(h('label', {}, input, h('span', {}, label)));
     }
-    bar.append(nav, title, seg);
+    zoomOutBtn = btn('', t('Уменьшить масштаб'), () => handle.zoomOut(), 'minus');
+    zoomInBtn = btn('', t('Увеличить масштаб'), () => handle.zoomIn(), 'plus');
+    const zoomBox = h('div', { class: 'b24-scheduler__zoom', role: 'group', 'aria-label': t('Масштаб') },
+      zoomOutBtn, zoomInBtn, btn(t('По размеру'), t('По размеру'), () => handle.zoomToFit()));
+    zoomBox.lastElementChild!.setAttribute('title', t('Весь период на ширину области'));
+    bar.append(nav, title, zoomBox, seg);
     root.append(bar);
   }
   root.append(viewport);
   if (o.legend !== false) {
     const item = (label: string, bg: string) => `<span><i style="background:${bg}"></i>${escapeHtml(label)}</span>`;
     root.append(h('div', { class: 'b24-scheduler__legend' }, html([
-      item(t('Встреча'), 'color-mix(in srgb, var(--b24-color-primary) 25%, var(--b24-bg-surface))'),
+      ...(o.eventTypes?.length
+        ? o.eventTypes.map((ty) => item(ty.label, `color-mix(in srgb, ${ty.color ?? 'var(--b24-color-primary)'} 25%, var(--b24-bg-surface)); box-shadow: inset 2px 0 0 ${ty.color ?? 'var(--b24-color-primary)'}`))
+        : [item(t('Встреча'), 'color-mix(in srgb, var(--b24-color-primary) 25%, var(--b24-bg-surface))')]),
       item(t('Рабочее время'), 'var(--b24-bg-surface); box-shadow: inset 0 0 0 1px var(--b24-divider-accent)'),
       item(t('Нерабочее время'), 'color-mix(in srgb, var(--b24-text-subtle) 10%, transparent); background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 22%, transparent) 0 1px, transparent 1px 4px)'),
       item(t('Отпуск'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-violet-1) 0 3px, transparent 3px 6px)'),
@@ -322,6 +418,8 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       : view === 'week'
         ? `${new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short' }).format(start)} — ${new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', year: 'numeric' }).format(addDays(end, -1))}`
         : new Intl.DateTimeFormat(loc, { month: 'long', year: 'numeric' }).format(start);
+    if (zoomOutBtn) zoomOutBtn.disabled = pxh() <= fitPx + 0.5;
+    if (zoomInBtn) zoomInBtn.disabled = pxh() >= PX[view] * MAX_ZOOM - 0.5;
   };
 
   /* ── загрузка и конфликты ── */
@@ -338,9 +436,9 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const overlap = mine.some((e) => e.s < ev.e && e.e > ev.s);
     const rb = bands.filter((b) => b.resourceId === ev.resourceId);
     // событие без времени (выходной, отпуск) само говорит об отсутствии — не конфликт с графиком
-    const absent = !ev.allDay && rb.find((b) => b.kind !== 'work' && b.s < ev.e && b.e > ev.s);
+    const absent = !isAllDay(ev) && rb.find((b) => b.kind !== 'work' && b.s < ev.e && b.e > ev.s);
     const works = rb.filter((b) => b.kind === 'work');
-    const outside = !ev.allDay && works.length > 0 && !works.some((b) => b.s <= ev.s && b.e >= ev.e);
+    const outside = !isAllDay(ev) && works.length > 0 && !works.some((b) => b.s <= ev.s && b.e >= ev.e);
     return { overlap, absent, outside };
   };
 
@@ -399,11 +497,13 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       const ev = h('div', {
         class: `b24-scheduler__event${e.readonly || o.readonly ? ' is-readonly' : ''}${f.overlap || f.absent ? ' is-conflict' : ''}${f.outside ? ' is-outside' : ''}`,
         'data-event': e.id, tabindex: '0', role: 'button',
-        'aria-label': `${e.title}${e.allDay ? '' : `, ${fmtRange(e.s, e.e)}`}${f.overlap ? `, ${t('пересекается с другой встречей')}` : ''}`,
-        style: `left:${left}px;width:${Math.max(4, right - left)}px;top:${ROW_PAD + lane * laneH + 2}px${e.color ? `;--b24-scheduler-event-color:${e.color}` : ''}`,
+        'aria-label': `${e.title}${isAllDay(e) ? '' : `, ${fmtRange(e.s, e.e)}`}${e.comment ? `, ${t('есть комментарий')}` : ''}${f.overlap ? `, ${t('пересекается с другой встречей')}` : ''}`,
+        style: `left:${left}px;width:${Math.max(4, right - left)}px;top:${ROW_PAD + lane * laneH + 2}px${colorOf(e) ? `;--b24-scheduler-event-color:${colorOf(e)}` : ''}`,
       });
-      ev.append(h('span', { class: 'b24-scheduler__event-title' }, e.title));
-      if (!e.allDay && right - left > 70 && view !== 'month') ev.append(h('span', { class: 'b24-scheduler__event-time' }, fmtRange(e.s, e.e)));
+      const titleEl = h('span', { class: 'b24-scheduler__event-title' }, e.title);
+      if (e.comment) titleEl.prepend(html(icon('comment')));
+      ev.append(titleEl);
+      if (!isAllDay(e) && right - left > 70 && view !== 'month') ev.append(h('span', { class: 'b24-scheduler__event-time' }, fmtRange(e.s, e.e)));
       ev.append(h('span', { class: 'b24-scheduler__handle b24-scheduler__handle--start', 'aria-hidden': 'true' }), h('span', { class: 'b24-scheduler__handle b24-scheduler__handle--end', 'aria-hidden': 'true' }));
       track.append(ev);
     }
@@ -473,7 +573,9 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     if (o.tooltip) return o.tooltip(e, resById(e.resourceId));
     const f = flags(e);
     const day = new Intl.DateTimeFormat(intlLocale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(e.s);
-    return `<b>${escapeHtml(e.title)}</b><br>${escapeHtml(day)}${e.allDay ? '' : `, ${fmtRange(e.s, e.e)}`}<br>${escapeHtml(resById(e.resourceId)?.name ?? '')}`
+    const ty = typeOf(e);
+    const note = e.comment ? `<br><span class="b24-scheduler__tip-note">${escapeHtml(e.comment.length > 200 ? `${e.comment.slice(0, 200)}…` : e.comment)}</span>` : '';
+    return `<b>${escapeHtml(e.title)}</b>${ty ? ` · ${escapeHtml(ty.label)}` : ''}<br>${escapeHtml(day)}${isAllDay(e) ? '' : `, ${fmtRange(e.s, e.e)}`}<br>${escapeHtml(resById(e.resourceId)?.name ?? '')}${note}`
       + (f.overlap ? `<br>⚠ ${escapeHtml(t('Пересекается с другой встречей'))}` : '')
       + (f.absent ? `<br>⚠ ${escapeHtml(t('Сотрудник отсутствует'))}` : '')
       + (f.outside ? `<br>${escapeHtml(t('Вне рабочего времени'))}` : '');
@@ -496,13 +598,154 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     rowsLayer.querySelector<HTMLElement>(`[data-event="${CSS.escape(ev.id)}"]`)?.focus({ preventScroll: true });
   };
 
+  /* ── создание, сохранение, удаление: окно редактирования, меню, копии ── */
+  const resW = () => parseFloat(getComputedStyle(root).getPropertyValue('--_res-w')) || 240;
+  /** новая встреча: onSave(isNew) или onCreate; ошибка пробрасывается (окно её покажет) */
+  const persistNew = async (draft: SchedulerDraft) => {
+    let saved: SchedulerEvent | null = null;
+    if (o.onSave) {
+      const { copyOf: _copyOf, ...rest } = draft;
+      const ev: SchedulerEvent = { ...rest, id: '', title: draft.title ?? t('Новая встреча') };
+      const r = await o.onSave(ev, { isNew: true });
+      saved = isEvent(r) ? r : { ...ev, id: `new-${Math.random().toString(36).slice(2, 9)}` };
+    } else {
+      const r = await o.onCreate?.(draft);
+      if (isEvent(r)) saved = r;
+    }
+    if (saved) { events.push(...normEvents([saved])); render(); }
+  };
+  /** изменённая встреча целиком (окно, смена типа): onSave или onChange */
+  const persistEdit = async (cur: Ev, next: SchedulerEvent) => {
+    let saved = next;
+    if (o.onSave) {
+      const r = await o.onSave(next, { isNew: false, previous: pub(cur) });
+      if (isEvent(r)) saved = r;
+    } else {
+      await o.onChange?.({ event: next, start: toDate(next.start), end: toDate(next.end), resourceId: next.resourceId, previous: { start: cur.s, end: cur.e, resourceId: cur.resourceId } });
+    }
+    const norm = normEvents([saved])[0];
+    const i = events.indexOf(cur);
+    if (i >= 0) events[i] = norm; else events.push(norm);
+    render();
+  };
+  const quiet = async (fn: () => Promise<unknown>) => { try { await fn(); } catch { /* отказ — приложение само сообщает почему */ } };
+  const removeEvent = async (ev: Ev) => {
+    if (!o.onDelete) return;
+    await o.onDelete(ev);
+    events = events.filter((x2) => x2.id !== ev.id);
+    render();
+  };
+  const timeStep = () => [30, 15, 10, 5, 1].find((v) => v <= stepMs() / 60_000) ?? 15;
+  const openEditorFor = (base: SchedulerEvent, cur?: Ev) => {
+    const eo = editorOpts();
+    if (!eo) return;
+    hideTip();
+    openEventEditor({
+      event: { ...base, start: toDate(base.start), end: toDate(base.end) },
+      isNew: !cur, resources, types: o.eventTypes, fields: eo.fields, comment: eo.comment, step: timeStep(),
+      save: async (next) => {
+        if (cur) await persistEdit(cur, next);
+        else await persistNew({ resourceId: next.resourceId, start: next.start, end: next.end, title: next.title, type: next.type, allDay: next.allDay, color: next.color, comment: next.comment, data: next.data });
+      },
+      remove: cur && o.onDelete ? () => removeEvent(cur) : undefined,
+    });
+  };
+  /** выделение, «Создать» в меню: с окном редактирования — через окно, без него — сразу */
+  const createFrom = (draft: SchedulerDraft) => {
+    if (editorOpts()) openEditorFor({ id: '', title: draft.title ?? '', ...draft });
+    else void quiet(() => persistNew(draft));
+  };
+  const copyAt = (src: SchedulerEvent, resourceId: string, start: Date) => {
+    const dur = toDate(src.end).getTime() - toDate(src.start).getTime();
+    return quiet(() => persistNew({ ...copyFields(src), resourceId, start, end: new Date(start.getTime() + dur), copyOf: src.id }));
+  };
+  const paste = (at?: { resourceId: string; time: Date }) => {
+    if (!copied || !canCreate()) return;
+    const target = at ?? lastSlot ?? { resourceId: copied.resourceId, time: toDate(copied.end) };
+    void copyAt(copied, target.resourceId, target.time);
+  };
+  const setType = (ev: Ev, ty: SchedulerEventType) => {
+    const next: SchedulerEvent = { ...pub(ev), type: ty.id };
+    delete next.color;
+    if (ty.allDay !== undefined) delete next.allDay;
+    void quiet(() => persistEdit(ev, next));
+  };
+
+  /* ── контекстное меню ── */
+  let closeMenu: (() => void) | null = null;
+  const tidy = (items: SchedulerMenuItem[]) => items.filter((it, i, a) => !it.divider || (i > 0 && i < a.length - 1 && !a[i - 1].divider));
+  const eventItems = (ev: Ev): SchedulerMenuItem[] => {
+    const locked = !!ev.readonly || !!o.readonly;
+    const items: SchedulerMenuItem[] = [];
+    if (editorOpts() && !ev.readonly) items.push({ id: 'edit', label: t('Изменить'), icon: 'edit', hint: 'Enter', onClick: () => openEditorFor(pub(ev), ev) });
+    if (o.eventTypes?.length && !locked) {
+      items.push({ id: 'type', title: true, label: t('Тип') });
+      for (const ty of o.eventTypes) items.push({ id: `type:${ty.id}`, label: ty.label, checked: ev.type === ty.id, onClick: () => setType(ev, ty) });
+    }
+    if (canCreate() && !ev.readonly) {
+      items.push({ id: 'd1', divider: true });
+      items.push({ id: 'duplicate', label: t('Дублировать'), icon: 'copy', onClick: () => void copyAt(pub(ev), ev.resourceId, ev.e) });
+      items.push({ id: 'copy', label: t('Копировать'), hint: 'Ctrl+C', onClick: () => { copied = pub(ev); } });
+    }
+    if (o.onDelete && !locked) {
+      items.push({ id: 'd2', divider: true });
+      items.push({ id: 'delete', label: t('Удалить'), icon: 'trash', danger: true, hint: 'Delete', onClick: () => void quiet(() => removeEvent(ev)) });
+    }
+    return tidy(items);
+  };
+  const slotItems = (resourceId: string, start: Date, end: Date): SchedulerMenuItem[] => {
+    if (!canCreate()) return [];
+    const items: SchedulerMenuItem[] = [];
+    if (o.eventTypes?.length) {
+      items.push({ id: 'create', title: true, label: t('Создать') });
+      for (const ty of o.eventTypes) items.push({ id: `create:${ty.id}`, label: ty.label, icon: 'plus', onClick: () => createFrom({ resourceId, start, end, type: ty.id, title: ty.label }) });
+    } else {
+      items.push({ id: 'create', label: t('Создать встречу'), icon: 'plus', onClick: () => createFrom({ resourceId, start, end }) });
+    }
+    if (copied) items.push({ id: 'd1', divider: true }, { id: 'paste', label: t('Вставить'), icon: 'copy', hint: 'Ctrl+V', onClick: () => paste({ resourceId, time: start }) });
+    return tidy(items);
+  };
+  /** показать меню; false — показывать нечего (остаётся меню браузера) */
+  const showMenu = (ctx: SchedulerMenuContext, cx: number, cy: number) => {
+    if (o.contextMenu === false) return false;
+    let items = ctx.items;
+    if (typeof o.contextMenu === 'function') {
+      const r = o.contextMenu(ctx);
+      if (r === false) return false;
+      if (Array.isArray(r)) items = r;
+    }
+    if (!items.length) return false;
+    closeMenu?.();
+    hideTip();
+    closeMenu = openMenuAt(items, cx, cy);
+    return true;
+  };
+  const eventCtx = (ev: Ev): SchedulerMenuContext => ({ kind: 'event', event: pub(ev), items: eventItems(ev) });
+  const onContext = (e: MouseEvent) => {
+    if (drag || o.contextMenu === false) return;
+    const target = e.target as HTMLElement;
+    const evEl = target.closest<HTMLElement>('.b24-scheduler__event');
+    const ev = evEl && evById(evEl.dataset.event!);
+    let ctx: SchedulerMenuContext | null = null;
+    if (ev) ctx = eventCtx(ev);
+    else {
+      const track = target.closest<HTMLElement>('.b24-scheduler__track');
+      const row = track?.closest<HTMLElement>('.b24-scheduler__row');
+      if (!row) return;
+      const start = snap(timeAt(trackX(e.clientX)));
+      const end = new Date(start.getTime() + (editorOpts()?.duration ?? 60) * 60_000);
+      ctx = { kind: 'slot', resourceId: row.dataset.resource!, start, end, items: slotItems(row.dataset.resource!, start, end) };
+    }
+    if (showMenu(ctx, e.clientX, e.clientY)) e.preventDefault();
+  };
+
   /* ── перетаскивание, растягивание, создание ── */
   type Drag =
-    | { kind: 'move' | 'start' | 'end'; ev: SchedulerEvent & { s: Date; e: Date }; el: HTMLElement; x0: number; y0: number; moved: boolean; rowTop: number; next?: { start: Date; end: Date; resourceId: string } }
+    | { kind: 'move' | 'start' | 'end'; ev: Ev; el: HTMLElement; x0: number; y0: number; moved: boolean; rowTop: number; copy?: boolean; next?: { start: Date; end: Date; resourceId: string } }
     | { kind: 'create'; resourceId: string; track: HTMLElement; sel: HTMLElement; from: Date; to: Date; x0: number };
   let drag: Drag | null = null;
   const bodyY = (clientY: number) => clientY - body.getBoundingClientRect().top;
-  const trackX = (clientX: number) => clientX - body.getBoundingClientRect().left - (parseFloat(getComputedStyle(root).getPropertyValue('--_res-w')) || 240);
+  const trackX = (clientX: number) => clientX - body.getBoundingClientRect().left - resW();
   const resourceAtY = (y: number) => layout.find((it) => it.type === 'resource' && y >= it.top && y < it.top + it.height) as Extract<Item, { type: 'resource' }> | undefined;
 
   const onDown = (e: PointerEvent) => {
@@ -518,10 +761,13 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       drag = { kind, ev, el: evEl, x0: e.clientX, y0: e.clientY, moved: false, rowTop: parseFloat(row.style.top) };
       evEl.setPointerCapture(e.pointerId);
       e.preventDefault();
+      evEl.focus({ preventScroll: true }); // для Ctrl/⌘+C, Delete и клавиши меню после клика
       return;
     }
     const track = target.closest<HTMLElement>('.b24-scheduler__track');
-    if (!track || !o.onCreate || o.readonly) return;
+    if (!track) return;
+    viewport.focus({ preventScroll: true }); // для Ctrl/⌘+V
+    if (!canCreate()) return;
     const row = track.closest<HTMLElement>('.b24-scheduler__row')!;
     const from = snap(timeAt(trackX(e.clientX)));
     const sel = h('div', { class: 'b24-scheduler__selection', style: `top:${ROW_PAD + 2}px;left:${x(from)}px;width:0` });
@@ -532,8 +778,11 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   };
   const onMove = (e: PointerEvent) => {
     if (!drag) {
-      const evEl = (e.target as HTMLElement).closest<HTMLElement>('.b24-scheduler__event');
+      const target = e.target as HTMLElement;
+      const evEl = target.closest<HTMLElement>('.b24-scheduler__event');
       const ev = evEl && evById(evEl.dataset.event!);
+      const row = target.closest<HTMLElement>('.b24-scheduler__track')?.closest<HTMLElement>('.b24-scheduler__row');
+      if (row) lastSlot = { resourceId: row.dataset.resource!, time: snap(timeAt(trackX(e.clientX))) };
       if (ev) showTip(tipFor(ev), e.clientX, e.clientY); else hideTip();
       return;
     }
@@ -554,6 +803,9 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     if (!d.moved && Math.abs(e.clientX - d.x0) < 3 && Math.abs(e.clientY - d.y0) < 3) return;
     d.moved = true;
     d.el.classList.add('is-dragging');
+    // Alt при переносе — копия, оригинал остаётся на месте
+    d.copy = d.kind === 'move' && e.altKey && canCreate();
+    d.el.classList.toggle('is-copy', !!d.copy);
     // сдвиг считаем через шкалу: окно часов делает её нелинейной по времени
     const shiftTo = (base: Date) => snap(timeAt(x(base) + (e.clientX - d.x0)));
     const delta = shiftTo(d.kind === 'end' ? d.ev.e : d.ev.s).getTime() - (d.kind === 'end' ? d.ev.e : d.ev.s).getTime();
@@ -576,7 +828,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       d.el.style.width = `${x(end) - x(start)}px`;
     }
     d.next = { start, end, resourceId };
-    showTip(`${d.ev.allDay ? escapeHtml(d.ev.title) : fmtRange(start, end)}${resourceId !== d.ev.resourceId ? `<br>→ ${escapeHtml(resById(resourceId)?.name ?? '')}` : ''}`, e.clientX, e.clientY);
+    showTip(`${d.copy ? '+ ' : ''}${isAllDay(d.ev) ? escapeHtml(d.ev.title) : fmtRange(start, end)}${resourceId !== d.ev.resourceId ? `<br>→ ${escapeHtml(resById(resourceId)?.name ?? '')}` : ''}`, e.clientX, e.clientY);
   };
   const onUp = async () => {
     const d = drag;
@@ -588,21 +840,44 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       const b = d.from < d.to ? d.to : d.from;
       d.sel.remove();
       if (b.getTime() - a.getTime() < stepMs()) return;
-      const res = await o.onCreate?.({ resourceId: d.resourceId, start: a, end: b });
-      if (res && typeof res === 'object' && 'id' in res) { events.push(...normEvents([res])); render(); }
+      createFrom({ resourceId: d.resourceId, start: a, end: b });
       return;
     }
-    if (!d.moved) { o.onClick?.(d.ev); return; }
+    if (!d.moved) {
+      if (o.onClick) o.onClick(d.ev);
+      else if (editorOpts() && !d.ev.readonly) openEditorFor(pub(d.ev), d.ev);
+      return;
+    }
+    if (d.copy && d.next) { render(); await copyAt(pub(d.ev), d.next.resourceId, d.next.start); return; }
     await commit(d.ev, d.next ?? { start: d.ev.s, end: d.ev.e, resourceId: d.ev.resourceId });
   };
   const onLeave = () => { if (!drag) hideTip(); };
+  // есть свой onClick — окно редактирования открывается двойным кликом
+  const onDblClick = (e: MouseEvent) => {
+    if (!o.onClick || !editorOpts()) return;
+    const ev = evById((e.target as HTMLElement).closest<HTMLElement>('.b24-scheduler__event')?.dataset.event ?? '');
+    if (ev && !ev.readonly) openEditorFor(pub(ev), ev);
+  };
 
-  /* клавиатура: Enter — открыть, Alt+←/→ — сдвинуть, Alt+Shift+←/→ — длительность, Delete — удалить */
+  /* клавиатура: Enter — открыть, Alt+←/→ — сдвинуть, Alt+Shift+←/→ — длительность, Delete — удалить,
+   * Ctrl/⌘+C / V — копировать и вставить, клавиша меню / Shift+F10 — контекстное меню */
   const onKey = async (e: KeyboardEvent) => {
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.code === 'KeyV' && copied && canCreate()) { e.preventDefault(); paste(); return; }
     const evEl = (e.target as HTMLElement).closest<HTMLElement>('.b24-scheduler__event');
     const ev = evEl && evById(evEl.dataset.event!);
-    if (!ev) return;
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); o.onClick?.(ev); return; }
+    if (!ev || !evEl) return;
+    if (mod && e.code === 'KeyC') { copied = pub(ev); return; }
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      const r = evEl.getBoundingClientRect();
+      if (showMenu(eventCtx(ev), r.left + 8, r.bottom)) e.preventDefault();
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (o.onClick) o.onClick(ev); else if (editorOpts() && !ev.readonly) openEditorFor(pub(ev), ev);
+      return;
+    }
     if (ev.readonly || o.readonly) return;
     if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && e.altKey) {
       e.preventDefault();
@@ -614,23 +889,23 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && o.onDelete) {
       e.preventDefault();
-      try {
-        await o.onDelete(ev);
-        events = events.filter((x2) => x2.id !== ev.id);
-        render();
-      } catch { /* отказ — встреча остаётся */ }
+      await quiet(() => removeEvent(ev));
     }
   };
-  /* Ctrl/⌘ + колесо — масштаб вокруг курсора */
+
+  /* ── масштаб: кнопки и Ctrl/⌘ + колесо; не уже «весь период на ширину области» ── */
+  const minZoom = () => Math.min(MAX_ZOOM, fitPx / PX[view]);
+  const zoomAround = (next: number, offset: number) => {
+    const at = timeAt(viewport.scrollLeft + offset);
+    zoom = Math.min(MAX_ZOOM, Math.max(minZoom(), next));
+    render(false);
+    viewport.scrollLeft = Math.max(0, x(at) - offset);
+  };
+  const zoomCenter = (next: number) => zoomAround(next, (viewport.clientWidth - resW()) / 2);
   const onWheel = (e: WheelEvent) => {
     if (!(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    const at = timeAt(trackX(e.clientX));
-    const offset = e.clientX - viewport.getBoundingClientRect().left;
-    zoom = Math.min(4, Math.max(0.5, zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
-    render(false);
-    const resW = parseFloat(getComputedStyle(root).getPropertyValue('--_res-w')) || 240;
-    viewport.scrollLeft = x(at) + resW - offset;
+    zoomAround(Math.max(zoom, minZoom()) * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX - viewport.getBoundingClientRect().left - resW());
   };
   let scrollRaf = 0;
   const onScroll = () => { if (!scrollRaf) scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; renderRows(); }); };
@@ -644,12 +919,13 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   root.addEventListener('pointercancel', onUp);
   root.addEventListener('pointerleave', onLeave);
   root.addEventListener('keydown', onKey);
+  root.addEventListener('contextmenu', onContext);
+  root.addEventListener('dblclick', onDblClick);
   viewport.addEventListener('wheel', onWheel, { passive: false });
   viewport.addEventListener('scroll', onScroll, { passive: true });
 
   const scrollToTime = (d: DateInput) => {
-    const resW = parseFloat(getComputedStyle(root).getPropertyValue('--_res-w')) || 240;
-    viewport.scrollLeft = Math.max(0, x(toDate(d)) - (viewport.clientWidth - resW) / 3);
+    viewport.scrollLeft = Math.max(0, x(toDate(d)) - (viewport.clientWidth - resW()) / 3);
   };
   /** при открытии: в дне — к 8:00 или к «сейчас», в неделе — к сегодняшнему дню; initialScroll: 'start' — к началу периода */
   const initialScroll = () => {
@@ -682,7 +958,13 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     setBands(list) { bands = normBands(list); render(); },
     getEvents: () => events.map(({ s, e, ...rest }) => ({ ...rest, start: s, end: e })),
     scrollToTime,
+    editEvent(id) { const ev = evById(id); if (ev) openEditorFor(pub(ev), ev); },
+    createEvent(draft) { if (editorOpts()) openEditorFor({ id: '', title: draft.title ?? '', ...draft }); },
+    zoomIn() { zoomCenter(Math.max(zoom, minZoom()) * 1.25); },
+    zoomOut() { zoomCenter(Math.max(zoom, minZoom()) / 1.25); },
+    zoomToFit() { zoomCenter(minZoom()); },
     destroy() {
+      closeMenu?.();
       abort?.abort();
       ro?.disconnect();
       cancelAnimationFrame(scrollRaf);

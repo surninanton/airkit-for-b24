@@ -22,8 +22,9 @@
     </div>
     <div id="scheduler"></div>
     <p class="b24-text-sm" style="color: var(--b24-glass-text-secondary); margin: 0">
-      Перетащите встречу по времени или на другого сотрудника, потяните за край — изменить длительность, выделите пустое место — новая встреча.
-      С клавиатуры: Tab к встрече, Alt+←/→ — сдвиг, Alt+Shift+←/→ — длительность, Delete — удалить. Ctrl+колесо — масштаб.
+      Клик по встрече — окно редактирования (тип, сотрудник, время, «весь день», комментарий, место). Правая кнопка — меню: тип, дублировать, копировать, удалить; на пустом месте — создать нужного типа.
+      Перетащите встречу по времени или на другого сотрудника, с Alt — копия; потяните за край — длительность; выделите пустое место — новая встреча.
+      С клавиатуры: Tab к встрече, Enter — изменить, Alt+←/→ — сдвиг, Alt+Shift+←/→ — длительность, Ctrl+C / Ctrl+V — копия, Delete — удалить. Масштаб — кнопками «− +» или Ctrl+колесо.
       Перенос на сотрудника в отпуске «сервер» отклоняет — встреча вернётся на место.
     </p>
   </div>
@@ -66,7 +67,14 @@
   bands.push({ resourceId: 'u22', start: at(2, 0), end: at(4, 0), kind: 'trip', label: 'Командировка, Казань' });
 
   const titles = ['Планёрка', 'Встреча с клиентом', 'Демо продукта', 'Созвон по внедрению', 'Обучение', 'Ревью задач', 'Звонок партнёру', 'Разбор обращений', 'Интервью', '1:1'];
-  const colors = [undefined, undefined, '#1bce7b', '#a77bde', '#faa72c'];
+  const eventTypes = [
+    { id: 'meeting', label: 'Встреча' },
+    { id: 'call', label: 'Звонок', color: '#1bce7b' },
+    { id: 'training', label: 'Обучение', color: '#a77bde' },
+    { id: 'urgent', label: 'Важное', color: '#faa72c' },
+    { id: 'off', label: 'Выходной', color: '#828b95', allDay: true },
+  ];
+  const typeIds = ['meeting', 'meeting', 'call', 'training', 'urgent'];
   let seed = 7; const rnd = (n) => { seed = (seed * 9301 + 49297) % 233280; return Math.floor((seed / 233280) * n); };
   const events = [];
   let id = 1;
@@ -77,36 +85,45 @@
         const hh = 9 + rnd(8);
         const len = [30, 60, 60, 90, 120][rnd(5)];
         const s = at(d, hh, rnd(2) * 30);
-        events.push({ id: `e${id++}`, resourceId: r.id, start: s, end: new Date(s.getTime() + len * 60000), title: titles[rnd(titles.length)], color: colors[rnd(colors.length)] });
+        events.push({ id: `e${id++}`, resourceId: r.id, start: s, end: new Date(s.getTime() + len * 60000), title: titles[rnd(titles.length)], type: typeIds[rnd(typeIds.length)] });
       }
     }
   }
   // специально: пересечение и встреча вне рабочего времени
-  events.push({ id: 'e-overlap-a', resourceId: 'u00', start: at(1, 10), end: at(1, 12), title: 'Переговоры «Ромашка»' });
-  events.push({ id: 'e-overlap-b', resourceId: 'u00', start: at(1, 11), end: at(1, 13), title: 'Демо для «Луча»', color: '#1bce7b' });
-  events.push({ id: 'e-late', resourceId: 'u20', start: at(2, 19), end: at(2, 21), title: 'Выкатка релиза', color: '#faa72c' });
+  events.push({ id: 'e-overlap-a', resourceId: 'u00', start: at(1, 10), end: at(1, 12), title: 'Переговоры «Ромашка»', type: 'meeting', comment: 'Взять КП и договор на подпись', data: { place: 'client' } });
+  events.push({ id: 'e-overlap-b', resourceId: 'u00', start: at(1, 11), end: at(1, 13), title: 'Демо для «Луча»', type: 'call' });
+  events.push({ id: 'e-late', resourceId: 'u20', start: at(2, 19), end: at(2, 21), title: 'Выкатка релиза', type: 'urgent' });
+  events.push({ id: 'e-off', resourceId: 'u07', start: at(4, 9), end: at(5, 0), title: 'Выходной', type: 'off' });
   events.push({ id: 'e-all-hands', resourceId: 'u10', start: at(3, 12), end: at(3, 13), title: 'Общее собрание', readonly: true, color: '#828b95' });
 
   const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   const isAbsent = (rid, s, e) => bands.some((b) => b.resourceId === rid && b.kind !== 'work' && b.start < e && b.end > s);
 
   window.scheduler = B24UI.createScheduler(document.getElementById('scheduler'), {
-    resources, events, bands, view: 'week', height: 620,
+    resources, events, bands, eventTypes, view: 'week', height: 620,
+    editor: { fields: [{ name: 'place', label: 'Место', type: 'select', options: [{ value: 'office', label: 'Офис' }, { value: 'online', label: 'Онлайн' }, { value: 'client', label: 'У клиента' }] }] },
     async onChange({ event, start, end, resourceId }) {
       await delay(300);
       if (isAbsent(resourceId, start, end)) { B24UI.toast('Сотрудник отсутствует — встреча не перенесена', { type: 'danger' }); throw new Error('absent'); }
       B24UI.toast(`«${event.title}» перенесена`, { type: 'success' });
     },
-    onCreate({ resourceId, start, end }) {
-      return { id: `new-${Date.now()}`, resourceId, start, end, title: 'Новая встреча', color: '#1bce7b' };
-    },
+    // клик: встреча только для чтения — карточка, остальные — окно редактирования
     onClick(ev) {
+      if (!ev.readonly) { window.scheduler.editEvent(ev.id); return; }
       const r = resources.find((x) => x.id === ev.resourceId);
       const f = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
       B24UI.openSidePanel({ title: ev.title, width: 560, content: B24UI.html(`<div class="b24-card"><div class="b24-card__body b24-props">
         <div class="b24-prop"><span class="b24-prop__label">Сотрудник</span><span class="b24-prop__value">${B24UI.escapeHtml(r?.name ?? '')}</span></div>
         <div class="b24-prop"><span class="b24-prop__label">Начало</span><span class="b24-prop__value">${f.format(new Date(ev.start))}</span></div>
         <div class="b24-prop"><span class="b24-prop__label">Окончание</span><span class="b24-prop__value">${f.format(new Date(ev.end))}</span></div></div></div>`) });
+    },
+    // окно редактирования, смена типа в меню, копии; отказ «сервера» — окно покажет ошибку
+    async onSave(ev, { isNew }) {
+      await delay(300);
+      const type = eventTypes.find((t) => t.id === ev.type);
+      if (!(ev.allDay ?? type?.allDay) && isAbsent(ev.resourceId, new Date(ev.start), new Date(ev.end))) throw new Error('Сотрудник в это время отсутствует');
+      B24UI.toast(isNew ? `«${ev.title}» добавлена` : `«${ev.title}» сохранена`, { type: 'success' });
+      return isNew ? { ...ev, id: `new-${Date.now()}` } : ev;
     },
     async onDelete(ev) {
       if (!(await B24UI.confirm(`Удалить «${ev.title}»?`, { okText: 'Удалить', danger: true }))) throw new Error('cancel');

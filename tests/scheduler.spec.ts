@@ -130,7 +130,102 @@ test.describe('планировщик', () => {
     await page.mouse.down();
     await page.mouse.move(x0 + 120, y, { steps: 8 });
     await page.mouse.up();
-    await expect(page.locator('.b24-scheduler__row[data-resource="u06"] .b24-scheduler__event', { hasText: 'Новая встреча' })).toHaveCount(1);
+    // выделение открывает окно новой встречи
+    const dlg = page.locator('.b24-modal:visible');
+    await expect(dlg).toContainText('Новая встреча');
+    await dlg.getByLabel('Название').fill('Встреча с «Альфой»');
+    await dlg.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(dlg).toBeHidden();
+    await expect(page.locator('.b24-scheduler__row[data-resource="u06"] .b24-scheduler__event', { hasText: 'Встреча с «Альфой»' })).toHaveCount(1);
+  });
+
+  test('окно редактирования: проверка полей, отказ сервера, сохранение типа, комментария и своего поля', async ({ page }) => {
+    const card = ev(page, 'e-overlap-b');
+    await card.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
+    await card.click();
+    const dlg = page.locator('.b24-modal:visible');
+    await expect(dlg).toContainText('Изменить встречу');
+    await expect(dlg.getByLabel('Название')).toHaveValue('Демо для «Луча»');
+    // пустое название — ошибка у поля, окно не закрывается
+    await dlg.getByLabel('Название').fill('');
+    await dlg.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(dlg.locator('.b24-field__error:visible')).toContainText('Укажите название');
+    // на сотрудника в отпуске «сервер» отказывает — ошибка в окне
+    await dlg.getByLabel('Название').fill('Демо для «Луча», финал');
+    await dlg.getByLabel('Сотрудник').selectOption('u03');
+    await dlg.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(dlg.locator('.b24-alert')).toContainText('отсутствует');
+    await dlg.getByLabel('Сотрудник').selectOption('u00');
+    await dlg.getByLabel('Тип').selectOption('training');
+    await dlg.getByLabel('Место').selectOption('online');
+    await dlg.getByLabel('Комментарий').fill('Показать отчёты');
+    await dlg.getByRole('button', { name: 'Сохранить' }).click();
+    await expect(dlg).toBeHidden();
+    const saved = await page.evaluate(() => (window as unknown as { scheduler: { getEvents(): Array<Record<string, unknown>> } }).scheduler.getEvents().find((x) => x.id === 'e-overlap-b')!);
+    expect(saved).toMatchObject({ title: 'Демо для «Луча», финал', type: 'training', comment: 'Показать отчёты', data: { place: 'online' }, resourceId: 'u00' });
+    await expect(ev(page, 'e-overlap-b').locator('.b24-scheduler__event-title svg')).toHaveCount(1); // значок комментария
+  });
+
+  test('контекстное меню: тип, дублировать, копировать и вставить, Alt — копия переносом', async ({ page }) => {
+    const card = ev(page, 'e-overlap-a');
+    await card.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
+    const count = () => page.evaluate(() => (window as unknown as { scheduler: { getEvents(): unknown[] } }).scheduler.getEvents().length);
+    const n0 = await count();
+    await card.click({ button: 'right' });
+    const menu = page.locator('.b24-scheduler-menu:visible');
+    await expect(menu.getByRole('menuitemradio', { name: 'Встреча' })).toHaveAttribute('aria-checked', 'true');
+    await menu.getByRole('menuitemradio', { name: 'Важное' }).click();
+    await expect.poll(async () => (await page.evaluate(() => (window as unknown as { scheduler: { getEvents(): Array<{ id: string; type?: string }> } }).scheduler.getEvents().find((x) => x.id === 'e-overlap-a')!.type))).toBe('urgent');
+
+    await ev(page, 'e-overlap-a').click({ button: 'right' });
+    await page.locator('.b24-scheduler-menu:visible').getByRole('menuitem', { name: 'Дублировать' }).click();
+    await expect.poll(count).toBe(n0 + 1);
+
+    // Ctrl/⌘+C на встрече, Ctrl/⌘+V — копия на место под курсором
+    await ev(page, 'e-overlap-a').focus();
+    await page.keyboard.press('ControlOrMeta+c');
+    const target = page.locator('.b24-scheduler__row[data-resource="u05"] .b24-scheduler__track');
+    const tb = (await target.boundingBox())!;
+    const vp = (await page.locator('.b24-scheduler__viewport').boundingBox())!;
+    await page.mouse.move(Math.max(tb.x, vp.x + 260) + 20, tb.y + tb.height / 2); // правее закреплённой колонки сотрудников
+    await page.keyboard.press('ControlOrMeta+v');
+    await expect.poll(count).toBe(n0 + 2);
+    expect(await page.evaluate(() => (window as unknown as { scheduler: { getEvents(): Array<{ resourceId: string; title: string }> } }).scheduler.getEvents().filter((x) => x.resourceId === 'u05' && x.title === 'Переговоры «Ромашка»').length)).toBe(1);
+
+    // Alt + перетаскивание — копия, оригинал на месте
+    const c2 = ev(page, 'e-overlap-a');
+    await c2.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
+    const before = await model(page, 'e-overlap-a');
+    const b = (await c2.boundingBox())!;
+    await page.keyboard.down('Alt');
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width / 2 + 40, b.y + b.height / 2, { steps: 6 });
+    await page.mouse.up();
+    await page.keyboard.up('Alt');
+    await expect.poll(count).toBe(n0 + 3);
+    expect(await model(page, 'e-overlap-a')).toEqual(before);
+  });
+
+  test('масштаб кнопками: «−» до размера области, «+», «По размеру»', async ({ page }) => {
+    const sch = page.locator('.b24-scheduler');
+    await sch.locator('.b24-segmented label', { hasText: 'День' }).click();
+    const w = () => page.locator('.b24-scheduler__scale').evaluate((el) => el.getBoundingClientRect().width);
+    const minus = sch.getByRole('button', { name: 'Уменьшить масштаб' });
+    const plus = sch.getByRole('button', { name: 'Увеличить масштаб' });
+    // «−» до упора: шкала не уже видимой области
+    for (let i = 0; i < 8 && (await minus.isEnabled()); i++) await minus.click();
+    await expect(minus).toBeDisabled();
+    const fit = await w();
+    const area = await page.locator('.b24-scheduler__viewport').evaluate((v) => v.clientWidth - (parseFloat(getComputedStyle(v.closest('.b24-scheduler')!).getPropertyValue('--_res-w')) || 240));
+    expect(Math.abs(fit - area)).toBeLessThan(3);
+    await plus.click();
+    await plus.click();
+    expect(await w()).toBeGreaterThan(fit * 1.4);
+    await expect(minus).toBeEnabled();
+    await sch.getByRole('button', { name: 'По размеру' }).click();
+    expect(Math.abs((await w()) - fit)).toBeLessThan(2);
+    await expect(minus).toBeDisabled();
   });
 });
 

@@ -22,6 +22,8 @@
 .b24-scheduler__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--b24-divider); }
 .b24-scheduler__title { margin: 0 auto 0 8px; font-size: var(--b24-font-size-lg); font-weight: var(--b24-font-weight-semibold); text-transform: capitalize; }
 .b24-scheduler__nav { display: inline-flex; gap: 2px; }
+.b24-scheduler__zoom { display: inline-flex; gap: 2px; }
+.b24-scheduler__zoom .b24-btn:disabled { opacity: 0.45; }
 .b24-scheduler__legend { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 16px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); border-top: 1px solid var(--b24-divider); }
 .b24-scheduler__legend span { display: inline-flex; align-items: center; gap: 6px; }
 .b24-scheduler__legend i { width: 16px; height: 10px; border-radius: 3px; }
@@ -119,6 +121,8 @@
 .b24-scheduler__event.is-outside { border-left-style: dashed; }
 .b24-scheduler__event.is-dragging { z-index: 6; opacity: 0.9; cursor: grabbing; box-shadow: var(--b24-shadow-popup); }
 .b24-scheduler__event.is-saving { opacity: 0.6; }
+.b24-scheduler__event.is-copy { cursor: copy; outline: 1.5px dashed var(--_c); outline-offset: 1px; }
+.b24-scheduler__event-title > svg { width: 12px; height: 12px; margin-right: 3px; vertical-align: -1px; opacity: 0.7; }
 .b24-scheduler__handle { position: absolute; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
 .b24-scheduler__handle--start { left: -3px; }
 .b24-scheduler__handle--end { right: 0; }
@@ -131,6 +135,15 @@
   max-width: 280px;
 }
 .b24-scheduler__tip[hidden] { display: none; }
+.b24-scheduler__tip-note { display: inline-block; margin-top: 4px; white-space: pre-line; opacity: 0.85; }
+
+/* окно редактирования встречи */
+.b24-scheduler-editor__when { display: flex; gap: 6px; }
+.b24-scheduler-editor__when > .b24-input { flex: 1 1 auto; min-width: 0; }
+.b24-scheduler-editor__when > .b24-scheduler-editor__time { flex: 0 0 84px; }
+.b24-scheduler-editor.is-all-day .b24-scheduler-editor__time { display: none; }
+.b24-btn.b24-scheduler-editor__delete { order: -1; margin-right: auto; color: var(--b24-color-danger); }
+.b24-scheduler-menu { min-width: 200px; }
 .b24-scheduler__empty { padding: 40px 16px; text-align: center; color: var(--b24-text-subtle); }
 
 @media (max-width: 640px) {
