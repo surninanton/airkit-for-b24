@@ -170,7 +170,7 @@ npm test         # сайт, экраны, редакторы, элементы 
 | `table[data-b24-sortable]` + `th[aria-sort]`, `input[data-b24-check-all]` | сортировка и «выбрать все» (события `b24:sort`, `b24:selection`) |
 | `data-b24-dismiss` | закрывает ближайший `.b24-alert` |
 | `data-b24-tooltip="Текст"` | тултип (только CSS) |
-| `data-b24-shell-toggle` | свернуть сайдбар `.b24-shell` (на мобильном — открыть меню). Место бургера — строка логотипа: `<div class="b24-sidebar__brand"><button class="b24-sidebar__toggle" data-b24-shell-toggle aria-label="Меню">…</button>…</div>`; в свёрнутом сайдбаре он встаёт вместо логотипа, а такая же кнопка в `.b24-shell__header` остаётся только на мобильном |
+| `data-b24-shell-toggle` | свернуть сайдбар `.b24-shell` (на мобильном — открыть меню). Место бургера — строка логотипа: `<div class="b24-sidebar__brand"><button class="b24-sidebar__toggle" data-b24-shell-toggle aria-label="Меню">…</button><a class="b24-sidebar__brand-link" href="/"><span class="b24-sidebar__brand-mark">24</span><span class="b24-sidebar__brand-text">Мой портал</span></a></div>` (логотип-ссылка — рядом с кнопкой, не вокруг неё; без ссылки — те же `span` прямо в `__brand`; в React — `<Sidebar brandHref="/">`); в свёрнутом сайдбаре он встаёт вместо логотипа, а такая же кнопка в `.b24-shell__header` остаётся только на мобильном |
 | `input[data-b24-datepicker]` | календарь; `="range"` — период в одном поле, `data-b24-to="#id"` — второе поле, `data-min`/`data-max` (дата или `today`), `data-time` |
 | `[data-b24-kanban]` | drag & drop карточек `.b24-kanban-card[data-id]` между `.b24-kanban__column[data-column]`; цвет колонки — `data-color`; событие `b24:kanban-move` (`preventDefault()` — откат) |
 | `select[data-b24-combobox]` | select с поиском, группами (`optgroup`) и тегами для `multiple`; сам `<select>` остаётся в форме |
@@ -458,6 +458,8 @@ React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `R
 - **Шкала** — день, неделя, месяц; кнопки «назад / сегодня / вперёд». В дне и неделе показаны часы `hours: [8, 20]` — ночь не занимает место. Ctrl/⌘ + колесо — масштаб. Линия «сейчас».
 - **График работы** (`bands`): смены `kind: 'work'` светлые, остальное время приглушено; отпуск, больничный, командировка — штриховкой с подписью.
 - **Встречи** (`events`): перетаскивание по времени и на другого сотрудника, растягивание за края, создание выделением пустого места, шаг привязки `step` (15 минут). С клавиатуры: Alt+←/→ — сдвиг, Alt+Shift+←/→ — длительность, Enter — открыть, Delete — удалить.
+- **Без времени**: `allDay: true` у события (выходной, отпуск, больничный, которые нужно кликать и двигать) — полоса на свои `start–end`, подпись только названием, не помечается «вне рабочего времени» и «отсутствует». Конец ровно в полночь подписывается «24:00».
+- **Создание**: `createWithinDay: true` не даёт протянуть выделение через полночь. **Прокрутка при открытии**: `initialScroll: 'now'` (к сегодня, по умолчанию) или `'start'` (к началу недели / месяца, в дне — к первому видимому часу).
 - **Сервер решает**: `onChange({ event, start, end, resourceId, previous })` — отклонённый промис откатывает изменение; `onCreate`, `onClick`, `onDelete`. Данные периода — `load({ start, end }, signal)`.
 - **Подсказки**: пересечения встреч у одного сотрудника и встречи во время отсутствия — красная рамка, вне рабочего времени — пунктир; загрузка сотрудника за видимый период в процентах.
 - Из портала: `bx24SchedulerLoader(userIds)` — занятость из календаря Битрикс24 (`calendar.accessibility.get`).
@@ -466,7 +468,11 @@ React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `R
 B24UI.createScheduler(el, {
   resources: [{ id: '1', name: 'Алиса Мельникова', meta: 'Менеджер', group: 'Продажи' }],
   bands: [{ resourceId: '1', start: '2026-10-05T09:00', end: '2026-10-05T18:00', kind: 'work' }],
-  events: [{ id: 'm1', resourceId: '1', start: '2026-10-05T10:00', end: '2026-10-05T11:00', title: 'Демо' }],
+  events: [
+    { id: 'm1', resourceId: '1', start: '2026-10-05T10:00', end: '2026-10-05T11:00', title: 'Демо' },
+    { id: 'off', resourceId: '1', start: '2026-10-06T09:00', end: '2026-10-06T18:00', title: 'Выходной', allDay: true },
+  ],
+  createWithinDay: true, initialScroll: 'start',
   onChange: ({ event, start, end, resourceId }) => api.moveMeeting(event.id, start, end, resourceId),
 });
 ```

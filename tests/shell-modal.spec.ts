@@ -58,3 +58,31 @@ test('модалка: асинхронный onClick — загрузка у к�
   expect(res.during).toEqual({ loading: true, saveDisabled: true, cancelDisabled: true, busy: true });
   expect(res.after).toEqual({ loading: false, cancelDisabled: false, open: true });
 });
+
+test('разметка: логотип-ссылка рядом с бургером; свёрнуто — только бургер; data-b24-shell-toggle сворачивает', async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 1280) <= 768, 'свёрнутый сайдбар — на десктопе');
+  await open(page, '/index.html');
+  const res = await page.evaluate(async () => {
+    const box = document.createElement('div');
+    box.innerHTML = `<div class="b24-shell b24-root" style="min-height:0">
+      <aside class="b24-shell__sidebar"><nav class="b24-sidebar"><div class="b24-sidebar__brand">
+        <button type="button" class="b24-sidebar__toggle" data-b24-shell-toggle aria-label="Меню">≡</button>
+        <a class="b24-sidebar__brand-link" href="#"><span class="b24-sidebar__brand-mark">24</span><span class="b24-sidebar__brand-text">Мой портал</span></a>
+      </div></nav></aside>
+      <header class="b24-shell__header"><button type="button" class="b24-btn b24-btn--icon" data-b24-shell-toggle>≡</button></header>
+      <main class="b24-shell__main"></main></div>`;
+    document.body.prepend(box);
+    const shell = box.querySelector<HTMLElement>('.b24-shell')!;
+    const toggle = box.querySelector<HTMLElement>('.b24-sidebar__toggle')!;
+    const link = box.querySelector<HTMLElement>('.b24-sidebar__brand-link')!;
+    const head = box.querySelector<HTMLElement>('.b24-shell__header [data-b24-shell-toggle]')!;
+    const vis = (el: HTMLElement) => getComputedStyle(el).display !== 'none';
+    const open = { link: vis(link), headHidden: !vis(head), linkRight: link.getBoundingClientRect().left >= toggle.getBoundingClientRect().right };
+    toggle.click();
+    await new Promise((r) => requestAnimationFrame(r));
+    const collapsed = { cls: shell.classList.contains('is-collapsed'), link: vis(link), toggle: vis(toggle) };
+    box.remove();
+    return { open, collapsed };
+  });
+  expect(res).toEqual({ open: { link: true, headHidden: true, linkRight: true }, collapsed: { cls: true, link: false, toggle: true } });
+});

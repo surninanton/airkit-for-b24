@@ -210,7 +210,7 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
   );
 }
 
-export function Sidebar({ brand, brandMark = '24', children }: { brand?: ReactNode; brandMark?: ReactNode; children: ReactNode }) {
+export function Sidebar({ brand, brandMark = '24', brandHref, children }: { brand?: ReactNode; brandMark?: ReactNode; /** логотип — ссылка (рядом с бургером, не вокруг него) */ brandHref?: string; children: ReactNode }) {
   const toggle = useContext(ShellToggleContext);
   return (
     <nav className="b24-sidebar" aria-label={t('Главное меню')}>
@@ -221,8 +221,14 @@ export function Sidebar({ brand, brandMark = '24', children }: { brand?: ReactNo
               <Icon name="menu" />
             </button>
           )}
-          {brand && <span className="b24-sidebar__brand-mark">{brandMark}</span>}
-          {brand && <span className="b24-sidebar__brand-text">{brand}</span>}
+          {brand && brandHref && (
+            <a className="b24-sidebar__brand-link" href={brandHref}>
+              <span className="b24-sidebar__brand-mark">{brandMark}</span>
+              <span className="b24-sidebar__brand-text">{brand}</span>
+            </a>
+          )}
+          {brand && !brandHref && <span className="b24-sidebar__brand-mark">{brandMark}</span>}
+          {brand && !brandHref && <span className="b24-sidebar__brand-text">{brand}</span>}
         </div>
       )}
       {children}

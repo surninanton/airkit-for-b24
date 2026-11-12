@@ -71,7 +71,7 @@ test.describe('планировщик', () => {
 
   test('перетаскивание на другого сотрудника и откат при отказе сервера', async ({ page }) => {
     const card = ev(page, 'e-overlap-b');
-    await card.scrollIntoViewIfNeeded();
+    await card.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
     const box = (await card.boundingBox())!;
     const target = page.locator('.b24-scheduler__row[data-resource="u01"] .b24-scheduler__track');
     const tb = (await target.boundingBox())!;
@@ -85,7 +85,7 @@ test.describe('планировщик', () => {
 
     // Полина (u03) в отпуске со вторника — «сервер» отказывает, встреча возвращается к Алисе
     const card2 = ev(page, 'e-overlap-b');
-    await card2.scrollIntoViewIfNeeded();
+    await card2.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
     const b2 = (await card2.boundingBox())!;
     const t2 = (await page.locator('.b24-scheduler__row[data-resource="u03"] .b24-scheduler__track').boundingBox())!;
     await page.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
@@ -100,7 +100,7 @@ test.describe('планировщик', () => {
   test('растягивание за край и клик открывает карточку', async ({ page }) => {
     const before = await model(page, 'e-overlap-a');
     const card = ev(page, 'e-overlap-a');
-    await card.scrollIntoViewIfNeeded();
+    await card.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
     const handle = card.locator('.b24-scheduler__handle--end');
     const hb = (await handle.boundingBox())!;
     await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
@@ -110,7 +110,7 @@ test.describe('планировщик', () => {
     await expect.poll(async () => (await model(page, 'e-overlap-a')).end).toBeGreaterThan(before.end);
     expect((await model(page, 'e-overlap-a')).start).toBe(before.start);
 
-    await ev(page, 'e-all-hands').scrollIntoViewIfNeeded();
+    await ev(page, 'e-all-hands').evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
     await ev(page, 'e-all-hands').click();
     await expect(page.locator('.b24-sidepanel:visible')).toContainText('Общее собрание');
   });
@@ -132,4 +132,55 @@ test.describe('планировщик', () => {
     await page.mouse.up();
     await expect(page.locator('.b24-scheduler__row[data-resource="u06"] .b24-scheduler__event', { hasText: 'Новая встреча' })).toHaveCount(1);
   });
+});
+
+test('планировщик: 24:00, событие без времени, выделение в пределах дня, initialScroll', async ({ page }) => {
+  test.skip(isMobile(page), 'перетаскивание — на десктопе');
+  const { errors } = await open(page, '/scheduler.html');
+  const out = await page.evaluate(async () => {
+    const { createScheduler } = (window as unknown as { B24UI: typeof import('../src/js/index') }).B24UI;
+    const host = document.createElement('div');
+    host.id = 'sch2';
+    host.style.width = '900px';
+    document.querySelector('.b24-scheduler')!.before(host);
+    const w = window as unknown as { created: Array<{ start: string; end: string }> };
+    w.created = [];
+    createScheduler(host, {
+      view: 'week', date: '2026-10-07', hours: [0, 24], initialScroll: 'start', createWithinDay: true, toolbar: false, legend: false,
+      resources: [{ id: 'a', name: 'Алиса' }],
+      bands: [{ resourceId: 'a', start: '2026-10-05T09:00', end: '2026-10-05T18:00', kind: 'work' }, { resourceId: 'a', start: '2026-10-06T00:00', end: '2026-10-07T00:00', kind: 'off' }],
+      events: [
+        { id: 'late', resourceId: 'a', start: '2026-10-05T17:00', end: '2026-10-06T00:00', title: 'Смена' },
+        { id: 'off', resourceId: 'a', start: '2026-10-06T10:00', end: '2026-10-07T00:00', title: 'Выходной', allDay: true },
+      ],
+      onCreate: (d) => { w.created.push({ start: d.start.toString(), end: d.end.toString() }); },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    const q = (id: string) => host.querySelector<HTMLElement>(`[data-event="${id}"]`)!;
+    return {
+      lateTime: q('late').querySelector('.b24-scheduler__event-time')?.textContent ?? '',
+      offNoTime: q('off').querySelector('.b24-scheduler__event-time') === null,
+      offLabel: q('off').getAttribute('aria-label'),
+      offFlagged: q('off').classList.contains('is-conflict') || q('off').classList.contains('is-outside'),
+      scrollLeft: host.querySelector<HTMLElement>('.b24-scheduler__viewport')!.scrollLeft,
+    };
+  });
+  expect(out).toEqual({ lateTime: '17:00–24:00', offNoTime: true, offLabel: 'Выходной', offFlagged: false, scrollLeft: 0 });
+
+  // выделение со среды 22:00 на полдня вправо — обрезается полуночью
+  const track = page.locator('#sch2 .b24-scheduler__track');
+  const dayPx = (await track.evaluate((t) => t.getBoundingClientRect().width)) / 7;
+  await page.locator('#sch2 .b24-scheduler__viewport').evaluate((v, left) => { v.scrollLeft = left; }, dayPx * 2.5);
+  const tb = (await track.boundingBox())!;
+  const x0 = tb.x + dayPx * (2 + 22 / 24);
+  await page.mouse.move(x0, tb.y + tb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x0 + dayPx * 0.5, tb.y + tb.height / 2, { steps: 8 });
+  await page.mouse.up();
+  const created = await page.evaluate(() => (window as unknown as { created: Array<{ start: string; end: string }> }).created);
+  expect(created).toHaveLength(1);
+  const end = new Date(created[0].end);
+  expect([end.getDate(), end.getHours(), end.getMinutes()]).toEqual([8, 0, 0]);
+  expect(new Date(created[0].start).getDate()).toBe(7);
+  expect(errors()).toEqual([]);
 });

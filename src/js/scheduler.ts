@@ -33,6 +33,9 @@ export interface SchedulerEvent {
   /** цвет полосы; по умолчанию — основной цвет кита */
   color?: string;
   readonly?: boolean;
+  /** без времени: выходной, отпуск, больничный — полоса на свои start–end, но в подписи, подсказке и aria-label только название
+   *  (и день в подсказке); не помечается «вне рабочего времени» и «сотрудник отсутствует» */
+  allDay?: boolean;
   data?: unknown;
 }
 /** интервал графика: смена (work) или отсутствие */
@@ -68,6 +71,10 @@ export interface SchedulerOptions {
   toolbar?: boolean;
   legend?: boolean;
   readonly?: boolean;
+  /** выделение для onCreate — в пределах одного дня (по умолчанию нет: можно протянуть через полночь) */
+  createWithinDay?: boolean;
+  /** прокрутка шкалы при открытии и смене вида: 'now' — к сегодня / «сейчас» (по умолчанию), 'start' — к началу периода (в дне — к первому видимому часу) */
+  initialScroll?: 'now' | 'start';
   /** подсказка над встречей; по умолчанию — название, время, сотрудник */
   tooltip?: (event: SchedulerEvent, resource?: SchedulerResource) => string;
   onChange?: (change: SchedulerChange) => void | Promise<unknown>;
@@ -119,6 +126,12 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   let abort: AbortController | null = null;
 
   const fmtTime = () => new Intl.DateTimeFormat(intlLocale(), { hour: '2-digit', minute: '2-digit' });
+  /** «17:00–24:00»: конец ровно в полночь следующего дня — 24:00, а не 00:00 */
+  const fmtRange = (a: Date, b: Date) => {
+    const ft = fmtTime();
+    const midnight = b.getHours() === 0 && b.getMinutes() === 0 && b > a && startOfDay(b).getTime() !== startOfDay(a).getTime();
+    return `${ft.format(a)}–${midnight ? '24:00' : ft.format(b)}`;
+  };
   const normEvents = (list: SchedulerEvent[]) => list.map((e) => ({ ...e, s: toDate(e.start), e: toDate(e.end) }));
   const normBands = (list: SchedulerBand[]) => list.map((b) => ({ ...b, s: toDate(b.start), e: toDate(b.end) }));
   events = normEvents(o.events ?? []);
@@ -324,9 +337,10 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const mine = events.filter((e) => e.resourceId === ev.resourceId && e.id !== ev.id);
     const overlap = mine.some((e) => e.s < ev.e && e.e > ev.s);
     const rb = bands.filter((b) => b.resourceId === ev.resourceId);
-    const absent = rb.find((b) => b.kind !== 'work' && b.s < ev.e && b.e > ev.s);
+    // событие без времени (выходной, отпуск) само говорит об отсутствии — не конфликт с графиком
+    const absent = !ev.allDay && rb.find((b) => b.kind !== 'work' && b.s < ev.e && b.e > ev.s);
     const works = rb.filter((b) => b.kind === 'work');
-    const outside = works.length > 0 && !works.some((b) => b.s <= ev.s && b.e >= ev.e);
+    const outside = !ev.allDay && works.length > 0 && !works.some((b) => b.s <= ev.s && b.e >= ev.e);
     return { overlap, absent, outside };
   };
 
@@ -376,7 +390,6 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       const label = b.label ?? ({ vacation: t('Отпуск'), sick: t('Больничный'), trip: t('Командировка'), off: '', work: '' } as Record<BandKind, string>)[b.kind];
       track.append(h('div', { class: `b24-scheduler__band b24-scheduler__band--${b.kind}`, style: `left:${left}px;width:${right - left}px` }, right - left > 60 ? label : ''));
     }
-    const ft = fmtTime();
     for (const e of events) {
       if (e.resourceId !== r.id || !inRange(e.s, e.e)) continue;
       const left = Math.max(0, x(e.s));
@@ -386,11 +399,11 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       const ev = h('div', {
         class: `b24-scheduler__event${e.readonly || o.readonly ? ' is-readonly' : ''}${f.overlap || f.absent ? ' is-conflict' : ''}${f.outside ? ' is-outside' : ''}`,
         'data-event': e.id, tabindex: '0', role: 'button',
-        'aria-label': `${e.title}, ${ft.format(e.s)}–${ft.format(e.e)}${f.overlap ? `, ${t('пересекается с другой встречей')}` : ''}`,
+        'aria-label': `${e.title}${e.allDay ? '' : `, ${fmtRange(e.s, e.e)}`}${f.overlap ? `, ${t('пересекается с другой встречей')}` : ''}`,
         style: `left:${left}px;width:${Math.max(4, right - left)}px;top:${ROW_PAD + lane * laneH + 2}px${e.color ? `;--b24-scheduler-event-color:${e.color}` : ''}`,
       });
       ev.append(h('span', { class: 'b24-scheduler__event-title' }, e.title));
-      if (right - left > 70 && view !== 'month') ev.append(h('span', { class: 'b24-scheduler__event-time' }, `${ft.format(e.s)}–${ft.format(e.e)}`));
+      if (!e.allDay && right - left > 70 && view !== 'month') ev.append(h('span', { class: 'b24-scheduler__event-time' }, fmtRange(e.s, e.e)));
       ev.append(h('span', { class: 'b24-scheduler__handle b24-scheduler__handle--start', 'aria-hidden': 'true' }), h('span', { class: 'b24-scheduler__handle b24-scheduler__handle--end', 'aria-hidden': 'true' }));
       track.append(ev);
     }
@@ -458,10 +471,9 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   const hideTip = () => { tip.hidden = true; };
   const tipFor = (e: SchedulerEvent & { s: Date; e: Date }) => {
     if (o.tooltip) return o.tooltip(e, resById(e.resourceId));
-    const ft = fmtTime();
     const f = flags(e);
     const day = new Intl.DateTimeFormat(intlLocale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(e.s);
-    return `<b>${escapeHtml(e.title)}</b><br>${escapeHtml(day)}, ${ft.format(e.s)}–${ft.format(e.e)}<br>${escapeHtml(resById(e.resourceId)?.name ?? '')}`
+    return `<b>${escapeHtml(e.title)}</b><br>${escapeHtml(day)}${e.allDay ? '' : `, ${fmtRange(e.s, e.e)}`}<br>${escapeHtml(resById(e.resourceId)?.name ?? '')}`
       + (f.overlap ? `<br>⚠ ${escapeHtml(t('Пересекается с другой встречей'))}` : '')
       + (f.absent ? `<br>⚠ ${escapeHtml(t('Сотрудник отсутствует'))}` : '')
       + (f.outside ? `<br>${escapeHtml(t('Вне рабочего времени'))}` : '');
@@ -527,11 +539,14 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     }
     if (drag.kind === 'create') {
       drag.to = snap(timeAt(trackX(e.clientX)));
+      if (o.createWithinDay) {
+        const d0 = startOfDay(drag.from).getTime();
+        drag.to = new Date(Math.min(Math.max(drag.to.getTime(), d0), d0 + 24 * HOUR));
+      }
       const a = drag.from < drag.to ? drag.from : drag.to;
       const b = drag.from < drag.to ? drag.to : drag.from;
       Object.assign(drag.sel.style, { left: `${x(a)}px`, width: `${x(b) - x(a)}px` });
-      const ft = fmtTime();
-      showTip(`${ft.format(a)}–${ft.format(b)}`, e.clientX, e.clientY);
+      showTip(fmtRange(a, b), e.clientX, e.clientY);
       return;
     }
     const d = drag;
@@ -561,8 +576,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       d.el.style.width = `${x(end) - x(start)}px`;
     }
     d.next = { start, end, resourceId };
-    const ft = fmtTime();
-    showTip(`${ft.format(start)}–${ft.format(end)}${resourceId !== d.ev.resourceId ? `<br>→ ${escapeHtml(resById(resourceId)?.name ?? '')}` : ''}`, e.clientX, e.clientY);
+    showTip(`${d.ev.allDay ? escapeHtml(d.ev.title) : fmtRange(start, end)}${resourceId !== d.ev.resourceId ? `<br>→ ${escapeHtml(resById(resourceId)?.name ?? '')}` : ''}`, e.clientX, e.clientY);
   };
   const onUp = async () => {
     const d = drag;
@@ -637,10 +651,11 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const resW = parseFloat(getComputedStyle(root).getPropertyValue('--_res-w')) || 240;
     viewport.scrollLeft = Math.max(0, x(toDate(d)) - (viewport.clientWidth - resW) / 3);
   };
-  /** при открытии: в дне — к 8:00 или к «сейчас», в неделе — к сегодняшнему дню */
+  /** при открытии: в дне — к 8:00 или к «сейчас», в неделе — к сегодняшнему дню; initialScroll: 'start' — к началу периода */
   const initialScroll = () => {
     const now = new Date();
     const { start, end } = range();
+    if (o.initialScroll === 'start') { if (view === 'day') scrollToTime(new Date(start.getTime() + (o.hours?.[0] ?? 8) * HOUR)); else viewport.scrollLeft = 0; return; }
     if (now >= start && now < end) scrollToTime(view === 'day' ? new Date(Math.max(now.getTime() - 2 * HOUR, start.getTime())) : startOfDay(now));
     else if (view === 'day') scrollToTime(new Date(start.getTime() + 8 * HOUR));
     else viewport.scrollLeft = 0;
