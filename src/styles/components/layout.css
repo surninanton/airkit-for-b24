@@ -131,6 +131,8 @@
 
 /* Top navigation (горизонтальное меню раздела) */
 .b24-topnav { display: flex; align-items: center; gap: 2px; min-width: 0; overflow: hidden; }
+/* overflow обрезал бы счётчик над пунктом (top: -7px): запас сверху, без сдвига раскладки */
+.b24-topnav:has(.b24-topnav__item > .b24-counter) { padding-top: 9px; margin-top: -9px; }
 .b24-topnav__item {
   position: relative;
   display: inline-flex; align-items: center; gap: 6px;
