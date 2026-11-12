@@ -28,6 +28,9 @@ jobs:
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
       - run: npm run build:demo
+      # автоинициализация кита (src/js/global.ts) не должна выпасть из сборки: без неё не оживают вкладки и data-b24-*
+      - name: Проверка автоинициализации
+        run: grep -lq "B24UI" dist-demo/assets/*.js || (echo "global.ts выпал из сборки демо — проверьте sideEffects в package.json" && exit 1)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-demo
