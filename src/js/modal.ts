@@ -99,12 +99,18 @@ export function modal(options: ModalOptions): ModalHandle {
       }, b.text);
       btn.addEventListener('click', async () => {
         if (b.onClick) {
+          // пока промис не завершён: у нажатой кнопки — загрузка, остальные кнопки окна заблокированы
+          const all = [...footer.querySelectorAll<HTMLButtonElement>('button')];
           btn.classList.add('b24-btn--loading');
+          all.forEach((x) => { x.disabled = true; });
+          dialog.setAttribute('aria-busy', 'true');
           try {
             const r = await b.onClick(handle);
             if (r === false) return;
           } finally {
             btn.classList.remove('b24-btn--loading');
+            all.forEach((x) => { x.disabled = false; });
+            dialog.removeAttribute('aria-busy');
           }
         }
         if (b.closes !== false) void handle.close(b.value);

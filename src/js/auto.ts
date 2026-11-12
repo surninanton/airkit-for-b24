@@ -31,7 +31,8 @@ import { setAutoInit } from './dom';
  *   data-b24-tabs                  — контейнер вкладок
  *   data-b24-sortable              — сортировка таблицы
  *   data-b24-dismiss               — кнопка закрытия ближайшего .b24-alert / [data-b24-dismissible]
- *   data-b24-shell-toggle          — свернуть сайдбар / открыть меню на мобильном
+ *   data-b24-shell-toggle          — свернуть сайдбар / открыть меню на мобильном;
+ *                                    бургер в строке логотипа: <button class="b24-sidebar__toggle" data-b24-shell-toggle>
  *   input[data-b24-datepicker]     — календарь; ="range" — диапазон в одном поле,
  *                                    data-b24-to="#id" — второе поле диапазона, data-min / data-max (дата или today), data-time
  *   [data-b24-kanban]              — drag & drop; событие b24:kanban-move (preventDefault → откат)

@@ -170,7 +170,7 @@ npm test         # сайт, экраны, редакторы, элементы 
 | `table[data-b24-sortable]` + `th[aria-sort]`, `input[data-b24-check-all]` | сортировка и «выбрать все» (события `b24:sort`, `b24:selection`) |
 | `data-b24-dismiss` | закрывает ближайший `.b24-alert` |
 | `data-b24-tooltip="Текст"` | тултип (только CSS) |
-| `data-b24-shell-toggle` | свернуть сайдбар `.b24-shell` |
+| `data-b24-shell-toggle` | свернуть сайдбар `.b24-shell` (на мобильном — открыть меню). Место бургера — строка логотипа: `<div class="b24-sidebar__brand"><button class="b24-sidebar__toggle" data-b24-shell-toggle aria-label="Меню">…</button>…</div>`; в свёрнутом сайдбаре он встаёт вместо логотипа, а такая же кнопка в `.b24-shell__header` остаётся только на мобильном |
 | `input[data-b24-datepicker]` | календарь; `="range"` — период в одном поле, `data-b24-to="#id"` — второе поле, `data-min`/`data-max` (дата или `today`), `data-time` |
 | `[data-b24-kanban]` | drag & drop карточек `.b24-kanban-card[data-id]` между `.b24-kanban__column[data-column]`; цвет колонки — `data-color`; событие `b24:kanban-move` (`preventDefault()` — откат) |
 | `select[data-b24-combobox]` | select с поиском, группами (`optgroup`) и тегами для `multiple`; сам `<select>` остаётся в форме |
@@ -192,6 +192,8 @@ const ok = await B24UI.confirm('Удалить сделку?', { danger: true, o
 const m = B24UI.modal({ title: 'Настройки', content: node, buttons: [{ text: 'Сохранить', variant: 'success', onClick: save }] });
 const panel = B24UI.openSidePanel({ title: 'Сделка #42', content: node, air: true, footer });
 // содержимое окна и панели инициализируется само (data-b24-rating, -datepicker, -combobox… из <template>); autoInit: false — выключить
+// content-строка вставляется как текст (защита от XSS); готовую разметку — через B24UI.html('<p>…</p>') или DOM-узел
+// onClick кнопки вернул промис — у неё загрузка, остальные кнопки окна заблокированы до завершения; false — окно не закрывается
 B24UI.setTheme('dark');            // light | dark | auto
 B24UI.setAirPreset('violet');      // blue | violet | teal | graphite
 B24UI.bx24.autoFitFrame();         // высота фрейма = высота контента (растёт и уменьшается); во фрейме модалки и тосты — у места клика
@@ -360,7 +362,7 @@ import { B24Provider, App, PageHeader, SearchInput, DataTable, SidePanel, Stages
 
 - **`.b24-app`**: приложение внутри фрейма портала (плейсмент). Модификатор `--air` включает фирменную подложку, `--white` делает белый фон.
 - **`.b24-page-header`**: шапка раздела страницы — меню раздела, заголовок, «Создать», селекторы, фильтр, вид, счётчики (правило 2, `createPageHeader` / `<PageHeader>`).
-- **`.b24-shell`**: самостоятельное приложение с сайдбаром, шапкой и верхним меню, как сам портал. На мобильных сайдбар выезжает поверх контента.
+- **`.b24-shell`**: самостоятельное приложение с сайдбаром, шапкой и верхним меню, как сам портал. Бургер — в строке логотипа сайдбара (`.b24-sidebar__toggle`, в React `<AppShell>` + `<Sidebar>` ставят его сами); свёрнутый сайдбар показывает бургер вместо логотипа. На мобильных сайдбар выезжает поверх контента, бургер — в шапке.
 
 ## Экраны приложения
 
@@ -575,6 +577,10 @@ B24UI.t('Выбрано {n} из {m}', { n: 2, m: 5 }); // для своих п�
 :root { --b24-color-primary: #6a4cff; --b24-radius-md: 6px; }
 .my-widget { --b24-bg-surface: #fafafa; }
 ```
+
+Модалки, слайдер, тосты и выпадающие меню вставляются прямо в `<body>`, вне вашего контейнера, поэтому значения, переопределённые на контейнере, до них не дойдут. Тему и общие переопределения ставьте на `:root` / `<html>` (`data-b24-theme`, `data-b24-air` — тоже на `<html>`); на контейнере — только то, что касается его самого.
+
+Фон плашек по статусу (тот же, что у `.b24-alert`, меняется с темой): `--b24-bg-info`, `--b24-bg-success`, `--b24-bg-warning`, `--b24-bg-danger`; цвет текста к ним — `--b24-color-soft-text-blue|green|orange|red`.
 
 Отдельно можно подключить только токены: `airkit-for-b24/tokens.css`.
 

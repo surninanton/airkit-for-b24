@@ -83,6 +83,17 @@
   width: 28px; height: 28px; border-radius: 8px;
   background: rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 700;
 }
+/* бургер в строке логотипа, как в портале; свёрнутый сайдбар — бургер вместо логотипа */
+.b24-sidebar__toggle {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 32px; height: 32px; margin-left: -2px; padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.32); border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08); color: #fff; cursor: pointer;
+  transition: background-color var(--b24-duration-fast), border-color var(--b24-duration-fast);
+}
+.b24-sidebar__toggle:hover { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.5); }
+.b24-sidebar__toggle:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.b24-sidebar__toggle > svg { width: 18px; height: 18px; }
 .b24-sidebar__group { display: flex; flex-direction: column; gap: 2px; padding: 4px; margin: 4px 0; border-radius: var(--b24-radius-lg); background: rgba(255, 255, 255, 0.08); }
 .b24-sidebar__group-title { padding: 6px 10px 4px; font-size: var(--b24-font-size-xs); color: var(--b24-glass-text-secondary); }
 .b24-sidebar__item {
@@ -109,6 +120,13 @@
 .b24-shell.is-collapsed .b24-sidebar__label,
 .b24-shell.is-collapsed .b24-sidebar__group-title,
 .b24-shell.is-collapsed .b24-sidebar__brand-text { display: none; }
+.b24-shell.is-collapsed .b24-sidebar__brand:has(.b24-sidebar__toggle) { justify-content: center; padding: 0; }
+.b24-shell.is-collapsed .b24-sidebar__brand:has(.b24-sidebar__toggle) .b24-sidebar__brand-mark { display: none; }
+.b24-shell.is-collapsed .b24-sidebar__toggle { margin: 0; }
+/* бургер есть в сайдбаре — кнопка в шапке нужна только на мобильном, где сайдбар выезжает */
+@media (min-width: 769px) {
+  .b24-shell:has(.b24-shell__sidebar .b24-sidebar__toggle) .b24-shell__header :is([data-b24-shell-toggle], .b24-shell__toggle) { display: none; }
+}
 .b24-shell.is-collapsed .b24-sidebar__item > .b24-counter { position: absolute; top: 2px; right: 2px; margin: 0; }
 
 /* Top navigation (горизонтальное меню раздела) */

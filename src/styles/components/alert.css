@@ -2,7 +2,7 @@
  * .b24-alert [--primary|--success|--warning|--danger|--copilot] > .b24-alert__icon + .b24-alert__content (+ .b24-alert__close)
  */
 .b24-alert {
-  --_bg: var(--b24-color-soft-blue-2);
+  --_bg: var(--b24-bg-info);
   --_color: var(--b24-color-soft-text-blue);
   --_accent: var(--b24-color-primary);
   display: flex;
@@ -27,8 +27,8 @@
 .b24-alert__close:hover { background: rgba(0, 0, 0, 0.06); color: var(--b24-text-primary); }
 .b24-alert__close svg { width: 14px; height: 14px; }
 
-.b24-alert--success { --_bg: var(--b24-color-soft-green-3); --_color: var(--b24-color-soft-text-green); --_accent: var(--b24-color-success); }
-.b24-alert--warning { --_bg: var(--b24-color-soft-orange-2); --_color: var(--b24-color-soft-text-orange); --_accent: var(--b24-color-warning-strong); }
-.b24-alert--danger { --_bg: var(--b24-color-soft-red-2); --_color: var(--b24-color-soft-text-red); --_accent: var(--b24-color-danger); }
+.b24-alert--success { --_bg: var(--b24-bg-success); --_color: var(--b24-color-soft-text-green); --_accent: var(--b24-color-success); }
+.b24-alert--warning { --_bg: var(--b24-bg-warning); --_color: var(--b24-color-soft-text-orange); --_accent: var(--b24-color-warning-strong); }
+.b24-alert--danger { --_bg: var(--b24-bg-danger); --_color: var(--b24-color-soft-text-red); --_accent: var(--b24-color-danger); }
 .b24-alert--copilot { --_bg: var(--b24-color-soft-violet-2); --_color: var(--b24-color-soft-text-violet); --_accent: var(--b24-color-copilot); }
 .b24-alert--outline { background: var(--b24-bg-surface); box-shadow: inset 3px 0 0 var(--_accent), inset 0 0 0 1px var(--b24-border); }

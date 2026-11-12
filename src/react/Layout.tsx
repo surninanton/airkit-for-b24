@@ -1,4 +1,4 @@
-import { isValidElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createContext, isValidElement, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Counter } from './Display';
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
@@ -172,6 +172,9 @@ export function Toolbar({ title, actions, search, right, bottom, glass, vendor }
 }
 
 /* ── Shell (самостоятельное приложение) ──────────────── */
+/** AppShell передаёт <Sidebar> кнопку-бургер: она встаёт в строку логотипа, в шапке — только на мобильном */
+const ShellToggleContext = createContext<(() => void) | null>(null);
+
 export interface ShellProps {
   sidebar: ReactNode;
   header?: ReactNode;
@@ -192,9 +195,11 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
   };
   return (
     <div className={cx('b24-shell b24-root', collapsed && 'is-collapsed', menuOpen && 'is-menu-open')}>
-      <aside className="b24-shell__sidebar" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMenuOpen(false); }}>{sidebar}</aside>
+      <aside className="b24-shell__sidebar" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMenuOpen(false); }}>
+        <ShellToggleContext.Provider value={toggle}>{sidebar}</ShellToggleContext.Provider>
+      </aside>
       <header className="b24-shell__header">
-        <button type="button" className="b24-btn b24-btn--plain b24-btn--icon" style={{ color: '#fff' }} aria-label={t('Меню')} onClick={toggle}>
+        <button type="button" className="b24-btn b24-btn--plain b24-btn--icon b24-shell__toggle" style={{ color: '#fff' }} aria-label={t('Меню')} onClick={toggle}>
           <Icon name="menu" />
         </button>
         {header}
@@ -206,12 +211,18 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
 }
 
 export function Sidebar({ brand, brandMark = '24', children }: { brand?: ReactNode; brandMark?: ReactNode; children: ReactNode }) {
+  const toggle = useContext(ShellToggleContext);
   return (
     <nav className="b24-sidebar" aria-label={t('Главное меню')}>
-      {brand && (
+      {(brand || toggle) && (
         <div className="b24-sidebar__brand">
-          <span className="b24-sidebar__brand-mark">{brandMark}</span>
-          <span className="b24-sidebar__brand-text">{brand}</span>
+          {toggle && (
+            <button type="button" className="b24-sidebar__toggle" aria-label={t('Меню')} onClick={(e) => { e.stopPropagation(); toggle(); }}>
+              <Icon name="menu" />
+            </button>
+          )}
+          {brand && <span className="b24-sidebar__brand-mark">{brandMark}</span>}
+          {brand && <span className="b24-sidebar__brand-text">{brand}</span>}
         </div>
       )}
       {children}

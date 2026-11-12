@@ -130,6 +130,11 @@
   --b24-bg-selected: var(--b24-color-soft-blue-3);
   --b24-bg-overlay: rgba(0, 0, 0, 0.4);
   --b24-bg-tooltip: #1f2329;
+  /* фон плашек по статусу (как у .b24-alert) — переопределяются вместе с темой */
+  --b24-bg-info: var(--b24-color-soft-blue-2);
+  --b24-bg-success: var(--b24-color-soft-green-3);
+  --b24-bg-warning: var(--b24-color-soft-orange-2);
+  --b24-bg-danger: var(--b24-color-soft-red-2);
 
   --b24-border: #dfe0e3;
   --b24-border-strong: #c9ccd0;

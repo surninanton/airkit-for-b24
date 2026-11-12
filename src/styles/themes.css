@@ -26,6 +26,11 @@
   --b24-bg-selected: rgba(0, 117, 255, 0.16);
   --b24-bg-overlay: rgba(0, 0, 0, 0.6);
   --b24-bg-tooltip: #3a3f47;
+  /* фон плашек по статусу (как у .b24-alert) — переопределяются вместе с темой */
+  --b24-bg-info: var(--b24-color-soft-blue-2);
+  --b24-bg-success: var(--b24-color-soft-green-3);
+  --b24-bg-warning: var(--b24-color-soft-orange-2);
+  --b24-bg-danger: var(--b24-color-soft-red-2);
 
   --b24-border: #353a41;
   --b24-border-strong: #454b53;
@@ -88,6 +93,11 @@
     --b24-bg-selected: rgba(0, 117, 255, 0.16);
     --b24-bg-overlay: rgba(0, 0, 0, 0.6);
     --b24-bg-tooltip: #3a3f47;
+    /* фон плашек по статусу (как у .b24-alert) — переопределяются вместе с темой */
+    --b24-bg-info: var(--b24-color-soft-blue-2);
+    --b24-bg-success: var(--b24-color-soft-green-3);
+    --b24-bg-warning: var(--b24-color-soft-orange-2);
+    --b24-bg-danger: var(--b24-color-soft-red-2);
     --b24-border: #353a41;
     --b24-border-strong: #454b53;
     --b24-border-field: #454b53;
