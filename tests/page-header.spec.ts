@@ -30,7 +30,13 @@ test.describe('шапка раздела', () => {
     }
 
     // меню раздела, вид и счётчики переключаются через API
-    await header.locator('.b24-topnav__item', { hasText: 'Обзор' }).click();
+    // на узком экране пункт может уйти в «Ещё ▾» — тогда выбираем его из меню
+    const overview = header.locator('.b24-topnav__item:not(.b24-topnav__more)', { hasText: 'Обзор' });
+    if (await overview.isVisible()) await overview.click();
+    else {
+      await header.locator('.b24-topnav__more').click();
+      await page.locator('.b24-topnav-menu:not([hidden]) .b24-menu__item', { hasText: 'Обзор' }).click();
+    }
     await expect(header.locator('.b24-page-header__title')).toHaveText('Обзор');
     await expect(header.locator('.b24-topnav__item[aria-current="page"]')).toHaveText('Обзор');
     await header.locator('.b24-tabs__item', { hasText: 'Доска' }).click();

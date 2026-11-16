@@ -23,6 +23,7 @@
 @import "./components/timeline.css";
 @import "./components/chat.css";
 @import "./components/messenger.css";
+@import "./components/members.css";
 @import "./components/vendor.css";
 @import "./components/screens.css";
 @import "./components/editors.css";

@@ -8,6 +8,7 @@ import {
   createMessengerBar, openChatDock,
   type MessengerBarHandle, type MessengerBarItem, type MessengerBarAction, type ChatDockHandle,
 } from '../js/messenger';
+import { createMemberList, type Member, type MemberListHandle, type MemberListOptions } from '../js/members';
 import { Icon } from './Icon';
 import { cx } from './utils';
 import { t } from '../js/i18n';
@@ -230,4 +231,28 @@ export function ChatDock({ id, name, avatar, status, meta, messages, hasMore, on
   useEffect(() => { if (minimized == null || !h.current) return; if (minimized) h.current.minimize(); else h.current.restore(); }, [minimized]);
   useEffect(() => { h.current?.setCounter(counter ?? 0); }, [counter]);
   return null;
+}
+
+export interface MemberListProps extends Omit<MemberListOptions, 'items'> { items: Member[]; className?: string }
+/** Список участников: аватар со статусом, имя, подпись, «вы»; items и selected применяются без пересоздания */
+export function MemberList({ items, onSelect, title, emptyText, compact, selected, selfSelectable, label, className }: MemberListProps) {
+  const host = useRef<HTMLDivElement>(null);
+  const h = useRef<MemberListHandle | null>(null);
+  const sel = useRef(onSelect);
+  sel.current = onSelect;
+  useEffect(() => {
+    h.current = createMemberList(host.current!, {
+      items, title, emptyText, compact, selected, selfSelectable, label,
+      onSelect: onSelect ? (id, m) => sel.current?.(id, m) : undefined,
+    });
+    if (className) h.current.element.classList.add(...className.split(/\s+/).filter(Boolean));
+    return () => h.current?.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const first = useRef(true);
+  const key = JSON.stringify(items);
+  useEffect(() => { if (first.current) { first.current = false; return; } h.current?.setItems(items); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selKey = JSON.stringify(selected ?? null);
+  useEffect(() => { if (selected) h.current?.setSelected(selected); }, [selKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div ref={host} style={{ display: 'contents' }} />;
 }

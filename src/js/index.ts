@@ -32,6 +32,7 @@ export {
   createMessengerBar, openChatDock, getChatDocks,
   type MessengerBarItem, type MessengerBarAction, type MessengerBarOptions, type MessengerBarHandle, type ChatDockOptions, type ChatDockHandle,
 } from './messenger';
+export { createMemberList, pickUser, matchMember, type Member, type MemberListOptions, type MemberListHandle, type PickUserOptions } from './members';
 export { notifySound, desktopNotify, requestNotifyPermission, claimNotify, type NotifySoundOptions, type DesktopNotifyOptions } from './notify';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';
 export { creditHtml, REPO_URL } from './credit';

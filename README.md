@@ -525,7 +525,7 @@ React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `R
 Список диалогов, лента сообщений, поле ответа и каркас «список | переписка | карточка» — для омниканальной переписки (Telegram, VK, MAX, сайт) и чата сотрудников. Пример — `demo/chat.html`, в React — раздел «Мессенджер» в `demo/react-demo.tsx`.
 
 - **Каркас** `.b24-chat[data-b24-chat]` > `__list` · `__main` (`__head` + лента + поле) · `__aside` (карточка). Высота — `--b24-chat-height` (по умолчанию `calc(100vh - 200px)`). На ≤1100px карточка выезжает поверх по кнопке `[data-b24-chat-aside]` (закрывается кликом мимо и Esc), на ≤768px одна колонка: выбор диалога открывает переписку, `[data-b24-chat-back]` — назад к списку. `initChatLayout(el)` → `{ openDialog, back, toggleAside }`.
-- **Список** `createChatList(host, { items, value, onSelect })`: аватар (точка `status`), имя, время («14:05», «вчера», «пн», «12.11»), превью с «Вы:» (`previewOut`), бейдж канала (`channel: 'Telegram'` — фирменным цветом, или `{ label, color }`), счётчик `unread`, `muted`. Стрелки ↑/↓, Home/End, Enter. `update(id, patch)` — новое сообщение без перерисовки списка.
+- **Список** `createChatList(host, { items, value, onSelect })`: аватар (точка `status`), имя, время («14:05», «вчера», «пн», «12.11»), превью с «Вы:» (`previewOut`), бейдж канала (`channel: 'Telegram'` — фирменным цветом, или `{ label, color }`), счётчик `unread`, `muted`. `subtitle` — подпись под именем, когда превью пустое («Чат должности», «в сети»). Стрелки ↑/↓, Home/End, Enter. `update(id, patch)` — новое сообщение без перерисовки списка.
 - **Лента** `createChatFeed(host, { messages, hasMore, onLoadMore, onRetry })`: пузыри `dir: 'in' | 'out'` с автором, временем и статусом (`sending` · `sent` ✓ · `delivered` ✓✓ · `read` ✓✓ синим · `failed` — «Не доставлено: причина» и «Повторить»), служебные строки `dir: 'system'` по центру, разделители дат, ссылки в тексте. Вложения: `photo` (превью), `file` (имя, размер), `voice` (плеер), `geo` (точка на карте). `setMessages(все)` сам понимает, что пришло сверху («Показать раньше», прокрутка к верху — позиция не прыгает) или снизу (прокрутка вниз, если вы были у низа или сообщение наше); догружающиеся картинки не сбивают низ.
 - **Подключение**: `createChatFeed` и `createChatComposer` можно вызывать прямо на `.b24-chat__main` (после `__head`) или на своих обёртках внутри него — обёртка ленты растягивается сама.
 - **Поле ответа** `createChatComposer(host, { onSend, onAttach, quickReplies })`: textarea растёт с текстом, Enter — отправить, Shift+Enter — новая строка (`enterToSend: false` — по Ctrl/⌘+Enter), скрепка, быстрые ответы над полем, `slots.attachments` — превью вложений, `slots.actions` — свои кнопки. `false` или исключение из `onSend` — текст остаётся. `setDisabled(true, 'Диалог закрыт')` — вместо поля строка с причиной.
@@ -559,6 +559,19 @@ socket.on('message', (m) => { dock.feed.append([m]); if (dock.isMinimized()) doc
 ```
 
 React: `<MessengerBar items value onSelect onAll actions />`, `<ChatDock id name meta messages onSend onClose minimized counter />` — рендерятся поверх страницы, на месте ничего не выводят.
+
+### Люди: участники и выбор сотрудника
+
+- **Список участников** `createMemberList(host, { items, onSelect, title })` — аватар с точкой `status` (`'online' | 'away'`), имя, подпись `caption` (должность, «в сети»), `meta` справа («Админ»), `self: true` — отметка «вы», строка неактивна (`selfSelectable: true` — можно выбрать), `disabled`. `title: 'Участники'` — заголовок с числом. Без `onSelect` строки не кликаются. `compact` — мельче, для узкой колонки и окна чата. Хорошо встаёт в `.b24-chat__aside`. `setItems`, `update(id, patch)`, `setSelected(ids)`.
+- **Выбор сотрудника** `pickUser({ users, title, multiple, exclude, selected })` — модалка с поиском по имени и должности (каждое слово — начало слова, «ё» = «е»), ↓ из поиска — в список, Enter — первый найденный. Один человек — клик сразу закрывает окно, промис резолвится `Member`; `multiple: true` — галочки и кнопка «Выбрать (N)» (`okText`), резолвится `Member[]`. Отмена / Esc — `null`. `exclude` — скрыть уже добавленных; поиск по серверу — `load: (query, signal) => Promise<Member[]>` вместо `users`. Фильтр отдельно — `matchMember(member, query)`.
+
+```js
+B24UI.createMemberList(asideEl, { title: 'Участники', items: [{ id: '1', name: 'Марина Ковалёва', caption: 'Управляющая', status: 'online', self: true }], onSelect: openProfile });
+const user = await B24UI.pickUser({ users: staff, title: 'Новый чат' });           // Member | null
+const added = await B24UI.pickUser({ users: staff, multiple: true, exclude: memberIds, okText: 'Добавить' }); // Member[] | null
+```
+
+React: `<MemberList items title onSelect compact selected />`; `pickUser` — та же функция из `airkit-for-b24/react`.
 
 ## Планировщик: сотрудники и время
 

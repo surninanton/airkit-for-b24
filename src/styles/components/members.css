@@ -1,0 +1,46 @@
+/* ── Люди: список участников, выбор пользователя ─────────
+ * .b24-member-list (--compact) > __title (+ __count) · __items > .b24-member (.is-self, .is-selected, .is-disabled)
+ *   .b24-member > .b24-avatar · __body (__name > __name-text + __you · __caption) · __meta · __check
+ * .b24-user-picker (.is-loading) > __search + .b24-member-list
+ */
+.b24-member-list { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.b24-member-list__title { display: flex; align-items: center; gap: 6px; padding: 0 0 8px; font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-semibold); color: var(--b24-text-primary); }
+.b24-member-list__count { font-weight: var(--b24-font-weight-regular); color: var(--b24-text-subtle); font-variant-numeric: tabular-nums; }
+.b24-member-list__items { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.b24-member-list__empty { padding: 20px 12px; text-align: center; color: var(--b24-text-subtle); }
+.b24-member {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 6px 8px; margin: 0; box-sizing: border-box;
+  font: inherit; text-align: left; color: var(--b24-text-primary); background: none; border: 0; border-radius: var(--b24-radius-sm);
+}
+button.b24-member { cursor: pointer; transition: background-color var(--b24-duration-fast); }
+button.b24-member:hover:not(:disabled) { background: var(--b24-bg-hover); }
+button.b24-member:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-member.is-disabled { cursor: default; }
+.b24-member.is-disabled:not(.is-self) { opacity: 0.55; }
+.b24-member > .b24-avatar { flex: 0 0 auto; }
+.b24-member__body { display: flex; flex-direction: column; gap: 1px; flex: 1 1 auto; min-width: 0; }
+.b24-member__name { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.b24-member__name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--b24-font-weight-medium); }
+.b24-member__you { flex: 0 0 auto; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-member__caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
+.b24-member__meta { flex: 0 0 auto; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-member__check {
+  flex: 0 0 auto; display: grid; place-items: center; width: 20px; height: 20px; box-sizing: border-box;
+  color: transparent; border: 1.5px solid var(--b24-border-field); border-radius: 50%;
+  transition: background-color var(--b24-duration-fast), border-color var(--b24-duration-fast);
+}
+.b24-member__check svg { width: 14px; height: 14px; stroke-width: 2.5; }
+.b24-member.is-selected .b24-member__check { color: #fff; background: var(--b24-color-primary); border-color: var(--b24-color-primary); }
+.b24-member.is-selected { background: var(--b24-color-soft-blue-3, #e5f4ff); }
+.b24-member-list--compact .b24-member { gap: 8px; padding: 5px 6px; }
+.b24-member-list--compact .b24-member__caption { font-size: var(--b24-font-size-xs); }
+
+/* в карточке чата */
+.b24-chat__aside > .b24-member-list { flex: 1 1 auto; }
+
+/* модалка выбора */
+.b24-user-picker { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.b24-user-picker__search { flex: 0 0 auto; }
+.b24-user-picker__list { height: min(360px, calc(100vh - 260px)); height: min(360px, calc(100dvh - 260px)); margin: 0 -8px; }
+.b24-user-picker__list .b24-member-list__items { flex: 1 1 auto; }
+.b24-user-picker.is-loading .b24-member-list__items { opacity: 0.55; transition: opacity var(--b24-duration-fast); }

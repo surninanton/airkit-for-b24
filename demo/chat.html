@@ -38,6 +38,19 @@
         <span class="b24-text-sm b24-text-secondary">Панель справа: аватар — окно чата этого диалога, «Все чаты» — полный раздел. Свернуть — «−» или клик по шапке окна.</span>
       </div>
     </div>
+    <div class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Чат сотрудников: участники и выбор человека</h2><span class="b24-card__subtitle">&nbsp;createMemberList · pickUser · подпись в списке диалогов</span></div>
+      <div class="b24-card__body">
+        <div class="b24-row" style="flex-wrap:wrap; margin-bottom:12px">
+          <button type="button" class="b24-btn b24-btn--success" id="pick-one">Новый чат</button>
+          <button type="button" class="b24-btn b24-btn--secondary" id="pick-many">Добавить участников</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap:16px; align-items:start">
+          <div id="members"></div>
+          <div id="staff-chats" style="display:flex; flex-direction:column; border:1px solid var(--b24-divider); border-radius:var(--b24-radius-md); overflow:hidden"></div>
+        </div>
+      </div>
+    </div>
     <p class="b24-text-sm" style="color: var(--b24-glass-text-secondary); margin: 0">
       Список: стрелки ↑/↓, Enter — открыть. Enter в поле — отправить, Shift+Enter — новая строка. Сообщение со словом «ошибка» «не доставится» — нажмите «Повторить».
       Прокрутите ленту вверх — подгрузятся ранние сообщения, позиция не прыгнет. На телефоне — одна колонка и «назад», на ≤1100px карточка открывается кнопкой справа в шапке.
@@ -201,6 +214,38 @@
   });
   document.getElementById('notify-perm').addEventListener('click', async () => B24UI.toast(`Уведомления: ${await B24UI.requestNotifyPermission()}`));
   document.getElementById('notify-sound').addEventListener('click', () => B24UI.notifySound());
+  // Чат сотрудников
+  const staff = [
+    { id: 'u1', name: 'Марина Ковалёва', caption: 'Управляющая', status: 'online', self: true },
+    { id: 'u2', name: 'Игорь Сафонов', caption: 'Повар-сушист', status: 'online', meta: 'Админ' },
+    { id: 'u3', name: 'Дарья Лебедева', caption: 'Кассир', status: 'away' },
+    { id: 'u4', name: 'Тимур Валиев', caption: 'Курьер' },
+    { id: 'u5', name: 'Ольга Никитина', caption: 'Пиццмейкер', status: 'online' },
+    { id: 'u6', name: 'Семён Ершов', caption: 'Курьер' },
+    { id: 'u7', name: 'Алёна Гусева', caption: 'Кассир' },
+  ];
+  let members = staff.slice(0, 5);
+  const memberList = B24UI.createMemberList(document.getElementById('members'), {
+    title: 'Участники', items: members,
+    onSelect: (id, m) => B24UI.toast(`Открыть профиль: ${m.name}`),
+  });
+  const staffChats = B24UI.createChatList(document.getElementById('staff-chats'), {
+    label: 'Чаты сотрудников',
+    items: [
+      { id: 'c1', name: 'Кухня', subtitle: 'Чат должности · 6 участников' },
+      { id: 'c2', name: 'Курьеры', subtitle: 'Чат должности · 4 участника', preview: 'Тимур: беру заказ на Ленина', time: new Date(), unread: 2 },
+      { id: 'c3', name: 'Игорь Сафонов', subtitle: 'в сети', status: 'online' },
+    ],
+    onSelect: (id, it) => B24UI.toast(it.name),
+  });
+  document.getElementById('pick-one').addEventListener('click', async () => {
+    const u = await B24UI.pickUser({ users: staff, title: 'Новый чат' });
+    if (u) B24UI.toast(`Чат с ${u.name}`);
+  });
+  document.getElementById('pick-many').addEventListener('click', async () => {
+    const added = await B24UI.pickUser({ users: staff, multiple: true, exclude: members.map((m) => m.id), title: 'Добавить участников', okText: 'Добавить' });
+    if (added?.length) { members = [...members, ...added]; memberList.setItems(members); }
+  });
   document.getElementById('chat-search').addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase();
     list.setItems(dialogs.filter((d) => d.name.toLowerCase().includes(q)));

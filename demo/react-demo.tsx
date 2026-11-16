@@ -10,7 +10,7 @@ import {
   type FilterField, type FilterPreset, type FilterState, type DateRange,
   Combobox, EntitySelector, Uploader, EntityEditor, Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer,
   formatTimelineTime, Icon, Credit, openSidePanel, modal, type DialogItem, type EditorField, type EditorSection, type EditorValues,
-  ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, Avatar, MessengerBar, ChatDock, type ChatMessage, type ChatListItem,
+  ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, Avatar, MessengerBar, ChatDock, MemberList, pickUser, type Member, type ChatMessage, type ChatListItem,
 } from '../src/react';
 
 const STAGES: Stage[] = [
@@ -626,7 +626,31 @@ function ChatsPage() {
           </>
         ) : <div className="b24-chat__empty">Выберите диалог</div>}
       </ChatLayout>
+      <StaffMembers />
     </>
+  );
+}
+
+const STAFF: Member[] = [
+  { id: 'u1', name: 'Марина Ковалёва', caption: 'Управляющая', status: 'online', self: true },
+  { id: 'u2', name: 'Игорь Сафонов', caption: 'Повар-сушист', status: 'online', meta: 'Админ' },
+  { id: 'u3', name: 'Дарья Лебедева', caption: 'Кассир', status: 'away' },
+  { id: 'u4', name: 'Тимур Валиев', caption: 'Курьер' },
+  { id: 'u5', name: 'Ольга Никитина', caption: 'Пиццмейкер', status: 'online' },
+];
+function StaffMembers() {
+  const [members, setMembers] = useState(STAFF.slice(0, 3));
+  return (
+    <div className="b24-card" style={{ marginTop: 16 }}>
+      <div className="b24-card__header">
+        <h2 className="b24-card__title">Участники чата</h2>
+        <Button size="sm" variant="secondary" onClick={async () => {
+          const added = await pickUser({ users: STAFF, multiple: true, exclude: members.map((m) => m.id), title: 'Добавить участников', okText: 'Добавить' });
+          if (added?.length) setMembers((m) => [...m, ...added]);
+        }}>Добавить</Button>
+      </div>
+      <div className="b24-card__body"><MemberList items={members} onSelect={(_, m) => toast(m.name)} /></div>
+    </div>
   );
 }
 

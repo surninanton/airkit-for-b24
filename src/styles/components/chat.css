@@ -58,6 +58,8 @@
 .b24-chat-list__time { flex: 0 0 auto; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); font-variant-numeric: tabular-nums; }
 .b24-chat-list__preview { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
 .b24-chat-list__you { color: var(--b24-text-subtle); }
+.b24-chat-list__subtitle { color: var(--b24-text-subtle); }
+.b24-chat-list__item.is-unread .b24-chat-list__subtitle { color: var(--b24-text-subtle); }
 .b24-chat-list__item.is-unread .b24-chat-list__name { font-weight: var(--b24-font-weight-semibold); }
 .b24-chat-list__item.is-unread .b24-chat-list__preview { color: var(--b24-text-primary); }
 .b24-chat-list__item.is-unread .b24-chat-list__time { color: var(--b24-color-primary); }

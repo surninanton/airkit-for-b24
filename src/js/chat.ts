@@ -69,6 +69,8 @@ export interface ChatListItem {
   time?: ChatDate;
   /** текст последнего сообщения */
   preview?: string;
+  /** подпись под именем, когда превью пустое: «Чат должности», «в сети» */
+  subtitle?: string;
   /** последнее сообщение — наше: префикс «Вы:» */
   previewOut?: boolean;
   /** канал: «Telegram», { label: 'VK', color: '#0077ff' } */
@@ -118,12 +120,14 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
     row.setAttribute('aria-selected', String(it.id === active));
     const av = html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })).firstElementChild!;
     const top = h('span', { class: 'b24-chat-list__top' }, h('span', { class: 'b24-chat-list__name' }, it.name), it.time != null ? h('span', { class: 'b24-chat-list__time' }, formatChatListTime(it.time)) : '');
-    const preview = h('span', { class: 'b24-chat-list__preview' }, it.previewOut ? h('span', { class: 'b24-chat-list__you' }, `${t('Вы')}: `) : '', it.preview ?? '');
+    const preview = it.preview || !it.subtitle
+      ? h('span', { class: 'b24-chat-list__preview' }, it.previewOut ? h('span', { class: 'b24-chat-list__you' }, `${t('Вы')}: `) : '', it.preview ?? '')
+      : h('span', { class: 'b24-chat-list__preview b24-chat-list__subtitle' }, it.subtitle);
     const bottom = h('span', { class: 'b24-chat-list__bottom' }, preview);
     if (it.channel) bottom.append(channelBadge(it.channel));
     if (it.unread) bottom.append(h('span', { class: 'b24-counter' }, it.unread > 99 ? '99+' : String(it.unread)));
     row.replaceChildren(av, h('span', { class: 'b24-chat-list__body' }, top, bottom));
-    row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.preview ? `. ${it.preview}` : ''}`);
+    row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.preview ? `. ${it.preview}` : it.subtitle ? `. ${it.subtitle}` : ''}`);
   };
 
   const render = () => {

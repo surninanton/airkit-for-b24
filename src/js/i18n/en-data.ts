@@ -210,4 +210,13 @@ export const enData: Record<string, string> = {
   'Открыть полностью': 'Open in full',
   'Свернуть': 'Minimize',
   'Развернуть': 'Expand',
+  'Участники': 'Members',
+  'вы': 'you',
+  'в сети': 'online',
+  'Никого нет': 'Nobody here',
+  'Никого не нашлось': 'Nobody found',
+  'Поиск по имени или должности': 'Search by name or position',
+  'Выбрать': 'Select',
+  'Выберите сотрудника': 'Select an employee',
+  'Выберите сотрудников': 'Select employees',
 };
