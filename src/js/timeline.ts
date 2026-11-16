@@ -8,10 +8,16 @@
 import { getLocale, intlLocale, t } from './i18n';
 export interface ComposerHandle { focus(): void; clear(): void; destroy(): void }
 
+/** Высота поля по тексту. scrollHeight не включает рамку — при box-sizing: border-box её нужно добавить, иначе
+ *  в пустом поле видна полоса прокрутки. Прокрутка появляется, только когда поле упёрлось в max-height. */
 export function autoResize(textarea: HTMLTextAreaElement): () => void {
   const fit = () => {
+    const cs = getComputedStyle(textarea);
+    const border = cs.boxSizing === 'border-box' ? parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth) : 0;
     textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    textarea.style.height = `${textarea.scrollHeight + border}px`;
+    const max = parseFloat(cs.maxHeight);
+    textarea.style.overflowY = !Number.isNaN(max) && textarea.scrollHeight + border > max + 0.5 ? 'auto' : 'hidden';
   };
   textarea.addEventListener('input', fit);
   fit();

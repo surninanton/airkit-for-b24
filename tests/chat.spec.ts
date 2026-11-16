@@ -114,3 +114,25 @@ test('чаты в React: выбор диалога и отправка', async (
   }
   expect(errors()).toEqual([]);
 });
+
+test('чаты: пустое поле без прокрутки; лента в своей обёртке растягивается', async ({ page }) => {
+  await open(page, '/chat.html');
+  const input = page.locator('#chat .b24-chat-composer__input');
+  const r = await input.evaluate((el: HTMLTextAreaElement) => ({ ch: el.clientHeight, sh: el.scrollHeight, ov: getComputedStyle(el).overflowY }));
+  expect(r.sh).toBeLessThanOrEqual(r.ch);
+  expect(r.ov).toBe('hidden');
+  const res = await page.evaluate(() => {
+    const B24UI = (window as unknown as { B24UI: typeof import('../src/js/index') }).B24UI;
+    const chat = document.createElement('div');
+    chat.className = 'b24-chat';
+    chat.style.setProperty('--b24-chat-height', '500px');
+    chat.innerHTML = '<div class="b24-chat__list"></div><div class="b24-chat__main"><div class="b24-chat__head">Шапка</div><div class="wrap-feed"></div><div class="wrap-comp"></div></div>';
+    document.body.prepend(chat);
+    B24UI.createChatFeed(chat.querySelector('.wrap-feed')!, { messages: [{ id: '1', dir: 'in', time: new Date(), text: 'Привет' }] });
+    B24UI.createChatComposer(chat.querySelector('.wrap-comp')!, { onSend: () => undefined });
+    const main = chat.querySelector('.b24-chat__main')!.getBoundingClientRect();
+    const comp = chat.querySelector('.b24-chat-composer')!.getBoundingClientRect();
+    return { gap: main.bottom - comp.bottom };
+  });
+  expect(Math.abs(res.gap)).toBeLessThan(2);
+});
