@@ -6,6 +6,7 @@ const paths = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  userPlus: '<circle cx="10" cy="8" r="3.5"/><path d="M3.5 19c.5-3.4 3.2-5.5 6.5-5.5 1.6 0 3 .5 4.1 1.3"/><path d="M18 14v6M15 17h6"/>',
   smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
   reply: '<path d="M10 8 5 13l5 5"/><path d="M5 13h9a5 5 0 0 1 5 5v1"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',

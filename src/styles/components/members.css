@@ -44,3 +44,15 @@ button.b24-member:focus-visible { outline: 2px solid var(--b24-focus-color); out
 .b24-user-picker__list { height: min(360px, calc(100vh - 260px)); height: min(360px, calc(100dvh - 260px)); margin: 0 -8px; }
 .b24-user-picker__list .b24-member-list__items { flex: 1 1 auto; }
 .b24-user-picker.is-loading .b24-member-list__items { opacity: 0.55; transition: opacity var(--b24-duration-fast); }
+
+/* действия на строке */
+.b24-member-item { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.b24-member-item > .b24-member { flex: 1 1 auto; min-width: 0; width: auto; }
+.b24-member__actions { display: inline-flex; flex: 0 0 auto; gap: 2px; margin-left: auto; }
+.b24-member__action {
+  display: grid; place-items: center; min-width: 30px; height: 30px; padding: 0 6px; margin: 0; font: inherit; font-size: var(--b24-font-size-xs);
+  color: var(--b24-text-subtle); background: none; border: 0; border-radius: var(--b24-radius-xs); cursor: pointer;
+}
+.b24-member__action:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-member__action.is-danger:hover { color: var(--b24-color-danger); }
+.b24-member__action:focus-visible { outline: 2px solid var(--b24-focus-color); }

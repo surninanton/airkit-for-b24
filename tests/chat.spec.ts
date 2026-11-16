@@ -58,7 +58,7 @@ test('чаты: «Показать раньше» — позиция прокр�
   await expect.poll(() => feed.evaluate((f) => f.scrollHeight - f.scrollTop - f.clientHeight)).toBeLessThan(5);
   const anchor = feed.locator('.b24-chat-system').first();
   await feed.evaluate((f) => { f.scrollTop = 0; });
-  await expect(feed.locator('.b24-chat-msg')).toHaveCount(22, { timeout: 5000 });
+  await expect(feed.locator('.b24-chat-msg')).toHaveCount(23, { timeout: 5000 });
   const before = await anchor.evaluate((el) => el.getBoundingClientRect().top);
   // якорь остался на месте (±2px): лента не прыгнула к началу
   const top = await feed.evaluate((f) => f.scrollTop);

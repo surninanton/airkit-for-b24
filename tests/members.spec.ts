@@ -24,12 +24,13 @@ test('список участников: статус, подпись, «вы» 
 
 test('подпись в списке диалогов, когда превью пустое', async ({ page }) => {
   await open(page, '/chat.html');
-  const items = page.locator('#staff-chats .b24-chat-list__item');
-  await expect(items.nth(0).locator('.b24-chat-list__subtitle')).toHaveText('Чат должности · 6 участников');
+  const items = page.locator('#staff-chats .b24-chat-list__item').filter({ hasNot: page.locator('[data-nothing]') });
+  await expect(page.locator('#staff-chats .b24-chat-list__group')).toHaveText(['Покупатели', 'Сотрудники']);
+  await expect(items.nth(1).locator('.b24-chat-list__subtitle')).toHaveText('Чат должности · 6 участников');
   // есть превью — показываем его, а не подпись
-  await expect(items.nth(1).locator('.b24-chat-list__subtitle')).toHaveCount(0);
-  await expect(items.nth(1).locator('.b24-chat-list__preview')).toHaveText('Тимур: беру заказ на Ленина');
-  await expect(items.nth(2)).toHaveAttribute('aria-label', /в сети/);
+  await expect(items.nth(2).locator('.b24-chat-list__subtitle')).toHaveCount(0);
+  await expect(items.nth(2).locator('.b24-chat-list__preview')).toHaveText('Тимур: беру заказ на Ленина');
+  await expect(items.nth(3)).toHaveAttribute('aria-label', /в сети/);
 });
 
 test('выбор пользователя: поиск по имени и должности, один — клик закрывает', async ({ page }) => {
@@ -77,4 +78,14 @@ test('выбор нескольких: галочки, «Добавить (N)»,
   await page.keyboard.press('Escape');
   await expect(dlg).toHaveCount(0);
   await expect(page.locator('#members .b24-member')).toHaveCount(6);
+});
+
+test('участник: действие «Удалить из чата» — не onSelect, свою строку удалить нельзя', async ({ page }) => {
+  await open(page, '/chat.html');
+  const rows = page.locator('#members .b24-member');
+  await expect(rows).toHaveCount(5);
+  await expect(page.locator('#members .b24-member__action')).toHaveCount(4);   // у «вы» действия нет
+  await page.locator('#members .b24-member__action').first().click();
+  await expect(rows).toHaveCount(4);
+  await expect(page.locator('.b24-toast')).toHaveCount(0);                       // onSelect не сработал
 });

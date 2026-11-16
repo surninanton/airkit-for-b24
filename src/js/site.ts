@@ -20,15 +20,22 @@ export interface GalleryHandle {
   destroy(): void;
 }
 
-export function openLightbox(items: GalleryItem[], start = 0): ModalHandle {
+export interface LightboxOptions {
+  /** подпись окна для скринридеров (по умолчанию «Просмотр скриншота»; в чате — «Просмотр изображения») */
+  label?: string;
+  prevLabel?: string;
+  nextLabel?: string;
+}
+
+export function openLightbox(items: GalleryItem[], start = 0, options: LightboxOptions = {}): ModalHandle {
   let index = Math.max(0, Math.min(start, items.length - 1));
   const img = h('img', { class: 'b24-lightbox__img', alt: '' });
   const caption = h('div', { class: 'b24-lightbox__caption' });
   const counter = h('div', { class: 'b24-lightbox__counter' });
   const stage = h('div', { class: 'b24-lightbox__stage' }, img);
   const multi = items.length > 1;
-  const prev = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--prev', 'aria-label': t('Предыдущий скриншот') }, html(icon('chevronLeft')));
-  const next = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--next', 'aria-label': t('Следующий скриншот') }, html(icon('chevronRight')));
+  const prev = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--prev', 'aria-label': options.prevLabel ?? t('Предыдущий скриншот') }, html(icon('chevronLeft')));
+  const next = h('button', { type: 'button', class: 'b24-lightbox__nav b24-lightbox__nav--next', 'aria-label': options.nextLabel ?? t('Следующий скриншот') }, html(icon('chevronRight')));
   if (multi) stage.append(prev, next);
   const content = h('div', { class: 'b24-lightbox__content' }, stage, caption);
   if (multi) content.append(counter);
@@ -49,7 +56,7 @@ export function openLightbox(items: GalleryItem[], start = 0): ModalHandle {
 
   const m = modal({ title: '', content, size: 'lg', closeOnOverlay: true });
   m.element.classList.add('b24-lightbox');
-  m.element.setAttribute('aria-label', t('Просмотр скриншота'));
+  m.element.setAttribute('aria-label', options.label ?? t('Просмотр скриншота'));
   const onKey = (e: KeyboardEvent) => {
     if (!multi) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); show(index - 1); }

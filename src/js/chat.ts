@@ -82,6 +82,8 @@ export interface ChatListItem {
   status?: 'online' | 'away';
   /** закреплён / приглушён — как в мессенджере */
   muted?: boolean;
+  /** группа: заголовок («Покупатели», «Сотрудники») ставится перед первым диалогом группы; порядок — как в items */
+  group?: string;
 }
 export interface ChatListOptions {
   items: ChatListItem[];
@@ -138,12 +140,17 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
       root.replaceChildren(h('div', { class: 'b24-chat-list__empty' }, options.emptyText ?? t('Диалогов нет')));
       return;
     }
-    root.replaceChildren(...items.map((it) => {
+    const out: HTMLElement[] = [];
+    let group: string | undefined;
+    for (const it of items) {
+      if (it.group && it.group !== group) out.push(h('div', { class: 'b24-chat-list__group', role: 'presentation' }, it.group));
+      group = it.group;
       const row = h('button', { type: 'button', role: 'option', 'data-id': it.id, tabindex: '-1' });
       fill(row, it);
       rows.set(it.id, row);
-      return row;
-    }));
+      out.push(row);
+    }
+    root.replaceChildren(...out);
     const focusable = rows.get(active ?? '') ?? root.firstElementChild;
     if (focusable instanceof HTMLElement) focusable.tabIndex = 0;
   };
@@ -225,8 +232,8 @@ export interface ChatMessageAction {
 }
 export interface ChatMessage {
   id: string;
-  /** in — входящее, out — наше, system — служебная строка по центру («Диалог закрыт») */
-  dir: 'in' | 'out' | 'system';
+  /** in — входящее, out — наше, system — служебная строка по центру («Диалог закрыт»), note — заметка для сотрудников (жёлтая, с замком) */
+  dir: 'in' | 'out' | 'system' | 'note';
   text?: string;
   time: ChatDate;
   /** подпись над пузырём: имя сотрудника в исходящих, участника — в групповом чате */
@@ -251,6 +258,10 @@ export interface ChatFeedOptions {
   onRetry?: (message: ChatMessage) => void;
   onPhotoClick?: (attachment: ChatAttachment & { type: 'photo' }, message: ChatMessage) => void;
   emptyText?: string;
+  /** подпись заметок (dir: 'note') над текстом; по умолчанию «Видят только сотрудники» */
+  noteLabel?: string;
+  /** общая приписка в подсказке чипов реакций: «Нажмите, чтобы убрать свою» */
+  reactionsHint?: string;
   /**
    * Реакция: клик по чипу или эмодзи в полоске быстрых реакций. Ваш код ставит / снимает реакцию и передаёт новое
    * message.reactions. Задан onReact — у сообщения по наведению (на телефоне — по долгому нажатию) появляется полоска.
@@ -345,9 +356,10 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const d = toDate(m.time);
     // подряд от одного автора в пределах 5 минут — без повторной подписи
     const grouped = !!prev && prev.dir === m.dir && prev.author === m.author && dayNum(toDate(prev.time)) === dayNum(d) && d.getTime() - toDate(prev.time).getTime() < 5 * 60000;
-    const el = h('div', { class: `b24-chat-msg is-${m.dir}${m.status === 'failed' ? ' is-failed' : ''}${grouped ? ' is-grouped' : ''}`, 'data-id': m.id });
+    const el = h('div', { class: `b24-chat-msg is-${m.dir === 'note' ? 'out is-note' : m.dir}${m.status === 'failed' ? ' is-failed' : ''}${grouped ? ' is-grouped' : ''}`, 'data-id': m.id });
     if (options.showAvatars && m.dir === 'in') el.append(grouped ? h('span', { class: 'b24-chat-msg__avatar' }) : html(avatarHtml(m.author ?? '', m.avatar, 'sm')).firstElementChild!);
     const bubble = h('div', { class: 'b24-chat-msg__bubble' });
+    if (m.dir === 'note') bubble.append(h('div', { class: 'b24-chat-msg__note' }, html(icon('lock', { size: 12 })), h('span', {}, options.noteLabel ?? t('Видят только сотрудники'))));
     if (m.author && !grouped) bubble.append(h('div', { class: 'b24-chat-msg__author' }, m.author));
     if (m.attachments?.length) bubble.append(h('div', { class: 'b24-chat-msg__atts' }, ...m.attachments.map((a) => attachment(a, m))));
     if (m.text) bubble.append(h('div', { class: 'b24-chat-msg__text' }, richText(m.text)));
@@ -368,7 +380,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
         if (r.count <= 0) continue;
         const chip = h('button', {
           type: 'button', class: `b24-chat-reaction${r.mine ? ' is-mine' : ''}`, 'data-emoji': r.emoji, 'aria-pressed': String(!!r.mine),
-          title: r.users?.length ? r.users.join(', ') : undefined, 'aria-label': `${r.emoji} ${r.count}`,
+          title: [r.users?.length ? r.users.join(', ') : '', options.reactionsHint ?? ''].filter(Boolean).join(' — ') || undefined, 'aria-label': `${r.emoji} ${r.count}`,
         }, h('span', { class: 'b24-chat-reaction__emoji' }, r.emoji), h('span', { class: 'b24-chat-reaction__count' }, String(r.count)));
         if (options.onReact) chip.addEventListener('click', () => options.onReact!(m.id, r.emoji, m));
         else chip.disabled = true;
@@ -402,7 +414,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       }
       const plus = h('button', { type: 'button', class: 'b24-chat-msg__tool', 'aria-label': t('Другая реакция'), title: t('Другая реакция') }, html(icon('smile', { size: 16 })));
       plus.addEventListener('click', () => {
-        openEmojiPicker(plus, { align: m.dir === 'out' ? 'end' : 'start', onSelect: (e) => { options.onReact!(m.id, e, m); hideTools(); } });
+        openEmojiPicker(plus, { align: m.dir === 'out' || m.dir === 'note' ? 'end' : 'start', onSelect: (e) => { options.onReact!(m.id, e, m); hideTools(); } });
       });
       bar.append(plus);
     }
@@ -410,7 +422,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       const more = h('button', { type: 'button', class: 'b24-chat-msg__tool', 'aria-label': t('Ещё'), title: t('Ещё'), 'aria-haspopup': 'menu' }, html(icon('more', { size: 16 })));
       more.addEventListener('click', () => {
         const menu = h('div', { class: 'b24-chat-menu', role: 'menu' });
-        const fl = showFloat(more, menu, { align: m.dir === 'out' ? 'end' : 'start', sheet: false, onClose: () => more.focus({ preventScroll: true }) });
+        const fl = showFloat(more, menu, { align: m.dir === 'out' || m.dir === 'note' ? 'end' : 'start', sheet: false, onClose: () => more.focus({ preventScroll: true }) });
         for (const a of acts) {
           const item = h('button', { type: 'button', role: 'menuitem', class: `b24-chat-menu__item${a.danger ? ' is-danger' : ''}` }, a.icon ? html(icon(a.icon, { size: 16 })) : '', h('span', {}, a.label));
           item.addEventListener('click', () => { fl.close(); hideTools(); a.onClick(m); });
@@ -477,7 +489,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const replaced = !wasEmpty && !next.some((m) => m.id === oldFirst || m.id === oldLast);
     if (wasEmpty || replaced) handle.scrollToBottom();
     else if (prepended && !appended) { root.scrollTop = root.scrollHeight - fromBottom; stick = false; }
-    else if (appended && (atBottom || next[next.length - 1].dir === 'out')) handle.scrollToBottom(true);
+    else if (appended && (atBottom || ['out', 'note'].includes(next[next.length - 1].dir))) handle.scrollToBottom(true);
     else root.scrollTop = prevTop;
   };
 
@@ -535,11 +547,48 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
 
 /* ── Поле ответа ─────────────────────────────────────────── */
 
+/** Вложение в поле ответа: чип с именем, размером и прогрессом загрузки. */
+export interface ComposerAttachment {
+  id: string;
+  name: string;
+  size?: number;
+  /** превью картинки */
+  thumb?: string;
+  /** загрузка 0–1; пока меньше 1 — отправка заблокирована; без поля — загружено */
+  progress?: number;
+  /** загрузка не удалась: текст ошибки, вложение в отправку не попадает */
+  error?: string;
+  data?: unknown;
+}
+/** Режим ответа: «Ответ клиенту» / «Скрытое сообщение» — переключатель над полем. */
+export interface ChatComposerMode {
+  id: string;
+  label: string;
+  /** note — жёлтое поле, как у заметок в ленте */
+  tone?: 'note';
+  /** подсказка в поле в этом режиме */
+  placeholder?: string;
+  disabled?: boolean;
+  /** почему недоступен — в подсказке кнопки («Клиент ещё не написал») */
+  disabledReason?: string;
+}
+export interface ChatSendContext {
+  /** загруженные вложения (без ошибочных); после успешной отправки они убираются */
+  attachments: ComposerAttachment[];
+  /** id выбранного режима, если заданы modes */
+  mode?: string;
+}
 export interface ChatComposerOptions {
   placeholder?: string;
-  /** отправка: false или исключение — текст остаётся в поле */
-  onSend: (text: string) => void | boolean | Promise<void | boolean>;
-  /** кнопка-скрепка; файлы выбирает браузер, дальше — ваш код */
+  /** отправка: false или исключение — текст остаётся в поле. Можно отправить только файлы без текста (ctx.attachments) */
+  onSend: (text: string, ctx: ChatSendContext) => void | boolean | Promise<void | boolean>;
+  /** переключатель режима ответа над полем */
+  modes?: ChatComposerMode[];
+  mode?: string;
+  onModeChange?: (mode: string) => void;
+  /** крестик на чипе вложения (по умолчанию чип просто убирается) */
+  onRemoveAttachment?: (attachment: ComposerAttachment) => void;
+  /** файлы из скрепки, перетаскивания на поле и вставки из буфера (Ctrl+V с картинкой): показывайте их через addAttachment и грузите сами */
   onAttach?: (files: File[]) => void;
   accept?: string;
   /** быстрые ответы над полем: клик вставляет текст */
@@ -561,6 +610,16 @@ export interface ChatComposerHandle {
   getValue(): string;
   setValue(text: string): void;
   insert(text: string): void;
+  /** чип вложения под полем; обновляйте прогресс через updateAttachment */
+  addAttachment(a: ComposerAttachment): void;
+  updateAttachment(id: string, patch: Partial<ComposerAttachment>): void;
+  removeAttachment(id: string): void;
+  getAttachments(): ComposerAttachment[];
+  clearAttachments(): void;
+  setMode(id: string): void;
+  getMode(): string | undefined;
+  /** сделать режим недоступным / доступным; reason — подсказка на кнопке */
+  setModeDisabled(id: string, disabled: boolean, reason?: string): void;
   setDisabled(disabled: boolean, text?: string): void;
   setQuickReplies(list: string[]): void;
   destroy(): void;
@@ -583,22 +642,63 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     file.addEventListener('change', () => { if (file.files?.length) options.onAttach!(Array.from(file.files)); file.value = ''; });
     actions.append(clip, file);
   }
+  const modesEl = h('div', { class: 'b24-chat-composer__modes', role: 'radiogroup', 'aria-label': t('Режим ответа') });
   const row = h('div', { class: 'b24-chat-composer__row' }, actions, input, send);
-  root.append(quick, atts, row, blocked);
+  root.append(quick, modesEl, atts, row, blocked);
   host.append(root);
   const unResize = autoResize(input);
 
-  const sync = () => { send.disabled = !input.value.trim() || root.classList.contains('is-busy') || root.classList.contains('is-disabled'); };
+  /* вложения */
+  const files = new Map<string, { a: ComposerAttachment; el: HTMLElement }>();
+  const uploading = (a: ComposerAttachment) => !a.error && a.progress != null && a.progress < 1;
+  const ready = () => Array.from(files.values()).map((x) => x.a).filter((a) => !a.error && !uploading(a));
+  const sync = () => {
+    const can = !!input.value.trim() || ready().length > 0;
+    const wait = Array.from(files.values()).some((x) => uploading(x.a));
+    send.disabled = !can || wait || root.classList.contains('is-busy') || root.classList.contains('is-disabled');
+  };
   const fit = () => input.dispatchEvent(new Event('input'));
+  const paintChip = (rec: { a: ComposerAttachment; el: HTMLElement }) => {
+    const a = rec.a;
+    const pct = a.progress != null ? Math.round(Math.max(0, Math.min(1, a.progress)) * 100) : 100;
+    rec.el.className = `b24-chat-attchip${a.error ? ' is-error' : ''}${uploading(a) ? ' is-uploading' : ''}`;
+    const thumb = a.thumb ? h('img', { class: 'b24-chat-attchip__thumb', src: a.thumb, alt: '' }) : h('span', { class: 'b24-chat-attchip__icon' }, html(icon('file', { size: 18 })));
+    const info = a.error ? a.error : uploading(a) ? `${pct}%` : fmtSize(a.size);
+    const rm = h('button', { type: 'button', class: 'b24-chat-attchip__remove', 'aria-label': `${t('Убрать')} ${a.name}`, title: t('Убрать') }, html(icon('close', { size: 14 })));
+    rm.addEventListener('click', () => { handle.removeAttachment(a.id); options.onRemoveAttachment?.(a); input.focus(); });
+    const bar = uploading(a) ? h('span', { class: 'b24-chat-attchip__bar', role: 'progressbar', 'aria-valuenow': String(pct), 'aria-valuemin': '0', 'aria-valuemax': '100' }, h('i', { style: `width:${pct}%` })) : '';
+    rec.el.replaceChildren(thumb, h('span', { class: 'b24-chat-attchip__body' }, h('span', { class: 'b24-chat-attchip__name' }, a.name), info ? h('span', { class: 'b24-chat-attchip__meta' }, info) : ''), rm, bar);
+  };
+
+  /* режимы ответа */
+  const modeList = options.modes ?? [];
+  let mode: string | undefined = options.mode ?? modeList.find((m) => !m.disabled)?.id;
+  const paintModes = () => {
+    modesEl.hidden = modeList.length < 2;
+    const cur = modeList.find((m) => m.id === mode);
+    root.classList.toggle('is-mode-note', cur?.tone === 'note');
+    input.placeholder = cur?.placeholder ?? options.placeholder ?? t('Написать сообщение…');
+    modesEl.replaceChildren(...modeList.map((m) => {
+      const b = h('button', {
+        type: 'button', role: 'radio', class: `b24-chat-composer__mode${m.tone === 'note' ? ' is-note' : ''}${m.id === mode ? ' is-active' : ''}`,
+        'aria-checked': String(m.id === mode), 'data-mode': m.id, title: m.disabled ? m.disabledReason : undefined,
+      }, m.tone === 'note' ? html(icon('lock', { size: 13 })) : '', m.label);
+      b.disabled = !!m.disabled;
+      b.addEventListener('click', () => handle.setMode(m.id));
+      return b;
+    }));
+  };
 
   const submit = async () => {
     const text = input.value.trim();
-    if (!text || root.classList.contains('is-busy') || root.classList.contains('is-disabled')) return;
+    const atts = ready();
+    if ((!text && !atts.length) || root.classList.contains('is-busy') || root.classList.contains('is-disabled')) return;
+    if (Array.from(files.values()).some((x) => uploading(x.a))) return;
     root.classList.add('is-busy');
     sync();
     try {
-      const r = await options.onSend(text);
-      if (r !== false) { input.value = ''; fit(); }
+      const r = await options.onSend(text, { attachments: atts, mode });
+      if (r !== false) { input.value = ''; fit(); atts.forEach((a) => handle.removeAttachment(a.id)); }
     } finally {
       root.classList.remove('is-busy');
       sync();
@@ -613,6 +713,28 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     if (enter ? !e.shiftKey && !mod : mod) { e.preventDefault(); void submit(); }
   });
   send.addEventListener('click', () => void submit());
+  if (options.onAttach) {
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files');
+    let depth = 0;
+    root.addEventListener('dragenter', (e) => { if (hasFiles(e)) { depth += 1; root.classList.add('is-dragover'); } });
+    root.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+    root.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) root.classList.remove('is-dragover'); });
+    root.addEventListener('drop', (e) => {
+      depth = 0;
+      root.classList.remove('is-dragover');
+      if (!hasFiles(e) || root.classList.contains('is-disabled')) return;
+      e.preventDefault();
+      const list = Array.from(e.dataTransfer!.files);
+      if (list.length) options.onAttach!(list);
+    });
+    // вставка картинки или файла из буфера; обычный текст вставляется как всегда
+    input.addEventListener('paste', (e) => {
+      const list = Array.from(e.clipboardData?.files ?? []);
+      if (!list.length || e.clipboardData?.getData('text/plain')) return;
+      e.preventDefault();
+      options.onAttach!(list);
+    });
+  }
 
   const setQuick = (list: string[]) => {
     quick.replaceChildren(...list.map((text) => {
@@ -630,6 +752,41 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     focus: () => input.focus(),
     getValue: () => input.value,
     setValue(text) { input.value = text; fit(); },
+    addAttachment(a) {
+      const old = files.get(a.id);
+      if (old) { old.a = a; paintChip(old); sync(); return; }
+      const rec = { a, el: h('div', { class: 'b24-chat-attchip' }) };
+      files.set(a.id, rec);
+      paintChip(rec);
+      atts.append(rec.el);
+      sync();
+    },
+    updateAttachment(id, patch) {
+      const rec = files.get(id);
+      if (!rec) return;
+      rec.a = { ...rec.a, ...patch };
+      paintChip(rec);
+      sync();
+    },
+    removeAttachment(id) { files.get(id)?.el.remove(); files.delete(id); sync(); },
+    getAttachments: () => Array.from(files.values()).map((x) => x.a),
+    clearAttachments() { files.forEach((x) => x.el.remove()); files.clear(); sync(); },
+    setMode(id) {
+      const m = modeList.find((x) => x.id === id);
+      if (!m || m.disabled || id === mode) return;
+      mode = id;
+      paintModes();
+      options.onModeChange?.(id);
+    },
+    getMode: () => mode,
+    setModeDisabled(id, disabled, reason) {
+      const m = modeList.find((x) => x.id === id);
+      if (!m) return;
+      m.disabled = disabled;
+      m.disabledReason = reason;
+      if (disabled && mode === id) { mode = modeList.find((x) => !x.disabled)?.id; if (mode) options.onModeChange?.(mode); }
+      paintModes();
+    },
     insert(text) {
       const { selectionStart: s, selectionEnd: e, value } = input;
       input.value = value.slice(0, s) + text + value.slice(e);
@@ -651,6 +808,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   };
   const emojiBtn = options.emoji ? attachEmojiPicker(handle) : null;
   if (emojiBtn) { const base = handle.destroy; handle.destroy = () => { emojiBtn.destroy(); base(); }; }
+  paintModes();
   if (options.disabled || options.disabledText) handle.setDisabled(true, options.disabledText);
   sync();
   return handle;

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, type MutableRefObject, type ReactNode } from 'react';
 import {
   createChatComposer, createChatFeed, createChatList, initChatLayout,
   type ChatComposerHandle, type ChatComposerOptions, type ChatFeedHandle, type ChatFeedOptions,
@@ -101,14 +101,14 @@ export interface ChatFeedProps extends Omit<ChatFeedOptions, 'messages'> { messa
  * Лента: передавайте весь список messages — кит сам поймёт, что пришло сверху («Показать раньше», позиция сохраняется)
  * или снизу (прокрутка вниз, если пользователь был у низа или сообщение наше).
  */
-export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, onReact, quickReactions, onReply, copy, actions, decorate }: ChatFeedProps) {
+export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, noteLabel, reactionsHint, onReact, quickReactions, onReply, copy, actions, decorate }: ChatFeedProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatFeedHandle | null>(null);
   const cbs = useRef({ onLoadMore, onRetry, onPhotoClick, onReact, onReply, actions, decorate });
   cbs.current = { onLoadMore, onRetry, onPhotoClick, onReact, onReply, actions, decorate };
   useEffect(() => {
     h.current = createChatFeed(host.current!, {
-      messages, hasMore, showAvatars, emptyText, quickReactions, copy,
+      messages, hasMore, showAvatars, emptyText, quickReactions, copy, noteLabel, reactionsHint,
       onReact: onReact ? (id, e, m) => cbs.current.onReact?.(id, e, m) : undefined,
       onReply: onReply ? (m) => cbs.current.onReply?.(m) : undefined,
       actions: actions ? (m) => cbs.current.actions?.(m) ?? [] : undefined,
@@ -127,20 +127,28 @@ export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick,
   return <div ref={host} style={{ display: 'contents' }} />;
 }
 
-export interface ChatComposerProps extends ChatComposerOptions { /** превью вложений над полем */ attachments?: ReactNode }
+export interface ChatComposerProps extends ChatComposerOptions {
+  /** превью вложений над полем */
+  attachments?: ReactNode;
+  /** хэндл поля: addAttachment / updateAttachment (прогресс), setMode, setModeDisabled, insert… */
+  composerRef?: MutableRefObject<ChatComposerHandle | null>;
+}
 /** Поле ответа: Enter — отправить, Shift+Enter — новая строка; false из onSend — текст остаётся */
-export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji }: ChatComposerProps) {
+export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji, modes, mode, onModeChange, onRemoveAttachment, composerRef }: ChatComposerProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatComposerHandle | null>(null);
-  const cbs = useRef({ onSend, onAttach });
-  cbs.current = { onSend, onAttach };
+  const cbs = useRef({ onSend, onAttach, onModeChange, onRemoveAttachment });
+  cbs.current = { onSend, onAttach, onModeChange, onRemoveAttachment };
   useEffect(() => {
     h.current = createChatComposer(host.current!, {
-      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji,
-      onSend: (text) => cbs.current.onSend(text),
+      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji, modes, mode,
+      onModeChange: onModeChange ? (m) => cbs.current.onModeChange?.(m) : undefined,
+      onRemoveAttachment: onRemoveAttachment ? (a) => cbs.current.onRemoveAttachment?.(a) : undefined,
+      onSend: (text, ctx) => cbs.current.onSend(text, ctx),
       onAttach: onAttach ? (files) => cbs.current.onAttach?.(files) : undefined,
     });
-    return () => h.current?.destroy();
+    if (composerRef) composerRef.current = h.current;
+    return () => { if (composerRef) composerRef.current = null; h.current?.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const qKey = JSON.stringify(quickReplies ?? []);
@@ -239,13 +247,16 @@ export function ChatDock({ id, name, avatar, status, meta, messages, hasMore, on
 
 export interface MemberListProps extends Omit<MemberListOptions, 'items'> { items: Member[]; className?: string }
 /** Список участников: аватар со статусом, имя, подпись, «вы»; items и selected применяются без пересоздания */
-export function MemberList({ items, onSelect, title, emptyText, compact, selected, selfSelectable, label, className }: MemberListProps) {
+export function MemberList({ items, onSelect, onAction, title, emptyText, compact, selected, selfSelectable, label, className }: MemberListProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<MemberListHandle | null>(null);
   const sel = useRef(onSelect);
   sel.current = onSelect;
+  const act = useRef(onAction);
+  act.current = onAction;
   useEffect(() => {
     h.current = createMemberList(host.current!, {
+      onAction: (a, m) => act.current?.(a, m),
       items, title, emptyText, compact, selected, selfSelectable, label,
       onSelect: onSelect ? (id, m) => sel.current?.(id, m) : undefined,
     });

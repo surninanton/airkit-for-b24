@@ -8,12 +8,19 @@
  *     .b24-member (.is-self, .is-selected, :disabled) > .b24-avatar + .b24-member__body (__name + __you, __caption) + __meta
  *   .b24-user-picker > .b24-user-picker__search (.b24-input-group) + .b24-member-list
  */
-import { icon } from '../icons';
+import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
 import { h, html } from './dom';
 import { t } from './i18n';
 import { modal } from './modal';
 
+/** Действие на строке участника: кнопка-иконка справа («Удалить из чата»). */
+export interface MemberAction {
+  id: string;
+  label: string;
+  icon?: IconName;
+  danger?: boolean;
+}
 export interface Member {
   id: string;
   name: string;
@@ -28,12 +35,16 @@ export interface Member {
   disabled?: boolean;
   /** справа: роль («Админ»), время, счётчик — текстом */
   meta?: string;
+  /** кнопки-действия справа; клик — onAction(actionId, member), не onSelect */
+  actions?: MemberAction[];
 }
 
 export interface MemberListOptions {
   items: Member[];
   /** клик по участнику; без onSelect строки — не кнопки, а просто список */
   onSelect?: (id: string, member: Member) => void;
+  /** клик по кнопке-действию на строке (Member.actions) */
+  onAction?: (actionId: string, member: Member) => void;
   /** заголовок над списком: «Участники» — к нему добавляется число */
   title?: string;
   emptyText?: string;
@@ -101,6 +112,16 @@ export function createMemberList(host: HTMLElement, options: MemberListOptions):
     row.setAttribute('aria-label', `${m.name}${m.self ? ` (${t('вы')})` : ''}${status}${m.caption ? `. ${m.caption}` : ''}`);
   };
 
+  const actionButtons = (m: Member) => {
+    const box = h('span', { class: 'b24-member__actions' });
+    for (const a of m.actions ?? []) {
+      const b = h('button', { type: 'button', class: `b24-member__action${a.danger ? ' is-danger' : ''}`, 'aria-label': `${a.label}: ${m.name}`, title: a.label }, a.icon ? html(icon(a.icon, { size: 16 })) : a.label);
+      b.addEventListener('click', (e) => { e.stopPropagation(); options.onAction?.(a.id, m); });
+      box.append(b);
+    }
+    return box;
+  };
+
   const render = () => {
     rowMap.clear();
     if (title) title.replaceChildren(options.title!, items.length ? h('span', { class: 'b24-member-list__count' }, String(items.length)) : '');
@@ -114,7 +135,11 @@ export function createMemberList(host: HTMLElement, options: MemberListOptions):
         : h('div', { role: 'listitem', 'data-id': m.id });
       fill(row, m);
       rowMap.set(m.id, row);
-      return row;
+      const acts = m.actions?.length ? actionButtons(m) : null;
+      if (!acts) return row;
+      // кнопка внутри кнопки недопустима: у кликабельной строки действия — соседи в обёртке
+      if (!interactive) { row.append(acts); return row; }
+      return h('div', { class: 'b24-member-item', role: 'presentation' }, row, acts);
     }));
     const first = [...rowMap.values()].find((r) => !(r as HTMLButtonElement).disabled);
     if (interactive && first) first.tabIndex = 0;
@@ -152,6 +177,7 @@ export function createMemberList(host: HTMLElement, options: MemberListOptions):
       const i = items.findIndex((x) => x.id === id);
       if (i < 0) return;
       items = items.map((x, j) => (j === i ? { ...x, ...patch } : x));
+      if ('actions' in patch) { render(); return; }
       const row = rowMap.get(id);
       if (row) fill(row, items[i]);
     },

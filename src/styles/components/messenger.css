@@ -103,3 +103,8 @@ html.b24-has-im-bar .b24-chat-docks { right: calc(var(--b24-im-bar-width) + 8px)
   .b24-chat-dock.is-minimized { width: 100%; border-radius: 0; box-shadow: 0 -1px 0 var(--b24-divider); }
 }
 @media (prefers-reduced-motion: reduce) { .b24-chat-dock { animation: none; } }
+
+/* свои кнопки и аватары в шапке окна */
+.b24-chat-dock__extra { display: flex; align-items: center; flex: 0 0 auto; gap: 4px; min-width: 0; }
+.b24-chat-dock__extra:empty { display: none; }
+.b24-chat-dock.is-minimized .b24-chat-dock__extra { display: none; }

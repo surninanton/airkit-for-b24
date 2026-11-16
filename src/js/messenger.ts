@@ -166,6 +166,8 @@ export interface ChatDockOptions {
   status?: 'online' | 'away';
   /** вторая строка шапки: «Telegram · в сети» */
   meta?: string;
+  /** свои кнопки и аватары в шапке (между именем и кнопками окна): «Пригласить», приглашённые; позже — handle.slots.head */
+  headExtra?: Node | Node[];
   /** «Открыть полностью» — перейти в раздел чатов; без обработчика кнопки нет */
   onExpand?: () => void;
   onClose?: () => void;
@@ -187,6 +189,8 @@ export interface ChatDockHandle {
   isMinimized(): boolean;
   /** счётчик на свёрнутой полоске */
   setCounter(n: number): void;
+  /** контейнеры: head — место для своих кнопок и аватаров в шапке */
+  slots: { head: HTMLElement };
   setHeader(patch: { name?: string; meta?: string; avatar?: string; status?: 'online' | 'away' }): void;
   focus(): void;
   close(): void;
@@ -226,7 +230,9 @@ export function openChatDock(options: ChatDockOptions): ChatDockHandle {
   if (options.onExpand) tool('externalLink', t('Открыть полностью'), () => options.onExpand!(), ' b24-chat-dock__expand');
   const minBtn = tool('minus', t('Свернуть'), () => handle.toggle(), ' b24-chat-dock__min');
   tool('close', t('Закрыть'), () => handle.close());
-  const head = h('header', { class: 'b24-chat-dock__head' }, titleBtn, tools);
+  const headSlot = h('div', { class: 'b24-chat-dock__extra' });
+  if (options.headExtra) headSlot.append(...(Array.isArray(options.headExtra) ? options.headExtra : [options.headExtra]));
+  const head = h('header', { class: 'b24-chat-dock__head' }, titleBtn, headSlot, tools);
   const body = h('div', { class: 'b24-chat-dock__body' });
   el.append(head, body);
   dockHost.prepend(el); // новые — справа, у панели
@@ -265,6 +271,7 @@ export function openChatDock(options: ChatDockOptions): ChatDockHandle {
   const handle: ChatDockHandle = {
     id: options.id,
     element: el,
+    slots: { head: headSlot },
     feed,
     composer,
     minimize: () => setMin(true),

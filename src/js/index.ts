@@ -24,7 +24,7 @@ export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } fro
 export { initTopnavMore } from './topnav-more';
 export {
   createChatList, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
-  type ChatReaction, type ChatMessageAction, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
+  type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
   type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle,
   type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
 } from './chat';
@@ -34,7 +34,7 @@ export {
 } from './messenger';
 export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';
-export { createMemberList, pickUser, matchMember, type Member, type MemberListOptions, type MemberListHandle, type PickUserOptions } from './members';
+export { createMemberList, pickUser, matchMember, type Member, type MemberAction, type MemberListOptions, type MemberListHandle, type PickUserOptions } from './members';
 export { notifySound, desktopNotify, requestNotifyPermission, claimNotify, type NotifySoundOptions, type DesktopNotifyOptions } from './notify';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';
 export { creditHtml, REPO_URL } from './credit';
@@ -42,7 +42,7 @@ export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePic
 export { multiValue, type MultiValueOptions, type MultiValueHandle } from './multi-value';
 export { createPageHeader, checkLayout, warnLayout, type PageHeaderOptions, type PageHeaderHandle, type PageHeaderMenuItem, type PageHeaderCreate, type PageHeaderCreateItem, type PageHeaderView, type PageHeaderCounter, type PageHeaderSlot } from './page-header';
 export { createVendor, checkVendor, getVendor, type VendorOptions, type VendorHandle, type VendorLink } from './vendor';
-export { initGallery, openLightbox, initTopnav, initSiteHeader, initAnchorNav, initVideo, initToc, initCookieNotice, initThemeSwitch, applyStoredTheme, type GalleryItem, type GalleryHandle } from './site';
+export { initGallery, openLightbox, initTopnav, initSiteHeader, initAnchorNav, initVideo, initToc, initCookieNotice, initThemeSwitch, applyStoredTheme, type GalleryItem, type GalleryHandle, type LightboxOptions } from './site';
 export { initGrid, getGrid, type GridOptions, type GridHandle, type GridRowAction, type GridGroupAction, type GridPagination } from './grid';
 export { loadGridState, saveGridState, clearGridState, normalizeGridState, moveColumn, measureColumn, startColumnResize, enableColumnReorder, type GridState } from './grid-core';
 export { createChart, sparkline, chartColor, type ChartOptions, type ChartSeries, type ChartType, type ChartHandle } from './chart';

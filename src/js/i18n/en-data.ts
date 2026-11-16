@@ -234,4 +234,6 @@ export const enData: Record<string, string> = {
   'Действия с сообщением': 'Message actions',
   'Другая реакция': 'More reactions',
   'Ответить': 'Reply',
+  'Видят только сотрудники': 'Visible to staff only',
+  'Режим ответа': 'Reply mode',
 };

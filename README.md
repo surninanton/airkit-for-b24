@@ -561,6 +561,18 @@ const feed = B24UI.createChatFeed(feedEl, {
 });
 ```
 
+### Файлы, скрытый режим, заметки
+
+- **Вложения в поле ответа**: `onAttach(files)` срабатывает на скрепку, перетаскивание файлов на поле и вставку из буфера (Ctrl+V с картинкой; вставка обычного текста не затрагивается). Покажите файл чипом: `composer.addAttachment({ id, name, size, thumb, progress: 0 })`, прогресс — `updateAttachment(id, { progress: 0.4 })`, ошибка — `{ error: 'Файл слишком большой' }`. Пока идёт загрузка, отправка заблокирована; когда файлы загружены, можно отправить только их без текста. `onSend(text, { attachments, mode })`; после успеха чипы убираются. `removeAttachment`, `getAttachments`, `clearAttachments`, `onRemoveAttachment`.
+- **Режим ответа**: `modes: [{ id: 'reply', label: 'Ответ клиенту' }, { id: 'note', label: 'Скрытое сообщение', tone: 'note', placeholder }]` — переключатель над полем; `tone: 'note'` красит поле в жёлтый. `setMode(id)`, `getMode()`, `onModeChange`, `setModeDisabled(id, true, 'Клиент ещё не написал')` — кнопка недоступна, причина в подсказке.
+- **Заметка в ленте**: `dir: 'note'` — жёлтая подложка, замок и подпись «Видят только сотрудники» (`noteLabel` — свой текст). Выравнивается как исходящее.
+- **Подпись чипов реакций**: `reactionsHint` — общая приписка в подсказке («Нажмите, чтобы поставить или убрать свою»).
+- **Лайтбокс**: `openLightbox(items, start, { label, prevLabel, nextLabel })` — свои подписи вместо «Просмотр скриншота».
+- **Окно чата**: `openChatDock({ headExtra: node })` или `dock.slots.head` — свои кнопки и аватары в шапке («Пригласить», приглашённые); в свёрнутом окне скрыты.
+- **Участники**: `Member.actions: [{ id, label, icon, danger }]` + `onAction(actionId, member)` — кнопки справа («Удалить из чата»), клик не вызывает `onSelect`.
+- **Группы в списке диалогов**: `ChatListItem.group: 'Покупатели'` — заголовок перед первым диалогом группы (порядок — как в items).
+- Иконка `userPlus`. В React: `<ChatComposer composerRef={ref} modes onModeChange />`, `<MemberList onAction />`.
+
 ### Мессенджер сквозь раздел: правая панель и окна чата
 
 Как в Битрикс24: чат с клиентом под рукой на любой странице — например, в кассе рядом с чеком.

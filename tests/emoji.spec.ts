@@ -45,7 +45,7 @@ test('реакции: чип, полоска по наведению, onReact с
   await openDialog(page);
   const msg = page.locator('.b24-chat-msg[data-id="m2"]');
   await expect(msg.locator('.b24-chat-reaction')).toHaveText('🍕2');
-  await expect(msg.locator('.b24-chat-reaction')).toHaveAttribute('title', 'Иван, Елена');
+  await expect(msg.locator('.b24-chat-reaction')).toHaveAttribute('title', 'Иван, Елена — Нажмите, чтобы поставить или убрать свою');
   await msg.locator('.b24-chat-reaction').click();
   await expect(msg.locator('.b24-chat-reaction')).toHaveText('🍕3');
   await expect(msg.locator('.b24-chat-reaction')).toHaveClass(/is-mine/);
