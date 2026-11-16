@@ -145,3 +145,27 @@ test('экран блокировки: confirm из onOtherUser — поверх
   await dialog.getByRole('button', { name: 'Продолжить' }).click();
   await expect(page.locator('.b24-lock')).toHaveCount(0);
 });
+
+test('аватар: точка статуса не обрезается, avatarHtml со статусом', async ({ page }) => {
+  await open(page, '/index.html');
+  const res = await page.evaluate(() => {
+    const B24UI = (window as unknown as W).B24UI;
+    const host = document.createElement('div');
+    host.style.padding = '20px';
+    const img = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="red"/></svg>');
+    host.innerHTML = B24UI.avatarHtml('Иван Примеров', img, 'sm', { status: 'online', title: 'В сети' }) + B24UI.avatarHtml('Мария Образцова', undefined, 'md', { status: 'away' });
+    document.body.prepend(host);
+    return Array.from(host.querySelectorAll<HTMLElement>('.b24-avatar')).map((a) => {
+      const dot = a.querySelector('.b24-avatar__status')!;
+      const imgEl = a.querySelector('img');
+      return {
+        overflow: getComputedStyle(a).overflow,
+        dot: !!dot, away: dot.classList.contains('is-away'),
+        imgRadius: imgEl ? getComputedStyle(imgEl).borderRadius : null,
+        title: a.title,
+      };
+    });
+  });
+  expect(res[0]).toEqual({ overflow: 'visible', dot: true, away: false, imgRadius: '50%', title: 'В сети' });
+  expect(res[1]).toMatchObject({ overflow: 'visible', dot: true, away: true });
+});

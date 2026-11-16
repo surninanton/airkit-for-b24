@@ -156,18 +156,23 @@ export interface AvatarProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   square?: boolean;
   online?: boolean;
+  /** точка в углу: online — зелёная, away — жёлтая (online — короткая запись status="online") */
+  status?: 'online' | 'away' | 'offline';
+  /** подсказка; по умолчанию — имя */
+  title?: string;
   className?: string;
 }
-export function Avatar({ name, src, size = 'md', square, online, className }: AvatarProps) {
+export function Avatar({ name, src, size = 'md', square, online, status, title, className }: AvatarProps) {
+  const st = status ?? (online ? 'online' : undefined);
   const empty = !src && !name;
   return (
     <span
       className={cx('b24-avatar', size !== 'md' && `b24-avatar--${size}`, square && 'b24-avatar--square', empty && 'b24-avatar--empty', className)}
       style={name && !src ? ({ '--b24-avatar-bg': colorFor(name) } as CSSProperties) : undefined}
-      title={name}
+      title={title ?? name}
     >
       {src ? <img src={src} alt={name ?? ''} /> : name ? initials(name) : null}
-      {online && <span className="b24-avatar__status" />}
+      {(st === 'online' || st === 'away') && <span className={cx('b24-avatar__status', st === 'away' && 'is-away')} />}
     </span>
   );
 }

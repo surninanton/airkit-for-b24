@@ -13,8 +13,17 @@ export function avatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export function avatarHtml(name: string, src?: string, size: 'xs' | 'sm' | 'md' | 'lg' = 'sm'): string {
+export interface AvatarHtmlOptions {
+  /** точка в углу: online — зелёная, away — жёлтая */
+  status?: 'online' | 'away' | 'offline';
+  /** подсказка при наведении («В сети», «Был(а) в сети 5 мин назад») */
+  title?: string;
+}
+
+export function avatarHtml(name: string, src?: string, size: 'xs' | 'sm' | 'md' | 'lg' = 'sm', options: AvatarHtmlOptions = {}): string {
   const cls = `b24-avatar${size !== 'md' ? ` b24-avatar--${size}` : ''}`;
-  if (src) return `<span class="${cls}"><img src="${escapeHtml(src)}" alt=""></span>`;
-  return `<span class="${cls}" style="--b24-avatar-bg:${avatarColor(name)}">${escapeHtml(initials(name))}</span>`;
+  const dot = options.status === 'online' || options.status === 'away' ? `<span class="b24-avatar__status${options.status === 'away' ? ' is-away' : ''}"></span>` : '';
+  const title = options.title ? ` title="${escapeHtml(options.title)}"` : '';
+  if (src) return `<span class="${cls}"${title}><img src="${escapeHtml(src)}" alt="">${dot}</span>`;
+  return `<span class="${cls}" style="--b24-avatar-bg:${avatarColor(name)}"${title}>${escapeHtml(initials(name))}${dot}</span>`;
 }

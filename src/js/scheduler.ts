@@ -572,11 +572,10 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const hasSchedule = bands.some((b) => b.resourceId === r.id && b.kind === 'work');
     const el = h('div', { class: `b24-scheduler__row${hasSchedule ? ' has-schedule' : ''}`, 'data-resource': r.id, style: `top:${it.top}px;height:${it.height}px;width:calc(var(--_res-w) + ${w}px)` });
     const cell = h('div', { class: 'b24-scheduler__resource' });
-    const av = html(avatarHtml(r.name, r.avatar, 'sm')).firstElementChild as HTMLElement;
     const status = r.status ?? (r.online ? 'online' : r.online === false ? 'offline' : undefined);
-    if (status === 'online' || status === 'away') av.append(h('span', { class: `b24-avatar__status${status === 'away' ? ' is-away' : ''}` }));
     const seen = status === 'online' ? t('В сети') : status === 'away' ? t('Нет на месте') : r.lastSeen != null ? lastSeenText(r.lastSeen) : '';
-    if (seen) { av.title = seen; av.setAttribute('aria-label', `${r.name}: ${seen}`); av.setAttribute('role', 'img'); }
+    const av = html(avatarHtml(r.name, r.avatar, 'sm', { status, title: seen || undefined })).firstElementChild as HTMLElement;
+    if (seen) { av.setAttribute('aria-label', `${r.name}: ${seen}`); av.setAttribute('role', 'img'); }
     cell.append(av);
     cell.append(h('div', { class: 'b24-scheduler__who' }, h('span', { class: 'b24-scheduler__name', title: r.name }, r.name), r.meta ? h('span', { class: 'b24-scheduler__meta' }, r.meta) : ''));
     const load = loadOf(r.id);

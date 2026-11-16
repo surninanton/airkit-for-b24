@@ -482,6 +482,7 @@ const mapper = B24UI.createFieldMapper(el, {
 | `applyServerErrors(form, errors)` / `clearServerErrors(form)` | ответ Laravel 422 (`{ errors: { 'notify.chat_id': [...] } }`) — в ошибки полей по `name="notify[chat_id]"`; возвращает ошибки без поля |
 | `crmEntityUrl(type, id, typeId?, base?)` | ссылка на карточку CRM: `deal`, `contact`, … или `entityTypeId`; смарт-процессы — `/crm/type/{typeId}/details/{id}/` |
 | `plural(n, ['запись', 'записи', 'записей'])`, `formatCount` | русское множественное число |
+| `avatarHtml(name, src, size, { status: 'online' \| 'away', title })`, `.b24-avatar > .b24-avatar__status` (`.is-away`) | аватар с точкой «в сети» в углу; React — `<Avatar status="online" />` |
 | `.b24-badge > .b24-spinner`, `.b24-dot--pulse` | бейдж со спиннером и пульсирующая точка «идёт» |
 | `toast(…)` | одинаковые тосты склеиваются со счётчиком «×3», видимых не больше четырёх |
 | `[data-b24-rating]`, `createRating(host, { name, value, max, readonly })` | оценка звёздами: скрытое поле `data-name`, `data-value`, `data-max` (5), `data-readonly` — только показ, `data-disabled`, `data-size="sm\|lg"`; наведение, клик (повторный — сброс, `data-clearable="false"` — без сброса), стрелки, Home/End, цифры. Событие `b24:rating-change { value }`, `getRating(el).setValue(n)` |

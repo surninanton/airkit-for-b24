@@ -55,7 +55,7 @@
   background: var(--b24-bg-surface); box-shadow: 1px 0 0 var(--b24-divider); box-sizing: border-box;
 }
 .b24-scheduler__resource .b24-avatar { flex: 0 0 auto; }
-.b24-avatar__status.is-away { background: var(--b24-color-warning); }
+
 .b24-scheduler__who { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
 .b24-scheduler__name { font-size: var(--b24-font-size-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .b24-scheduler__meta { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

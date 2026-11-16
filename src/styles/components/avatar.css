@@ -11,7 +11,7 @@
   width: var(--_s);
   height: var(--_s);
   border-radius: 50%;
-  overflow: hidden;
+  /* без overflow: hidden — точка статуса в углу не обрезается; картинку скругляет свой border-radius */
   font-size: calc(var(--_s) * 0.38);
   font-weight: var(--b24-font-weight-semibold);
   color: #fff;
@@ -19,7 +19,7 @@
   user-select: none;
   vertical-align: middle;
 }
-.b24-avatar > img { width: 100%; height: 100%; object-fit: cover; }
+.b24-avatar > img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
 .b24-avatar--xs { --_s: 20px; }
 .b24-avatar--sm { --_s: 24px; }
 .b24-avatar--lg { --_s: 42px; }
@@ -34,6 +34,7 @@
   border-radius: 50%; background: var(--b24-color-success);
   box-shadow: 0 0 0 2px var(--b24-bg-surface);
 }
+.b24-avatar__status.is-away { background: var(--b24-color-warning); }
 .b24-avatar-stack { display: inline-flex; }
 .b24-avatar-stack > .b24-avatar { box-shadow: 0 0 0 2px var(--b24-bg-surface); }
 .b24-avatar-stack > .b24-avatar + .b24-avatar { margin-left: -8px; }

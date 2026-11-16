@@ -17,6 +17,10 @@
 - Свои виды графика: любой `kind` с `label`, `color`, `className` — подпись, штриховка цветом, пункт легенды. Встреча поверх своего вида не конфликт (`absent: true` — конфликт).
 - У события `className` и `variant: 'dashed' | 'hatched'`.
 
+### Аватар
+- Точка статуса `.b24-avatar__status` больше не обрезается: у `.b24-avatar` убран `overflow: hidden`, картинку скругляет свой `border-radius`.
+- `avatarHtml(name, src, size, { status: 'online' | 'away', title })` — точка без ручной вставки `<span>`; `.b24-avatar__status.is-away` — жёлтая. В React — `<Avatar status="away" title="…" />`.
+
 ### Фильтр
 - `count` у пресетов и вариантов полей — число рядом с названием; `filter.setCounts(…)` обновляет числа.
 - Строка фильтра по умолчанию не шире 800px (`--b24-filter-max-width`), как в Битрикс24 — на широком экране она больше не растягивается на 1900px. Опция `maxWidth` (число, строка или `'none'`), модификатор `.b24-filter--full`. **Несовместимо:** кому нужна вся ширина — `maxWidth: 'none'`.
