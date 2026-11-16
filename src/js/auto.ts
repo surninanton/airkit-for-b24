@@ -25,6 +25,7 @@ import { warnLayout } from './page-header';
 import { createRating, getRating } from './rating';
 import { setAutoInit } from './dom';
 import { initTopnavMore } from './topnav-more';
+import { initChatLayout } from './chat';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -53,6 +54,7 @@ import { initTopnavMore } from './topnav-more';
  *                                    data-counter — непрочитанные обращения; потом getVendor(el).setCounter(n) или событие b24:vendor-counter
  *   [data-b24-gallery]             — галерея скриншотов: a.b24-gallery__item → лайтбокс (←/→, Esc)
  *   .b24-topnav[data-b24-topnav]   — верхнее меню сайта: на ≤768px пункты прячутся в «☰»
+ *   .b24-chat[data-b24-chat]       — каркас чата: «назад» на телефоне ([data-b24-chat-back]), карточка ([data-b24-chat-aside])
  *   .b24-page-header__menu, .b24-topnav[data-b24-more] — меню раздела: не поместившиеся пункты в «Ещё ▾»
  *   .b24-site-header[data-b24-site-header] — липкая шапка сайта: бургер на ≤960px, группы меню (details)
  *   .b24-anchor-nav[data-b24-anchor-nav]   — якорное меню: подсветка текущей секции
@@ -239,6 +241,12 @@ export function init(root: ParentNode = document): void {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';
     initGallery(el);
+  });
+
+  root.querySelectorAll<HTMLElement>('.b24-chat[data-b24-chat]').forEach((el) => {
+    if (el.dataset.b24Ready) return;
+    el.dataset.b24Ready = '1';
+    initChatLayout(el);
   });
 
   // меню раздела: не поместившиеся пункты — в «Ещё ▾» (data-b24-more="off" — выключить)

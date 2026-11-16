@@ -22,6 +22,12 @@ export { createUploader, formatSize, type UploaderOptions, type UploaderHandle, 
 export { createEntityEditor, formatMoney, type EntityEditorOptions, type EntityEditorHandle, type EditorField, type EditorSection, type EditorValues, type EditorFieldType } from './editor';
 export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
 export { initTopnavMore } from './topnav-more';
+export {
+  createChatList, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
+  type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
+  type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle,
+  type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
+} from './chat';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';
 export { creditHtml, REPO_URL } from './credit';
 export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePickerHandle } from './timepicker';

@@ -23,6 +23,7 @@ export default defineConfig({
         editors: resolve(__dirname, 'editors.html'),
         controls: resolve(__dirname, 'controls.html'),
         scheduler: resolve(__dirname, 'scheduler.html'),
+        chat: resolve(__dirname, 'chat.html'),
       },
     },
   },

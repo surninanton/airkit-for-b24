@@ -21,6 +21,7 @@
 @import "./components/uploader.css";
 @import "./components/editor.css";
 @import "./components/timeline.css";
+@import "./components/chat.css";
 @import "./components/vendor.css";
 @import "./components/screens.css";
 @import "./components/editors.css";

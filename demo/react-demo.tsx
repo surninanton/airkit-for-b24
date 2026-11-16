@@ -10,6 +10,7 @@ import {
   type FilterField, type FilterPreset, type FilterState, type DateRange,
   Combobox, EntitySelector, Uploader, EntityEditor, Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer,
   formatTimelineTime, Icon, Credit, openSidePanel, modal, type DialogItem, type EditorField, type EditorSection, type EditorValues,
+  ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, Avatar, type ChatMessage, type ChatListItem,
 } from '../src/react';
 
 const STAGES: Stage[] = [
@@ -534,7 +535,7 @@ function Demo() {
             <SidebarItem icon="crm" label="CRM" counter={37} active={section === 'crm'} onClick={() => setSection('crm')} />
             <SidebarItem icon="tasks" label="Задачи" counter={4} active={section === 'tasks'} onClick={() => setSection('tasks')} />
             <SidebarGroup title="Совместная работа">
-              <SidebarItem icon="chat" label="Мессенджер" counter={12} />
+              <SidebarItem icon="chat" label="Мессенджер" counter={3} active={section === 'chat'} onClick={() => setSection('chat')} />
               <SidebarItem icon="calendar" label="Календарь" />
               <SidebarItem icon="folder" label="Диск" />
             </SidebarGroup>
@@ -555,12 +556,54 @@ function Demo() {
           </>
         }
       >
-        {section === 'crm' ? <DealsPage /> : (
+        {section === 'crm' ? <DealsPage /> : section === 'chat' ? <ChatsPage /> : (
           <Card><Alert title="Демо">Раздел «{section}» — заглушка. Откройте CRM.</Alert></Card>
         )}
         <Credit />
       </AppShell>
     </B24Provider>
+  );
+}
+
+/* ── Чаты: ChatLayout + ChatList + ChatFeed + ChatComposer ── */
+const CHAT_DIALOGS: ChatListItem[] = [
+  { id: 'c1', name: 'Мария Образцова', channel: 'Telegram', time: new Date(Date.now() - 120000), preview: 'Когда привезёте?', unread: 1, status: 'online' },
+  { id: 'c2', name: 'Иван Примеров', channel: 'VK', time: new Date(Date.now() - 3600000), preview: 'Спасибо!', previewOut: false },
+  { id: 'c3', name: 'Пётр Тестов', channel: 'MAX', time: new Date(Date.now() - 86400000), preview: 'Заказ передан курьеру', previewOut: true },
+];
+function ChatsPage() {
+  const [active, setActive] = useState<string | null>('c1');
+  const [list, setList] = useState(CHAT_DIALOGS);
+  const [feeds, setFeeds] = useState<Record<string, ChatMessage[]>>(() => Object.fromEntries(CHAT_DIALOGS.map((d) => [d.id, [
+    { id: `${d.id}-s`, dir: 'system', time: new Date(Date.now() - 7200000), text: 'Диалог принят оператором' },
+    { id: `${d.id}-1`, dir: 'in', time: d.time!, text: d.preview },
+  ] as ChatMessage[]])));
+  const dlg = list.find((d) => d.id === active);
+  return (
+    <>
+      <PageHeader title="Мессенджер" menu={[{ label: 'Открытые линии', active: true, counter: 1 }, { label: 'Чат сотрудников' }]} />
+      <ChatLayout
+        dialogOpen={!!active}
+        onBack={() => setActive(null)}
+        list={<ChatList items={list} value={active} onSelect={(id) => { setActive(id); setList((l) => l.map((d) => (d.id === id ? { ...d, unread: 0 } : d))); }} />}
+        aside={dlg && <Props items={[{ label: 'Канал', value: typeof dlg.channel === 'string' ? dlg.channel : dlg.channel?.label }, { label: 'Заказов', value: 12 }]} />}
+      >
+        {dlg ? (
+          <>
+            <ChatHeader title={dlg.name} meta={typeof dlg.channel === 'string' ? dlg.channel : dlg.channel?.label} avatar={<Avatar name={dlg.name} status={dlg.status} />} asideToggle />
+            <ChatFeed messages={feeds[dlg.id] ?? []} />
+            <ChatComposer
+              quickReplies={['Здравствуйте!', 'Заказ передан курьеру']}
+              onSend={(text) => {
+                const m: ChatMessage = { id: String(Date.now()), dir: 'out', author: 'Вы', time: new Date(), text, status: 'delivered' };
+                setFeeds((f) => ({ ...f, [dlg.id]: [...(f[dlg.id] ?? []), m] }));
+                setList((l) => l.map((d) => (d.id === dlg.id ? { ...d, preview: text, previewOut: true, time: new Date() } : d)));
+              }}
+            />
+          </>
+        ) : <div className="b24-chat__empty">Выберите диалог</div>}
+      </ChatLayout>
+    </>
   );
 }
 

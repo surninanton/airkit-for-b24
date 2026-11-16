@@ -1,0 +1,567 @@
+/**
+ * Чаты: список диалогов, лента сообщений, поле ответа и каркас «список | переписка | карточка».
+ * Омниканальная переписка (Telegram, VK, MAX…) и чат сотрудников — как открытые линии Битрикс24.
+ *
+ *   .b24-chat [data-b24-chat] (.is-dialog-open)
+ *     .b24-chat__list   — createChatList
+ *     .b24-chat__main   — .b24-chat__head ([data-b24-chat-back]) + createChatFeed + createChatComposer
+ *     .b24-chat__aside  — карточка клиента
+ * На ≤768px одна колонка: список, а после выбора диалога — переписка с кнопкой «назад»; на ≤1100px карточка скрыта.
+ */
+import { icon } from '../icons';
+import { avatarHtml } from './avatar';
+import { autoResize } from './timeline';
+import { h, html } from './dom';
+import { getLocale, intlLocale, t } from './i18n';
+
+export type ChatDate = Date | string | number;
+const toDate = (d: ChatDate) => (d instanceof Date ? d : new Date(d));
+const pad = (n: number) => String(n).padStart(2, '0');
+const hm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const dayNum = (d: Date) => Math.round(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
+
+/** Время в списке диалогов: сегодня — «14:05», вчера — «вчера», за неделю — «пн», раньше — «12.11», в прошлом году — «12.11.25». */
+export function formatChatListTime(value: ChatDate, now = new Date()): string {
+  const d = toDate(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  const diff = dayNum(now) - dayNum(d);
+  if (diff <= 0) return hm(d);
+  if (diff === 1) return t('вчера');
+  if (diff < 7) return d.toLocaleDateString(intlLocale(), { weekday: 'short' }).replace('.', '');
+  const y = d.getFullYear() !== now.getFullYear() ? `.${String(d.getFullYear()).slice(2)}` : '';
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}${y}`;
+}
+
+/** Разделитель дат в ленте: «Сегодня», «Вчера», «16 ноября», «16 ноября 2025». */
+export function formatChatDay(value: ChatDate, now = new Date()): string {
+  const d = toDate(value);
+  const diff = dayNum(now) - dayNum(d);
+  if (diff === 0) return t('Сегодня');
+  if (diff === 1) return t('Вчера');
+  const year = d.getFullYear() !== now.getFullYear();
+  if (getLocale() !== 'ru') return d.toLocaleDateString(intlLocale(), { day: 'numeric', month: 'long', year: year ? 'numeric' : undefined });
+  const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  return `${d.getDate()} ${months[d.getMonth()]}${year ? ` ${d.getFullYear()}` : ''}`;
+}
+
+/** Текст с переносами строк и ссылками http(s) — без innerHTML. */
+function richText(text: string): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const re = /https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]]/g;
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index! > last) frag.append(text.slice(last, m.index));
+    frag.append(h('a', { href: m[0], target: '_blank', rel: 'noopener noreferrer' }, m[0]));
+    last = m.index! + m[0].length;
+  }
+  if (last < text.length) frag.append(text.slice(last));
+  return frag;
+}
+
+/* ── Список диалогов ─────────────────────────────────────── */
+
+export interface ChatChannel { label: string; color?: string }
+export interface ChatListItem {
+  id: string;
+  name: string;
+  avatar?: string;
+  /** время последнего сообщения */
+  time?: ChatDate;
+  /** текст последнего сообщения */
+  preview?: string;
+  /** последнее сообщение — наше: префикс «Вы:» */
+  previewOut?: boolean;
+  /** канал: «Telegram», { label: 'VK', color: '#0077ff' } */
+  channel?: string | ChatChannel;
+  unread?: number;
+  /** точка у аватара */
+  status?: 'online' | 'away';
+  /** закреплён / приглушён — как в мессенджере */
+  muted?: boolean;
+}
+export interface ChatListOptions {
+  items: ChatListItem[];
+  value?: string | null;
+  onSelect?: (id: string, item: ChatListItem) => void;
+  emptyText?: string;
+  label?: string;
+}
+export interface ChatListHandle {
+  element: HTMLElement;
+  setItems(items: ChatListItem[]): void;
+  /** изменить один диалог (новое сообщение, прочитан) — без перерисовки списка */
+  update(id: string, patch: Partial<ChatListItem>): void;
+  setActive(id: string | null): void;
+  getActive(): string | null;
+  destroy(): void;
+}
+
+/** Бейдж канала: «Telegram» — фирменным цветом, если известен. */
+const CHANNEL_COLORS: Record<string, string> = { telegram: '#2aabee', tg: '#2aabee', vk: '#0077ff', 'вконтакте': '#0077ff', max: '#7b4dff', whatsapp: '#25d366', avito: '#00aaff', email: '#828b95', 'сайт': '#2fc6f6' };
+function channelBadge(ch: string | ChatChannel): HTMLElement {
+  const c = typeof ch === 'string' ? { label: ch } : ch;
+  const color = c.color ?? CHANNEL_COLORS[c.label.toLowerCase()];
+  const el = h('span', { class: 'b24-chat-channel' }, c.label);
+  if (color) el.style.setProperty('--_c', color);
+  return el;
+}
+
+export function createChatList(host: HTMLElement, options: ChatListOptions): ChatListHandle {
+  let items = options.items;
+  let active = options.value ?? null;
+  const root = h('div', { class: 'b24-chat-list', role: 'listbox', 'aria-label': options.label ?? t('Диалоги') });
+  host.append(root);
+  const rows = new Map<string, HTMLElement>();
+
+  const fill = (row: HTMLElement, it: ChatListItem) => {
+    row.className = `b24-chat-list__item${it.id === active ? ' is-active' : ''}${it.unread ? ' is-unread' : ''}${it.muted ? ' is-muted' : ''}`;
+    row.setAttribute('aria-selected', String(it.id === active));
+    const av = html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })).firstElementChild!;
+    const top = h('span', { class: 'b24-chat-list__top' }, h('span', { class: 'b24-chat-list__name' }, it.name), it.time != null ? h('span', { class: 'b24-chat-list__time' }, formatChatListTime(it.time)) : '');
+    const preview = h('span', { class: 'b24-chat-list__preview' }, it.previewOut ? h('span', { class: 'b24-chat-list__you' }, `${t('Вы')}: `) : '', it.preview ?? '');
+    const bottom = h('span', { class: 'b24-chat-list__bottom' }, preview);
+    if (it.channel) bottom.append(channelBadge(it.channel));
+    if (it.unread) bottom.append(h('span', { class: 'b24-counter' }, it.unread > 99 ? '99+' : String(it.unread)));
+    row.replaceChildren(av, h('span', { class: 'b24-chat-list__body' }, top, bottom));
+    row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.preview ? `. ${it.preview}` : ''}`);
+  };
+
+  const render = () => {
+    rows.clear();
+    if (!items.length) {
+      root.replaceChildren(h('div', { class: 'b24-chat-list__empty' }, options.emptyText ?? t('Диалогов нет')));
+      return;
+    }
+    root.replaceChildren(...items.map((it) => {
+      const row = h('button', { type: 'button', role: 'option', 'data-id': it.id, tabindex: '-1' });
+      fill(row, it);
+      rows.set(it.id, row);
+      return row;
+    }));
+    const focusable = rows.get(active ?? '') ?? root.firstElementChild;
+    if (focusable instanceof HTMLElement) focusable.tabIndex = 0;
+  };
+
+  const select = (id: string) => {
+    const it = items.find((x) => x.id === id);
+    if (!it) return;
+    handle.setActive(id);
+    options.onSelect?.(id, it);
+  };
+
+  root.addEventListener('click', (e) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-list__item');
+    if (row) select(row.dataset.id!);
+  });
+  root.addEventListener('keydown', (e) => {
+    const list = Array.from(rows.values());
+    const i = list.indexOf(document.activeElement as HTMLElement);
+    if (i < 0) return;
+    let next = -1;
+    if (e.key === 'ArrowDown') next = Math.min(list.length - 1, i + 1);
+    else if (e.key === 'ArrowUp') next = Math.max(0, i - 1);
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = list.length - 1;
+    if (next < 0) return;
+    e.preventDefault();
+    list.forEach((r) => { r.tabIndex = -1; });
+    list[next].tabIndex = 0;
+    list[next].focus();
+  });
+
+  render();
+  const handle: ChatListHandle = {
+    element: root,
+    setItems(next) { items = next; render(); },
+    update(id, patch) {
+      const i = items.findIndex((x) => x.id === id);
+      if (i < 0) return;
+      items = items.map((x, j) => (j === i ? { ...x, ...patch } : x));
+      const row = rows.get(id);
+      if (row) fill(row, items[i]);
+    },
+    setActive(id) {
+      active = id;
+      rows.forEach((row, key) => {
+        row.classList.toggle('is-active', key === id);
+        row.setAttribute('aria-selected', String(key === id));
+        row.tabIndex = key === id ? 0 : -1;
+      });
+    },
+    getActive: () => active,
+    destroy() { root.remove(); },
+  };
+  return handle;
+}
+
+/* ── Лента сообщений ─────────────────────────────────────── */
+
+export type ChatAttachment =
+  | { type: 'photo'; url: string; thumb?: string; name?: string; width?: number; height?: number }
+  | { type: 'file'; url: string; name: string; size?: number }
+  | { type: 'voice'; url: string; duration?: number }
+  | { type: 'geo'; lat: number; lng: number; label?: string; url?: string };
+
+export interface ChatMessage {
+  id: string;
+  /** in — входящее, out — наше, system — служебная строка по центру («Диалог закрыт») */
+  dir: 'in' | 'out' | 'system';
+  text?: string;
+  time: ChatDate;
+  /** подпись над пузырём: имя сотрудника в исходящих, участника — в групповом чате */
+  author?: string;
+  avatar?: string;
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  /** причина «не доставлено» */
+  error?: string;
+  attachments?: ChatAttachment[];
+}
+export interface ChatFeedOptions {
+  messages?: ChatMessage[];
+  /** есть сообщения раньше — кнопка «Показать раньше» */
+  hasMore?: boolean;
+  /** подгрузить раньше; позиция прокрутки сохраняется, когда придут новые сообщения (setMessages / prepend) */
+  onLoadMore?: () => void | Promise<unknown>;
+  /** аватары у входящих (групповой чат) */
+  showAvatars?: boolean;
+  /** повторить отправку («не доставлено» → «Повторить») */
+  onRetry?: (message: ChatMessage) => void;
+  onPhotoClick?: (attachment: ChatAttachment & { type: 'photo' }, message: ChatMessage) => void;
+  emptyText?: string;
+}
+export interface ChatFeedHandle {
+  element: HTMLElement;
+  /** весь список: кит сам поймёт, что пришло сверху (прокрутка сохраняется) или снизу (прокрутка вниз, если вы были у низа) */
+  setMessages(messages: ChatMessage[]): void;
+  append(messages: ChatMessage[]): void;
+  prepend(messages: ChatMessage[]): void;
+  update(id: string, patch: Partial<ChatMessage>): void;
+  setHasMore(value: boolean): void;
+  scrollToBottom(smooth?: boolean): void;
+  /** пользователь у низа ленты */
+  isAtBottom(): boolean;
+  destroy(): void;
+}
+
+const fmtSize = (n?: number) => (n == null ? '' : n < 1024 ? `${n} ${t('Б')}` : n < 1048576 ? `${Math.round(n / 1024)} ${t('КБ')}` : `${(n / 1048576).toFixed(1).replace('.', ',')} ${t('МБ')}`);
+const fmtDur = (s?: number) => (s == null ? '' : `${Math.floor(s / 60)}:${pad(Math.round(s % 60))}`);
+
+export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {}): ChatFeedHandle {
+  let messages: ChatMessage[] = options.messages ?? [];
+  let hasMore = !!options.hasMore;
+  let loading = false;
+  const root = h('div', { class: 'b24-chat-feed', role: 'log', 'aria-live': 'polite', 'aria-label': t('Сообщения'), tabindex: '0' });
+  const list = h('div', { class: 'b24-chat-feed__list' });
+  const more = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm b24-chat-feed__more' }, t('Показать раньше'));
+  root.append(more, list);
+  host.append(root);
+
+  const nearBottom = () => root.scrollHeight - root.scrollTop - root.clientHeight < 80;
+  // «прилипание» к низу: картинки и голосовые догружаются и меняют высоту — если пользователь был у низа, остаёмся внизу
+  let stick = true;
+  let programmatic = false;
+
+  const attachment = (a: ChatAttachment, m: ChatMessage): HTMLElement => {
+    switch (a.type) {
+      case 'photo': {
+        const img = h('img', { src: a.thumb ?? a.url, alt: a.name ?? t('Фото'), loading: 'lazy' });
+        if (a.width && a.height) { img.width = a.width; img.height = a.height; }
+        const link = h('a', { class: 'b24-chat-att b24-chat-att--photo', href: a.url, target: '_blank', rel: 'noopener' }, img);
+        if (options.onPhotoClick) link.addEventListener('click', (e) => { e.preventDefault(); options.onPhotoClick!(a, m); });
+        return link;
+      }
+      case 'file':
+        return h('a', { class: 'b24-chat-att b24-chat-att--file', href: a.url, target: '_blank', rel: 'noopener', download: a.name },
+          html(icon('file')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.name), a.size != null ? h('span', { class: 'b24-chat-att__meta' }, fmtSize(a.size)) : ''));
+      case 'voice': {
+        const audio = h('audio', { src: a.url, controls: true, preload: 'none' });
+        return h('div', { class: 'b24-chat-att b24-chat-att--voice' }, html(icon('mic')), audio, a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
+      }
+      case 'geo': {
+        const url = a.url ?? `https://yandex.ru/maps/?pt=${a.lng},${a.lat}&z=16&l=map`;
+        return h('a', { class: 'b24-chat-att b24-chat-att--geo', href: url, target: '_blank', rel: 'noopener' },
+          html(icon('mapPin')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.label ?? t('Геоточка')), h('span', { class: 'b24-chat-att__meta' }, `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}`)));
+      }
+    }
+  };
+
+  const statusIcon = (m: ChatMessage) => {
+    if (m.dir !== 'out' || !m.status || m.status === 'failed') return '';
+    const label = { sending: t('Отправляется'), sent: t('Отправлено'), delivered: t('Доставлено'), read: t('Прочитано') }[m.status];
+    const name = m.status === 'sending' ? 'clock' : m.status === 'sent' ? 'check' : 'checkDouble';
+    return h('span', { class: `b24-chat-msg__status is-${m.status}`, title: label, 'aria-label': label }, html(icon(name, { size: 14 })));
+  };
+
+  const buildMessage = (m: ChatMessage, prev?: ChatMessage): HTMLElement => {
+    if (m.dir === 'system') return h('div', { class: 'b24-chat-system', 'data-id': m.id }, h('span', {}, m.text ?? ''));
+    const d = toDate(m.time);
+    // подряд от одного автора в пределах 5 минут — без повторной подписи
+    const grouped = !!prev && prev.dir === m.dir && prev.author === m.author && dayNum(toDate(prev.time)) === dayNum(d) && d.getTime() - toDate(prev.time).getTime() < 5 * 60000;
+    const el = h('div', { class: `b24-chat-msg is-${m.dir}${m.status === 'failed' ? ' is-failed' : ''}${grouped ? ' is-grouped' : ''}`, 'data-id': m.id });
+    if (options.showAvatars && m.dir === 'in') el.append(grouped ? h('span', { class: 'b24-chat-msg__avatar' }) : html(avatarHtml(m.author ?? '', m.avatar, 'sm')).firstElementChild!);
+    const bubble = h('div', { class: 'b24-chat-msg__bubble' });
+    if (m.author && !grouped) bubble.append(h('div', { class: 'b24-chat-msg__author' }, m.author));
+    if (m.attachments?.length) bubble.append(h('div', { class: 'b24-chat-msg__atts' }, ...m.attachments.map((a) => attachment(a, m))));
+    if (m.text) bubble.append(h('div', { class: 'b24-chat-msg__text' }, richText(m.text)));
+    bubble.append(h('span', { class: 'b24-chat-msg__meta' }, h('time', { datetime: d.toISOString() }, hm(d)), statusIcon(m)));
+    const col = h('div', { class: 'b24-chat-msg__col' }, bubble);
+    if (m.status === 'failed') {
+      const err = h('div', { class: 'b24-chat-msg__error', role: 'alert' }, html(icon('warning', { size: 14 })), h('span', {}, `${t('Не доставлено')}${m.error ? `: ${m.error}` : ''}`));
+      if (options.onRetry) {
+        const retry = h('button', { type: 'button', class: 'b24-chat-msg__retry' }, t('Повторить'));
+        retry.addEventListener('click', () => options.onRetry!(m));
+        err.append(retry);
+      }
+      col.append(err);
+    }
+    el.append(col);
+    return el;
+  };
+
+  const render = () => {
+    more.hidden = !hasMore;
+    if (!messages.length) {
+      list.replaceChildren(h('div', { class: 'b24-chat-feed__empty' }, options.emptyText ?? t('Сообщений пока нет')));
+      return;
+    }
+    const out: HTMLElement[] = [];
+    let prev: ChatMessage | undefined;
+    for (const m of messages) {
+      const d = toDate(m.time);
+      if (!prev || dayNum(toDate(prev.time)) !== dayNum(d)) {
+        out.push(h('div', { class: 'b24-chat-date', role: 'separator' }, h('span', {}, formatChatDay(d))));
+        prev = undefined;
+      }
+      out.push(buildMessage(m, prev));
+      prev = m;
+    }
+    list.replaceChildren(...out);
+  };
+
+  /** Перерисовка с якорем прокрутки: пришло сверху — остаёмся на месте, снизу — вниз, если были у низа. */
+  const apply = (next: ChatMessage[]) => {
+    const oldFirst = messages[0]?.id;
+    const oldLast = messages[messages.length - 1]?.id;
+    const wasEmpty = !messages.length;
+    const atBottom = nearBottom();
+    const fromBottom = root.scrollHeight - root.scrollTop;
+    const prevTop = root.scrollTop;
+    messages = next;
+    render();
+    const prepended = !wasEmpty && next.length && next[0].id !== oldFirst && next.some((m) => m.id === oldFirst);
+    const appended = !wasEmpty && next.length && next[next.length - 1].id !== oldLast;
+    const replaced = !wasEmpty && !next.some((m) => m.id === oldFirst || m.id === oldLast);
+    if (wasEmpty || replaced) handle.scrollToBottom();
+    else if (prepended && !appended) { root.scrollTop = root.scrollHeight - fromBottom; stick = false; }
+    else if (appended && (atBottom || next[next.length - 1].dir === 'out')) handle.scrollToBottom(true);
+    else root.scrollTop = prevTop;
+  };
+
+  const loadMore = async () => {
+    if (loading || !hasMore || !options.onLoadMore) return;
+    loading = true;
+    more.disabled = true;
+    more.classList.add('b24-btn--loading');
+    try { await options.onLoadMore(); } finally {
+      loading = false;
+      more.disabled = false;
+      more.classList.remove('b24-btn--loading');
+    }
+  };
+  more.addEventListener('click', () => void loadMore());
+  // у верха ленты — подгружаем сами
+  root.addEventListener('scroll', () => {
+    // у низа — прилипаем; ушёл вверх сам (не наша прокрутка) — отлипаем
+    if (nearBottom()) stick = true;
+    else if (!programmatic) stick = false;
+    if (root.scrollTop < 40 && hasMore && options.onLoadMore) void loadMore();
+  }, { passive: true });
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (stick) handle.scrollToBottom(); }) : null;
+  ro?.observe(list);
+
+  render();
+  requestAnimationFrame(() => handle.scrollToBottom());
+
+  const handle: ChatFeedHandle = {
+    element: root,
+    setMessages: apply,
+    append: (list2) => apply([...messages, ...list2]),
+    prepend: (list2) => apply([...list2, ...messages]),
+    update(id, patch) {
+      const atBottom = nearBottom();
+      const top = root.scrollTop;
+      messages = messages.map((m) => (m.id === id ? { ...m, ...patch } : m));
+      render();
+      if (atBottom) handle.scrollToBottom(); else root.scrollTop = top;
+    },
+    setHasMore(v) { hasMore = v; more.hidden = !v; },
+    scrollToBottom(smooth = false) {
+      stick = true;
+      programmatic = true;
+      root.scrollTo({ top: root.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+      // событие scroll приходит в следующем кадре — снимаем флаг после него
+      const done = () => requestAnimationFrame(() => requestAnimationFrame(() => { programmatic = false; }));
+      if (smooth) setTimeout(done, 400); else done();
+    },
+    isAtBottom: nearBottom,
+    destroy() { ro?.disconnect(); root.remove(); },
+  };
+  return handle;
+}
+
+/* ── Поле ответа ─────────────────────────────────────────── */
+
+export interface ChatComposerOptions {
+  placeholder?: string;
+  /** отправка: false или исключение — текст остаётся в поле */
+  onSend: (text: string) => void | boolean | Promise<void | boolean>;
+  /** кнопка-скрепка; файлы выбирает браузер, дальше — ваш код */
+  onAttach?: (files: File[]) => void;
+  accept?: string;
+  /** быстрые ответы над полем: клик вставляет текст */
+  quickReplies?: string[];
+  /** отправка по Enter (по умолчанию да; Shift+Enter — новая строка). false — по Ctrl/⌘+Enter */
+  enterToSend?: boolean;
+  disabled?: boolean;
+  /** причина, почему ответить нельзя («Диалог закрыт») — вместо поля */
+  disabledText?: string;
+  maxLength?: number;
+}
+export interface ChatComposerHandle {
+  element: HTMLElement;
+  /** контейнеры: превью вложений над полем и свои кнопки рядом со скрепкой */
+  slots: { attachments: HTMLElement; actions: HTMLElement; quick: HTMLElement };
+  focus(): void;
+  getValue(): string;
+  setValue(text: string): void;
+  insert(text: string): void;
+  setDisabled(disabled: boolean, text?: string): void;
+  setQuickReplies(list: string[]): void;
+  destroy(): void;
+}
+
+export function createChatComposer(host: HTMLElement, options: ChatComposerOptions): ChatComposerHandle {
+  const enter = options.enterToSend !== false;
+  const root = h('div', { class: 'b24-chat-composer' });
+  const quick = h('div', { class: 'b24-chat-composer__quick', role: 'list', 'aria-label': t('Быстрые ответы') });
+  const atts = h('div', { class: 'b24-chat-composer__attachments' });
+  const input = h('textarea', { class: 'b24-chat-composer__input', rows: '1', placeholder: options.placeholder ?? t('Написать сообщение…'), title: enter ? t('Enter — отправить, Shift+Enter — новая строка') : t('Ctrl+Enter — отправить'), 'aria-label': t('Сообщение') });
+  if (options.maxLength) input.maxLength = options.maxLength;
+  const actions = h('div', { class: 'b24-chat-composer__actions' });
+  const send = h('button', { type: 'button', class: 'b24-btn b24-btn--primary b24-btn--icon b24-chat-composer__send', 'aria-label': t('Отправить'), title: t('Отправить') }, html(icon('send')));
+  const blocked = h('div', { class: 'b24-chat-composer__blocked', hidden: '' });
+  if (options.onAttach) {
+    const file = h('input', { type: 'file', multiple: true, hidden: '', accept: options.accept });
+    const clip = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--icon b24-chat-composer__attach', 'aria-label': t('Прикрепить файл'), title: t('Прикрепить файл') }, html(icon('paperclip')));
+    clip.addEventListener('click', () => file.click());
+    file.addEventListener('change', () => { if (file.files?.length) options.onAttach!(Array.from(file.files)); file.value = ''; });
+    actions.append(clip, file);
+  }
+  const row = h('div', { class: 'b24-chat-composer__row' }, actions, input, send);
+  root.append(quick, atts, row, blocked);
+  host.append(root);
+  const unResize = autoResize(input);
+
+  const sync = () => { send.disabled = !input.value.trim() || root.classList.contains('is-busy') || root.classList.contains('is-disabled'); };
+  const fit = () => input.dispatchEvent(new Event('input'));
+
+  const submit = async () => {
+    const text = input.value.trim();
+    if (!text || root.classList.contains('is-busy') || root.classList.contains('is-disabled')) return;
+    root.classList.add('is-busy');
+    sync();
+    try {
+      const r = await options.onSend(text);
+      if (r !== false) { input.value = ''; fit(); }
+    } finally {
+      root.classList.remove('is-busy');
+      sync();
+      input.focus();
+    }
+  };
+
+  input.addEventListener('input', sync);
+  input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    const mod = e.ctrlKey || e.metaKey;
+    if (enter ? !e.shiftKey && !mod : mod) { e.preventDefault(); void submit(); }
+  });
+  send.addEventListener('click', () => void submit());
+
+  const setQuick = (list: string[]) => {
+    quick.replaceChildren(...list.map((text) => {
+      const b = h('button', { type: 'button', class: 'b24-chat-composer__reply', role: 'listitem', title: text }, text);
+      b.addEventListener('click', () => handle.insert(text));
+      return b;
+    }));
+    quick.hidden = !list.length;
+  };
+  setQuick(options.quickReplies ?? []);
+
+  const handle: ChatComposerHandle = {
+    element: root,
+    slots: { attachments: atts, actions, quick },
+    focus: () => input.focus(),
+    getValue: () => input.value,
+    setValue(text) { input.value = text; fit(); },
+    insert(text) {
+      const { selectionStart: s, selectionEnd: e, value } = input;
+      input.value = value.slice(0, s) + text + value.slice(e);
+      input.selectionStart = input.selectionEnd = s + text.length;
+      fit();
+      input.focus();
+    },
+    setDisabled(disabled, text) {
+      root.classList.toggle('is-disabled', disabled);
+      input.disabled = disabled;
+      blocked.hidden = !(disabled && text);
+      blocked.textContent = text ?? '';
+      row.hidden = !!(disabled && text);
+      quick.hidden = disabled || !quick.childElementCount;
+      sync();
+    },
+    setQuickReplies: setQuick,
+    destroy() { unResize(); root.remove(); },
+  };
+  if (options.disabled || options.disabledText) handle.setDisabled(true, options.disabledText);
+  sync();
+  return handle;
+}
+
+/* ── Каркас «список | переписка | карточка» ──────────────── */
+
+export interface ChatLayoutHandle {
+  element: HTMLElement;
+  /** показать переписку (на телефоне — вместо списка) */
+  openDialog(): void;
+  /** назад к списку (телефон) */
+  back(): void;
+  /** показать / скрыть карточку (на ≤1100px она выезжает поверх) */
+  toggleAside(open?: boolean): void;
+  destroy(): void;
+}
+
+/** .b24-chat: кнопки [data-b24-chat-back] — назад к списку, [data-b24-chat-aside] — карточка. Подключается и через init() ([data-b24-chat]). */
+export function initChatLayout(el: HTMLElement): ChatLayoutHandle {
+  // фаза захвата: список перерисовывает строку в своём обработчике, и цель клика к всплытию уже не в документе
+  const onClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-b24-chat-back]')) handle.back();
+    else if (target.closest('[data-b24-chat-aside]')) handle.toggleAside();
+    else {
+      if (el.classList.contains('is-aside-open') && !target.closest('.b24-chat__aside')) handle.toggleAside(false);
+      if (target.closest('.b24-chat__list .b24-chat-list__item')) handle.openDialog();
+    }
+  };
+  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && el.classList.contains('is-aside-open')) { e.stopPropagation(); handle.toggleAside(false); } };
+  el.addEventListener('click', onClick, true);
+  el.addEventListener('keydown', onKey);
+  const handle: ChatLayoutHandle = {
+    element: el,
+    openDialog() { el.classList.add('is-dialog-open'); },
+    back() { el.classList.remove('is-dialog-open'); el.querySelector<HTMLElement>('.b24-chat-list__item.is-active')?.focus(); },
+    toggleAside(open) { el.classList.toggle('is-aside-open', open ?? !el.classList.contains('is-aside-open')); },
+    destroy() { el.removeEventListener('click', onClick, true); el.removeEventListener('keydown', onKey); },
+  };
+  return handle;
+}

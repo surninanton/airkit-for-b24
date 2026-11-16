@@ -384,7 +384,7 @@ import { B24Provider, App, PageHeader, SearchInput, DataTable, SidePanel, Stages
 </B24Provider>
 ```
 
-Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`, `StagePicker`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), раскладка: `B24Provider`, `App`, `PageHeader`, `Toolbar` (устарел для шапки раздела), `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
+Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`, `StagePicker`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), `ChatLayout`, `ChatHeader`, `ChatList`, `ChatFeed`, `ChatComposer`, раскладка: `B24Provider`, `App`, `PageHeader`, `Toolbar` (устарел для шапки раздела), `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
 
 Канбан в React контролируемый: DnD только сообщает о переносе, состояние обновляете вы.
 
@@ -519,6 +519,29 @@ const mapper = B24UI.createFieldMapper(el, {
 | `[data-b24-rating]`, `createRating(host, { name, value, max, readonly })` | оценка звёздами: скрытое поле `data-name`, `data-value`, `data-max` (5), `data-readonly` — только показ, `data-disabled`, `data-size="sm\|lg"`; наведение, клик (повторный — сброс, `data-clearable="false"` — без сброса), стрелки, Home/End, цифры. Событие `b24:rating-change { value }`, `getRating(el).setValue(n)` |
 
 React: `Accordion`, `AccordionItem`, `RadioCards`, `CheckGroup`, `Segmented`, `Range`, `RangePair`, `ColorPicker`, `SecretInput`, `Tree`, `Rating` (`<Rating value onChange readOnly max name />`).
+
+## Чаты: открытые линии и переписка
+
+Список диалогов, лента сообщений, поле ответа и каркас «список | переписка | карточка» — для омниканальной переписки (Telegram, VK, MAX, сайт) и чата сотрудников. Пример — `demo/chat.html`, в React — раздел «Мессенджер» в `demo/react-demo.tsx`.
+
+- **Каркас** `.b24-chat[data-b24-chat]` > `__list` · `__main` (`__head` + лента + поле) · `__aside` (карточка). Высота — `--b24-chat-height` (по умолчанию `calc(100vh - 200px)`). На ≤1100px карточка выезжает поверх по кнопке `[data-b24-chat-aside]` (закрывается кликом мимо и Esc), на ≤768px одна колонка: выбор диалога открывает переписку, `[data-b24-chat-back]` — назад к списку. `initChatLayout(el)` → `{ openDialog, back, toggleAside }`.
+- **Список** `createChatList(host, { items, value, onSelect })`: аватар (точка `status`), имя, время («14:05», «вчера», «пн», «12.11»), превью с «Вы:» (`previewOut`), бейдж канала (`channel: 'Telegram'` — фирменным цветом, или `{ label, color }`), счётчик `unread`, `muted`. Стрелки ↑/↓, Home/End, Enter. `update(id, patch)` — новое сообщение без перерисовки списка.
+- **Лента** `createChatFeed(host, { messages, hasMore, onLoadMore, onRetry })`: пузыри `dir: 'in' | 'out'` с автором, временем и статусом (`sending` · `sent` ✓ · `delivered` ✓✓ · `read` ✓✓ синим · `failed` — «Не доставлено: причина» и «Повторить»), служебные строки `dir: 'system'` по центру, разделители дат, ссылки в тексте. Вложения: `photo` (превью), `file` (имя, размер), `voice` (плеер), `geo` (точка на карте). `setMessages(все)` сам понимает, что пришло сверху («Показать раньше», прокрутка к верху — позиция не прыгает) или снизу (прокрутка вниз, если вы были у низа или сообщение наше); догружающиеся картинки не сбивают низ.
+- **Поле ответа** `createChatComposer(host, { onSend, onAttach, quickReplies })`: textarea растёт с текстом, Enter — отправить, Shift+Enter — новая строка (`enterToSend: false` — по Ctrl/⌘+Enter), скрепка, быстрые ответы над полем, `slots.attachments` — превью вложений, `slots.actions` — свои кнопки. `false` или исключение из `onSend` — текст остаётся. `setDisabled(true, 'Диалог закрыт')` — вместо поля строка с причиной.
+
+```js
+const list = B24UI.createChatList(listEl, { items: dialogs, value: 'd1', onSelect: openDialog });
+const feed = B24UI.createChatFeed(feedEl, { messages, hasMore: true, onLoadMore: async () => feed.setMessages([...(await api.older()), ...messages]) });
+B24UI.createChatComposer(composerEl, { quickReplies: ['Здравствуйте!'], onSend: async (text) => feed.append([await api.send(text)]) });
+```
+
+```tsx
+<ChatLayout dialogOpen={!!active} onBack={() => setActive(null)} list={<ChatList items={dialogs} value={active} onSelect={setActive} />} aside={<ClientCard />}>
+  <ChatHeader title={d.name} meta="Telegram" avatar={<Avatar name={d.name} status="online" />} asideToggle />
+  <ChatFeed messages={messages} hasMore onLoadMore={loadOlder} onRetry={resend} />
+  <ChatComposer quickReplies={replies} onSend={send} />
+</ChatLayout>
+```
 
 ## Планировщик: сотрудники и время
 
