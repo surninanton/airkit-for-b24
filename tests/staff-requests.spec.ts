@@ -30,6 +30,7 @@ async function makeScheduler(page: import('@playwright/test').Page, extra: Recor
       ],
       view: 'week', height: 300,
       ...extra,
+      ...(extra.__onSave ? { onSave: () => undefined, onChange: () => undefined } : {}),
     } as never);
   }, extra);
 }
@@ -168,4 +169,45 @@ test('аватар: точка статуса не обрезается, avatarH
   });
   expect(res[0]).toEqual({ overflow: 'visible', dot: true, away: false, imgRadius: '50%', title: 'В сети' });
   expect(res[1]).toMatchObject({ overflow: 'visible', dot: true, away: true });
+});
+
+test('планировщик: eventTypesMenu: false — типы без пунктов меню, hint в легенде', async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 1280) < 900, 'контекстное меню — на десктопе');
+  await makeScheduler(page, {
+    eventTypes: [{ id: 'full', label: 'Полная', color: '#1bce7b', hint: '10:00–24:00' }],
+    eventTypesMenu: false, legend: 'types', __onSave: true,
+  });
+  const host = page.locator('#sch-host');
+  await expect(host.locator('.b24-scheduler__legend')).toContainText('Полная10:00–24:00');
+  await host.locator('[data-event="w2"]').click({ button: 'right' });
+  const menu = page.locator('.b24-scheduler-menu');
+  await expect(menu).toBeVisible();
+  await expect(menu).not.toContainText('Полная');
+  await expect(menu).toContainText('Дублировать');
+});
+
+test('dropdown без инлайнового фона; меню с «Ещё» не сжимается в ноль', async ({ page }) => {
+  await open(page, '/index.html');
+  const res = await page.evaluate(() => {
+    const B24UI = (window as unknown as W).B24UI;
+    const btn = document.createElement('button'); const pop = document.createElement('div'); pop.className = 'b24-menu';
+    document.body.append(btn, pop);
+    B24UI.dropdown(btn, pop);
+    const bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;width:300px';
+    bar.innerHTML = '<nav class="b24-topnav" data-b24-more><a class="b24-topnav__item" href="#" aria-current="page">Расписание смен</a><a class="b24-topnav__item" href="#">Состав смен</a></nav><div style="flex:0 0 280px">виджет</div>';
+    bar.className = 'b24-app b24-app--air';
+    document.body.prepend(bar);
+    B24UI.initTopnavMore(bar.querySelector('nav')!);
+    return { inline: pop.getAttribute('style') ?? '', bg: getComputedStyle(pop).backgroundColor };
+  });
+  expect(res.inline).not.toContain('background');
+  expect(res.bg).not.toBe('rgba(0, 0, 0, 0)');
+  const nav = page.locator('nav[data-b24-more]');
+  const more = nav.locator('.b24-topnav__more');
+  await expect(more).toBeVisible();
+  // открытый пункт не влез вместе с «Ещё» — тоже в меню, «Ещё» подсвечен и не обрезан
+  await expect(more).toHaveClass(/is-active/);
+  const fit = await nav.evaluate((n) => { const m = n.querySelector('.b24-topnav__more')!.getBoundingClientRect(); return m.right <= n.getBoundingClientRect().right + 1; });
+  expect(fit).toBe(true);
 });

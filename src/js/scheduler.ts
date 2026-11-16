@@ -69,6 +69,8 @@ export interface SchedulerEventType {
   color?: string;
   /** события этого типа — без времени (выходной, отпуск) */
   allDay?: boolean;
+  /** приглушённая подпись после названия в легенде: «10:00–24:00» */
+  hint?: string;
 }
 /** своё поле окна редактирования; значение — в event.data[name] */
 export interface SchedulerEditorField {
@@ -160,6 +162,9 @@ export interface SchedulerOptions {
   editor?: boolean | SchedulerEditorOptions;
   /** типы событий: цвет, «весь день», легенда, пункт меню «Тип» */
   eventTypes?: SchedulerEventType[];
+  /** пункты «Тип» и «Создать: …» в контекстном меню по eventTypes (по умолчанию да); false — типы дают только цвет и легенду,
+   *  например когда меню и окно редактирования свои */
+  eventTypesMenu?: boolean;
   /** меню по правой кнопке (и клавише меню / Shift+F10 на встрече): true — пункты по умолчанию (по умолчанию),
    *  функция — получает контекст с пунктами по умолчанию и возвращает свои; false — без меню */
   contextMenu?: boolean | ((ctx: SchedulerMenuContext) => SchedulerMenuItem[] | false | void);
@@ -396,10 +401,10 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   let legendKey = '';
   const renderLegend = () => {
     if (!legend) return;
-    const item = (label: string, bg: string) => `<span><i style="background:${bg}"></i>${escapeHtml(label)}</span>`;
+    const item = (label: string, bg: string, hint?: string) => `<span><i style="background:${bg}"></i>${escapeHtml(label)}${hint ? `<small>${escapeHtml(hint)}</small>` : ''}</span>`;
     const kinds = new Set(bands.map((b) => b.kind));
     const out = o.eventTypes?.length
-      ? o.eventTypes.map((ty) => item(ty.label, `color-mix(in srgb, ${ty.color ?? 'var(--b24-color-primary)'} 25%, var(--b24-bg-surface)); box-shadow: inset 2px 0 0 ${ty.color ?? 'var(--b24-color-primary)'}`))
+      ? o.eventTypes.map((ty) => item(ty.label, `color-mix(in srgb, ${ty.color ?? 'var(--b24-color-primary)'} 25%, var(--b24-bg-surface)); box-shadow: inset 2px 0 0 ${ty.color ?? 'var(--b24-color-primary)'}`, ty.hint))
       : [item(t('Встреча'), 'color-mix(in srgb, var(--b24-color-primary) 25%, var(--b24-bg-surface))')];
     if (o.legend !== 'types') {
       if (kinds.has('work')) {
@@ -798,7 +803,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const locked = !!ev.readonly || !!o.readonly;
     const items: SchedulerMenuItem[] = [];
     if (editorOpts() && !ev.readonly) items.push({ id: 'edit', label: t('Изменить'), icon: 'edit', hint: 'Enter', onClick: () => openEditorFor(pub(ev), ev) });
-    if (o.eventTypes?.length && !locked) {
+    if (o.eventTypes?.length && o.eventTypesMenu !== false && !locked) {
       items.push({ id: 'type', title: true, label: t('Тип') });
       for (const ty of o.eventTypes) items.push({ id: `type:${ty.id}`, label: ty.label, checked: ev.type === ty.id, onClick: () => setType(ev, ty) });
     }
@@ -816,7 +821,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   const slotItems = (resourceId: string, start: Date, end: Date): SchedulerMenuItem[] => {
     if (!canCreate()) return [];
     const items: SchedulerMenuItem[] = [];
-    if (o.eventTypes?.length) {
+    if (o.eventTypes?.length && o.eventTypesMenu !== false) {
       items.push({ id: 'create', title: true, label: t('Создать') });
       for (const ty of o.eventTypes) items.push({ id: `create:${ty.id}`, label: ty.label, icon: 'plus', onClick: () => createFrom({ resourceId, start, end, type: ty.id, title: ty.label }) });
     } else {

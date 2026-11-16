@@ -62,11 +62,13 @@ export function initTopnavMore(nav: HTMLElement): () => void {
         badge.textContent = total > 99 ? '99+' : String(total);
         const budget = nav.getBoundingClientRect().width + 1 - more.getBoundingClientRect().width - gap;
         const widths = items.map((el) => el.getBoundingClientRect().width + gap);
-        const active = items.findIndex(isActive);
+        let active = items.findIndex(isActive);
+        // открытый пункт на виду, если рядом с ним помещается «Ещё»; иначе он тоже в меню (а «Ещё» подсвечен)
+        if (active >= 0 && widths[active] > budget) { hidden.push(items[active]); active = -1; }
         let used = active >= 0 ? widths[active] : 0;
         let full = false; // порядок пунктов не меняется: после первого спрятанного прячутся и следующие
         items.forEach((el, i) => {
-          if (i === active) return;
+          if (i === active || hidden.includes(el)) return;
           if (!full && used + widths[i] <= budget) used += widths[i];
           else { full = true; hidden.push(el); }
         });

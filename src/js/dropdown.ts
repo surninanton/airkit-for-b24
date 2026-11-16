@@ -28,7 +28,6 @@ export function dropdown(trigger: HTMLElement, popup: HTMLElement, options: Drop
   popup.hidden = true;
   popup.classList.add('b24-popup');
   if (!popup.closest('.b24-root')) popup.classList.add('b24-root');
-  popup.style.background = 'var(--b24-bg-surface)';
   if (!popup.id) popup.id = `b24-popup-${Math.random().toString(36).slice(2, 8)}`;
   trigger.setAttribute('aria-haspopup', 'menu');
   trigger.setAttribute('aria-expanded', 'false');

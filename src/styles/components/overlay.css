@@ -14,6 +14,8 @@
   animation: b24-pop-in var(--b24-duration-fast) var(--b24-ease);
 }
 .b24-popup[hidden] { display: none; }
+/* попап получает .b24-root (шрифт и токены вне кита) — фон страницы у .b24-root не должен перебить фон попапа */
+.b24-popup.b24-root { background: var(--b24-bg-surface); }
 .b24-menu { display: flex; flex-direction: column; gap: 1px; margin: 0; padding: 0; list-style: none; }
 .b24-menu__item {
   display: flex; align-items: center; gap: 10px;

@@ -27,6 +27,7 @@
 .b24-scheduler__legend { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 16px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); border-top: 1px solid var(--b24-divider); }
 .b24-scheduler__legend span { display: inline-flex; align-items: center; gap: 6px; }
 .b24-scheduler__legend i { width: 16px; height: 10px; border-radius: 3px; }
+.b24-scheduler__legend small { font-size: inherit; color: var(--b24-text-subtle); opacity: 0.75; font-variant-numeric: tabular-nums; }
 
 .b24-scheduler__viewport { position: relative; flex: 1 1 auto; overflow: auto; height: var(--b24-scheduler-height, 560px); overscroll-behavior: contain; }
 .b24-scheduler__canvas { position: relative; }

@@ -159,7 +159,7 @@ button.b24-topnav__item { appearance: none; margin: 0; border: 0; background: tr
 .b24-topnav__item > .b24-counter { position: absolute; top: -7px; right: -4px; }
 /* «Ещё ▾»: пункты, что не поместились, спрятаны в меню (initTopnavMore) */
 .b24-topnav__item[hidden] { display: none; }
-.b24-topnav.has-more { overflow: hidden; }
+.b24-topnav.has-more { overflow: hidden; min-width: 88px; } /* не сжимается в ноль: «Ещё» всегда виден */
 .b24-topnav__more { flex: 0 0 auto; }
 .b24-topnav__more > svg { width: 14px; height: 14px; opacity: 0.8; }
 .b24-topnav-menu .b24-menu__counter { position: static; margin-left: auto; }
@@ -176,6 +176,10 @@ button.b24-topnav__item { appearance: none; margin: 0; border: 0; background: tr
   .b24-shell.is-menu-open .b24-shell__sidebar { transform: none; box-shadow: var(--b24-shadow-3xl); }
   .b24-shell__main { padding: var(--b24-space-xs) var(--b24-space-md) var(--b24-space-3xl); }
   .b24-shell__header { padding: 0 var(--b24-space-md); }
+  /* меню раздела в шапке оболочки (на одной линии с брендом, как в Битрикс24) — на телефоне отдельной строкой во всю ширину */
+  .b24-shell:has(> .b24-shell__header > .b24-topnav) { grid-template-rows: auto minmax(0, 1fr); }
+  .b24-shell__header:has(> .b24-topnav) { flex-wrap: wrap; row-gap: 2px; padding-top: 11px; padding-bottom: 8px; }
+  .b24-shell__header > .b24-topnav { order: 10; flex: 1 0 100%; min-width: 0; }
   .b24-app { padding: var(--b24-space-md) var(--b24-space-md) var(--b24-space-2xl); }
 }
 .b24-only-mobile { display: none !important; }
