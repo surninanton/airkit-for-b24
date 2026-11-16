@@ -2,7 +2,7 @@
  * .b24-lock — полноэкранный слой поверх всего (и модалок): подложка Air или видео, часы, профили, точки, клавиатура.
  */
 .b24-lock {
-  position: fixed; inset: 0; z-index: calc(var(--b24-z-toast) - 1);
+  position: fixed; inset: 0; z-index: var(--b24-z-lock, 90000);
   overflow: hidden auto; color: #fff;
   background-color: var(--b24-air-bg-color); background-image: var(--b24-air-bg-image); background-size: cover;
   animation: b24-fade-in var(--b24-duration) ease both;

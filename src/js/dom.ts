@@ -141,9 +141,19 @@ export function anchorOverlayInFrame(overlay: HTMLElement, dialog: HTMLElement):
  * Тосты и тултипы — выше всех (--b24-z-toast / --b24-z-tooltip).
  */
 let zCounter = 1000;
+/** Пока открыт экран блокировки (createLockScreen), окна, меню и подтверждения встают над ним: иначе из onOtherUser
+ * нельзя показать B24UI.confirm. Слой экрана — --b24-z-lock (ниже тостов), окна над ним — от --b24-z-lock + 1. */
+let zLockCounter = 0;
 export function bringToFront(el: HTMLElement | null | undefined): void {
   if (!el) return;
   zCounter += 1;
+  const lock = typeof document !== 'undefined' ? document.querySelector<HTMLElement>('.b24-lock:not(.is-closing)') : null;
+  if (lock && !lock.contains(el)) {
+    const base = parseInt(getComputedStyle(lock).zIndex, 10) || 90000;
+    zLockCounter = Math.max(zLockCounter, base) + 1;
+    el.style.zIndex = String(zLockCounter);
+    return;
+  }
   el.style.zIndex = String(zCounter);
 }
 

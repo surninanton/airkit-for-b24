@@ -197,6 +197,9 @@ export function createLockScreen(options: LockScreenOptions): LockScreenHandle {
 
   const onKey = (e: KeyboardEvent) => {
     if (closed || !dots) return;
+    // окно поверх экрана (confirm из onOtherUser) — клавиши его, а не экрана
+    const tgt = e.target as Node;
+    if (tgt !== document.body && tgt !== document.documentElement && !root.contains(tgt)) return;
     if (/^\d$/.test(e.key) && !(e.target as HTMLElement).matches('.b24-lock__input')) { e.preventDefault(); press(e.key); }
     else if (e.key === 'Backspace') { e.preventDefault(); erase(); }
     else if (e.key === 'Escape' && users.length > 1) { e.preventDefault(); showUsers(); }

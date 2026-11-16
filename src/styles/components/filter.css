@@ -97,6 +97,9 @@
 .b24-filter-popup__preset:hover { background: var(--b24-bg-hover); }
 .b24-filter-popup__preset.is-active { color: var(--b24-color-link); font-weight: var(--b24-font-weight-medium); background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-2xs); }
 .b24-filter-popup__preset > span { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; }
+/* число у пресета или варианта: «Нанят 68» */
+.b24-filter-popup__count { margin-left: 6px; font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-regular); color: var(--b24-text-subtle); font-variant-numeric: tabular-nums; }
+.b24-filter-popup__preset > .b24-filter-popup__count { flex: 0 0 auto; overflow: visible; }
 .b24-filter-popup__preset-remove { display: none; }
 .b24-filter-popup__preset:hover .b24-filter-popup__preset-remove { display: inline-grid; }
 .b24-filter-popup__save { margin-top: auto; padding-top: 8px; }

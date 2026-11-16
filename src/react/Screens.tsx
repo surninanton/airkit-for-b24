@@ -181,6 +181,17 @@ export function Scheduler({ className, ...options }: SchedulerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rKey, eKey, bKey]);
   useEffect(() => { if (options.view && sch.current && sch.current.view !== options.view) sch.current.setView(options.view); }, [options.view]);
+  // days / date для вида 'days' меняют период без пересоздания
+  const dateKey = options.date == null ? '' : String(new Date(options.date as never).getTime());
+  const firstRange = useRef(true);
+  useEffect(() => {
+    if (firstRange.current) { firstRange.current = false; return; }
+    const h = sch.current;
+    if (!h) return;
+    if (options.view === 'days' || h.view === 'days') h.setRange(options.date ?? h.range.start, options.days ?? h.days);
+    else if (options.date != null) h.setDate(options.date);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.days, dateKey]);
   return <div ref={host} className={className} />;
 }
 

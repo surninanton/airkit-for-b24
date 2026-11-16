@@ -4,7 +4,7 @@ import { PERIOD_OPTIONS, type PeriodType, type PeriodValue } from './date';
 import { bringToFront, h, html, pushLayer } from './dom';
 import { modal } from './modal';
 import {
-  chips, cleanValues, countActive, toBitrixFilter, toQuery,
+  chips, cleanValues, countActive, countText, optionText, toBitrixFilter, toQuery, type FilterCounts,
   type FilterField, type FilterPreset, type FilterState, type FilterValues, type NumberRange,
 } from './filter-model';
 import { t } from './i18n';
@@ -33,13 +33,16 @@ export interface FilterHandle {
   setState(state: Partial<FilterState>, apply?: boolean): void;
   open(): void;
   close(): void;
+  /** обновить числа у пресетов и вариантов полей (undefined — убрать) */
+  setCounts(counts: FilterCounts): void;
   destroy(): void;
 }
 
 /** Фильтр в духе main.ui.filter: строка с чипами + попап с пресетами и полями. */
 export function createFilter(container: HTMLElement, options: FilterOptions): FilterHandle {
-  const { fields, placeholder = t('Фильтр и поиск'), glass, submit = 'event', queryPrefix = 'filter', searchDebounce = 400 } = options;
+  const { placeholder = t('Фильтр и поиск'), glass, submit = 'event', queryPrefix = 'filter', searchDebounce = 400 } = options;
   let presets = [...(options.presets ?? [])];
+  let fields = options.fields;
   let state: FilterState = { presetId: null, values: {}, search: '', ...options.state };
   // черновик значений в попапе, применяется по «Найти»
   let draft: FilterState = structuredClone(state);
@@ -98,6 +101,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     presetsEl.textContent = '';
     for (const p of presets) {
       const btn = h('button', { type: 'button', class: `b24-filter-popup__preset${draft.presetId === p.id ? ' is-active' : ''}` }, h('span', {}, p.name));
+      if (p.count != null) btn.append(h('span', { class: 'b24-filter-popup__count' }, countText(p.count)));
       if (!p.system) {
         const del = h('span', { class: 'b24-filter__chip-remove b24-filter-popup__preset-remove', role: 'button', 'aria-label': t('Удалить пресет {name}', { name: p.name }) }, html(icon('close')));
         del.addEventListener('click', (e) => {
@@ -167,7 +171,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
         case 'checkbox': {
           const opts = f.type === 'checkbox' ? [{ value: 'Y', label: t('Да') }, { value: 'N', label: t('Нет') }] : f.options ?? [];
           const el = h('select', { id, class: 'b24-select' }, h('option', { value: '' }, t('Не выбрано')));
-          for (const o of opts) el.append(h('option', { value: o.value, selected: o.value === v }, o.label));
+          for (const o of opts) el.append(h('option', { value: o.value, selected: o.value === v }, optionText(o)));
           el.addEventListener('change', () => setDraft(f.id, el.value));
           wrap.append(el);
           break;
@@ -181,7 +185,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
               if (cb.checked) selected.add(o.value); else selected.delete(o.value);
               setDraft(f.id, [...selected]);
             });
-            row.append(h('label', { class: 'b24-check' }, cb, h('span', {}, o.label)));
+            row.append(h('label', { class: 'b24-check' }, cb, h('span', {}, o.label, o.count != null ? h('span', { class: 'b24-filter-popup__count' }, countText(o.count)) : '')));
           }
           wrap.append(row);
           break;
@@ -339,6 +343,14 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     setState,
     open,
     close,
+    setCounts(c) {
+      if (c.presets) presets = presets.map((p) => (p.id in c.presets! ? { ...p, count: c.presets![p.id] } : p));
+      if (c.fields) fields = fields.map((f) => {
+        const m = c.fields![f.id];
+        return m && f.options ? { ...f, options: f.options.map((o) => (o.value in m ? { ...o, count: m[o.value] } : o)) } : f;
+      });
+      if (opened) { renderPresets(); renderFields(); }
+    },
     destroy() { close(); popup.remove(); bar.remove(); clearTimeout(timer); },
   };
 }

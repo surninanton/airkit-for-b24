@@ -20,7 +20,9 @@ export type { SchedulerMenuItem } from './scheduler-editor';
 /** day — сутки, week — неделя с понедельника, days — N дней от date (опция days), month — месяц */
 export type SchedulerView = 'day' | 'week' | 'days' | 'month';
 export type DateInput = Date | string | number;
-export type BandKind = 'work' | 'vacation' | 'sick' | 'trip' | 'off';
+/** встроенные виды графика; свой вид — любая строка (подпись — band.label, оформление — band.color / band.className) */
+export type BandKind = 'work' | 'vacation' | 'sick' | 'trip' | 'off' | (string & {});
+const KNOWN_BANDS = new Set(['work', 'vacation', 'sick', 'trip', 'off']);
 
 export interface SchedulerResource {
   id: string;
@@ -30,6 +32,12 @@ export interface SchedulerResource {
   meta?: string;
   /** отдел — строки группируются и сворачиваются */
   group?: string;
+  /** точка у аватара: online — зелёная, away — жёлтая, offline — нет точки */
+  status?: 'online' | 'away' | 'offline';
+  /** короткая запись status: 'online' */
+  online?: boolean;
+  /** когда был в сети: Date / ISO / timestamp → «был(а) в сети 5 мин назад», или готовая строка */
+  lastSeen?: DateInput;
 }
 export interface SchedulerEvent {
   id: string;
@@ -49,6 +57,10 @@ export interface SchedulerEvent {
   comment?: string;
   /** данные приложения; свои поля окна редактирования (editor.fields) пишутся сюда по name */
   data?: unknown;
+  /** свой класс на элементе встречи */
+  className?: string;
+  /** оформление: dashed — пунктирная рамка (пожелание, черновик), hatched — штриховка */
+  variant?: 'dashed' | 'hatched';
 }
 /** тип события: «Встреча», «Звонок», «Выходной»… — цвет, подпись в легенде, пункт меню «Тип» */
 export interface SchedulerEventType {
@@ -98,7 +110,13 @@ export interface SchedulerBand {
   start: DateInput;
   end: DateInput;
   kind: BandKind;
+  /** подпись на полосе (для своих видов — обязательно, иначе полоса без текста) */
   label?: string;
+  /** цвет своего вида: штриховка этим цветом и пункт легенды */
+  color?: string;
+  className?: string;
+  /** сотрудник отсутствует: встреча поверх помечается конфликтом. По умолчанию — для vacation, sick, trip, off; для своих видов — нет */
+  absent?: boolean;
 }
 export interface SchedulerChange {
   event: SchedulerEvent;
@@ -131,8 +149,9 @@ export interface SchedulerOptions {
   readonly?: boolean;
   /** выделение для onCreate — в пределах одного дня (по умолчанию нет: можно протянуть через полночь) */
   createWithinDay?: boolean;
-  /** прокрутка шкалы при открытии и смене вида: 'now' — к сегодня / «сейчас» (по умолчанию), 'start' — к началу периода (в дне — к первому видимому часу) */
-  initialScroll?: 'now' | 'start';
+  /** прокрутка шкалы при открытии и смене вида: 'now' — к сегодня / «сейчас» на треть ширины (по умолчанию), 'center' — то же по центру
+   *  (в дне — «сейчас», в остальных видах — сегодняшний день), 'start' — к началу периода (в дне — к первому видимому часу) */
+  initialScroll?: 'now' | 'start' | 'center';
   /** подсказка над встречей; по умолчанию — название, время, сотрудник */
   tooltip?: (event: SchedulerEvent, resource?: SchedulerResource) => string;
   onChange?: (change: SchedulerChange) => void | Promise<unknown>;
@@ -165,8 +184,15 @@ export interface SchedulerHandle {
   setEvents(events: SchedulerEvent[]): void;
   setBands(bands: SchedulerBand[]): void;
   getEvents(): SchedulerEvent[];
-  /** прокрутить к моменту времени */
-  scrollToTime(date: DateInput): void;
+  /** прокрутить к моменту времени: по умолчанию он встаёт на треть ширины, 'center' — по центру, 'start' — к левому краю */
+  scrollToTime(date: DateInput, align?: 'third' | 'center' | 'start'): void;
+  /** прокрутить к дню: 'center' (по умолчанию) — середина дня по центру, 'start' — начало дня к левому краю */
+  scrollToDate(date: DateInput, align?: 'center' | 'start'): void;
+  /** длина периода вида 'days' (1–62); переключает на этот вид. Масштаб, вертикальная прокрутка и свёрнутые группы сохраняются */
+  setDays(days: number): void;
+  /** произвольный период: N дней с даты start (вид 'days') */
+  setRange(start: DateInput, days: number): void;
+  readonly days: number;
   /** открыть окно редактирования встречи */
   editEvent(id: string): void;
   /** открыть окно новой встречи с заполненными полями */
@@ -189,12 +215,24 @@ const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.g
 /** пикселей в часе по виду (умножается на зум) */
 const PX: Record<SchedulerView, number> = { day: 64, week: 24, days: 24, month: 2 };
 const ROW_PAD = 4;
+
+/** «был(а) в сети 5 мин назад» */
+function lastSeenText(v: DateInput): string {
+  if (typeof v === 'string' && Number.isNaN(Date.parse(v))) return v;
+  const d = toDate(v);
+  const min = Math.max(0, Math.round((Date.now() - d.getTime()) / 60_000));
+  if (min < 1) return t('Был(а) в сети только что');
+  if (min < 60) return t('Был(а) в сети {n} мин назад', { n: min });
+  if (min < 24 * 60) return t('Был(а) в сети {n} ч назад', { n: Math.round(min / 60) });
+  return t('Был(а) в сети {date}', { date: new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(d) });
+}
 const GROUP_H = 32;
 
 export function createScheduler(host: HTMLElement, options: SchedulerOptions): SchedulerHandle {
   const o = options;
   let view: SchedulerView = o.view ?? 'week';
-  const nDays = Math.min(62, Math.max(1, Math.floor(o.days ?? 7)));
+  const clampDays = (n: number) => Math.min(62, Math.max(1, Math.floor(n) || 1));
+  let nDays = clampDays(o.days ?? 7);
   let anchor = startOfDay(o.date ? toDate(o.date) : new Date());
   /** желаемые пиксели в часе после «−»/«+»/колеса; null — по умолчанию (окно часов на ширину области, не уже PX) */
   let pxTarget: number | null = null;
@@ -230,6 +268,8 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   /** последнее место под курсором — сюда вставляется копия по Ctrl/⌘+V */
   let lastSlot: { resourceId: string; time: Date } | null = null;
   let zoomInBtn: HTMLButtonElement | null = null;
+  let daysLabel: HTMLElement | null = null;
+  let syncDaysSeg = () => {};
   let zoomOutBtn: HTMLButtonElement | null = null;
   const MAX_ZOOM = 4;
 
@@ -326,12 +366,21 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const viewList: Array<[SchedulerView, string]> = [['day', t('День')], ['week', t('Неделя')]];
     if (o.days || view === 'days') viewList.push(['days', t('{n} дн.', { n: nDays })]);
     viewList.push(['month', t('Месяц')]);
-    for (const [v, label] of viewList) {
+    const segItem = (v: SchedulerView, label: string) => {
       const input = h('input', { type: 'radio', name, value: v }) as HTMLInputElement;
       input.checked = v === view;
       input.addEventListener('change', () => handle.setView(v));
-      seg.append(h('label', {}, input, h('span', {}, label)));
-    }
+      const span = h('span', {}, label);
+      if (v === 'days') daysLabel = span;
+      return h('label', {}, input, span);
+    };
+    for (const [v, label] of viewList) seg.append(segItem(v, label));
+    // пункт «N дн.» появляется (или меняет подпись) после setDays / setRange
+    syncDaysSeg = () => {
+      if (daysLabel) { daysLabel.textContent = t('{n} дн.', { n: nDays }); return; }
+      const month = seg.querySelector('input[value="month"]')?.parentElement ?? null;
+      seg.insertBefore(segItem('days', t('{n} дн.', { n: nDays })), month);
+    };
     zoomOutBtn = btn('', t('Уменьшить масштаб'), () => handle.zoomOut(), 'minus');
     zoomInBtn = btn('', t('Увеличить масштаб'), () => handle.zoomIn(), 'plus');
     const zoomBox = h('div', { class: 'b24-scheduler__zoom', role: 'group', 'aria-label': t('Масштаб') },
@@ -360,6 +409,9 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       if (kinds.has('vacation')) out.push(item(t('Отпуск'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-violet-1) 0 3px, transparent 3px 6px)'));
       if (kinds.has('sick')) out.push(item(t('Больничный'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-red-2) 0 3px, transparent 3px 6px)'));
       if (kinds.has('trip')) out.push(item(t('Командировка'), 'repeating-linear-gradient(135deg, var(--b24-color-soft-blue-1) 0 3px, transparent 3px 6px)'));
+      const custom = new Map<string, string | undefined>();
+      for (const b of bands) if (!KNOWN_BANDS.has(b.kind) && b.label && !custom.has(b.label)) custom.set(b.label, b.color);
+      for (const [label, color] of custom) out.push(item(label, `repeating-linear-gradient(135deg, color-mix(in srgb, ${color ?? 'var(--b24-text-subtle)'} 35%, transparent) 0 3px, transparent 3px 6px)`));
       out.push(item(t('Пересечение'), 'transparent; box-shadow: inset 0 0 0 1.5px var(--b24-color-danger)'));
     }
     const markup = out.join('');
@@ -483,6 +535,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
 
   /* ── загрузка и конфликты ── */
   const clip = (s: Date, e: Date) => Math.max(0, Math.min(e.getTime(), range().end.getTime()) - Math.max(s.getTime(), range().start.getTime()));
+  const isAbsence = (b: SchedulerBand) => b.absent ?? (b.kind !== 'work' && KNOWN_BANDS.has(b.kind));
   const resBands = (id: string) => bands.filter((b) => b.resourceId === id && inRange(b.s, b.e));
   const loadOf = (id: string) => {
     const work = resBands(id).filter((b) => b.kind === 'work').reduce((a, b) => a + clip(b.s, b.e), 0);
@@ -495,7 +548,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const overlap = mine.some((e) => e.s < ev.e && e.e > ev.s);
     const rb = bands.filter((b) => b.resourceId === ev.resourceId);
     // событие без времени (выходной, отпуск) само говорит об отсутствии — не конфликт с графиком
-    const absent = !isAllDay(ev) && rb.find((b) => b.kind !== 'work' && b.s < ev.e && b.e > ev.s);
+    const absent = !isAllDay(ev) && rb.find((b) => isAbsence(b) && b.s < ev.e && b.e > ev.s);
     const works = rb.filter((b) => b.kind === 'work');
     const outside = !isAllDay(ev) && works.length > 0 && !works.some((b) => b.s <= ev.s && b.e >= ev.e);
     return { overlap, absent, outside };
@@ -519,7 +572,12 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const hasSchedule = bands.some((b) => b.resourceId === r.id && b.kind === 'work');
     const el = h('div', { class: `b24-scheduler__row${hasSchedule ? ' has-schedule' : ''}`, 'data-resource': r.id, style: `top:${it.top}px;height:${it.height}px;width:calc(var(--_res-w) + ${w}px)` });
     const cell = h('div', { class: 'b24-scheduler__resource' });
-    cell.append(html(avatarHtml(r.name, r.avatar, 'sm')));
+    const av = html(avatarHtml(r.name, r.avatar, 'sm')).firstElementChild as HTMLElement;
+    const status = r.status ?? (r.online ? 'online' : r.online === false ? 'offline' : undefined);
+    if (status === 'online' || status === 'away') av.append(h('span', { class: `b24-avatar__status${status === 'away' ? ' is-away' : ''}` }));
+    const seen = status === 'online' ? t('В сети') : status === 'away' ? t('Нет на месте') : r.lastSeen != null ? lastSeenText(r.lastSeen) : '';
+    if (seen) { av.title = seen; av.setAttribute('aria-label', `${r.name}: ${seen}`); av.setAttribute('role', 'img'); }
+    cell.append(av);
     cell.append(h('div', { class: 'b24-scheduler__who' }, h('span', { class: 'b24-scheduler__name', title: r.name }, r.name), r.meta ? h('span', { class: 'b24-scheduler__meta' }, r.meta) : ''));
     const load = loadOf(r.id);
     if (load != null) {
@@ -544,8 +602,11 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       const left = Math.max(0, x(b.s));
       const right = Math.min(w, x(b.e));
       if (right <= left) continue;
-      const label = b.label ?? ({ vacation: t('Отпуск'), sick: t('Больничный'), trip: t('Командировка'), off: '', work: '' } as Record<BandKind, string>)[b.kind];
-      track.append(h('div', { class: `b24-scheduler__band b24-scheduler__band--${b.kind}`, style: `left:${left}px;width:${right - left}px` }, right - left > 60 ? label : ''));
+      const known = KNOWN_BANDS.has(b.kind);
+      const label = b.label ?? ({ vacation: t('Отпуск'), sick: t('Больничный'), trip: t('Командировка') } as Record<string, string>)[b.kind] ?? '';
+      const cls = `b24-scheduler__band b24-scheduler__band--${known ? b.kind : 'custom'}${known ? '' : ` b24-scheduler__band--${b.kind.replace(/[^\w-]/g, '')}`}${b.className ? ` ${b.className}` : ''}`;
+      const band = h('div', { class: cls, style: `left:${left}px;width:${right - left}px${b.color ? `;--_band-c:${b.color}` : ''}`, title: label || undefined }, right - left > 60 ? label : '');
+      track.append(band);
     }
     for (const e of events) {
       if (e.resourceId !== r.id || !inRange(e.s, e.e)) continue;
@@ -554,7 +615,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       const lane = it.lanes.get(e.id) ?? 0;
       const f = flags(e);
       const ev = h('div', {
-        class: `b24-scheduler__event${e.readonly || o.readonly ? ' is-readonly' : ''}${f.overlap || f.absent ? ' is-conflict' : ''}${f.outside ? ' is-outside' : ''}`,
+        class: `b24-scheduler__event${e.readonly || o.readonly ? ' is-readonly' : ''}${f.overlap || f.absent ? ' is-conflict' : ''}${f.outside ? ' is-outside' : ''}${e.variant ? ` is-${e.variant}` : ''}${e.className ? ` ${e.className}` : ''}`,
         'data-event': e.id, tabindex: '0', role: 'button',
         'aria-label': `${e.title}${isAllDay(e) ? '' : `, ${fmtRange(e.s, e.e)}`}${e.comment ? `, ${t('есть комментарий')}` : ''}${f.overlap ? `, ${t('пересекается с другой встречей')}` : ''}`,
         style: `left:${left}px;width:${Math.max(4, right - left)}px;top:${ROW_PAD + lane * laneH + 2}px${colorOf(e) ? `;--b24-scheduler-event-color:${colorOf(e)}` : ''}`,
@@ -1000,14 +1061,21 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   viewport.addEventListener('wheel', onWheel, { passive: false });
   viewport.addEventListener('scroll', onScroll, { passive: true });
 
-  const scrollToTime = (d: DateInput) => {
-    viewport.scrollLeft = Math.max(0, x(toDate(d)) - (viewport.clientWidth - resW()) / 3);
+  const scrollToTime = (d: DateInput, align: 'third' | 'center' | 'start' = 'third') => {
+    const k = align === 'center' ? 2 : align === 'start' ? Infinity : 3;
+    viewport.scrollLeft = Math.max(0, x(toDate(d)) - (viewport.clientWidth - resW()) / k);
+  };
+  const scrollToDate = (d: DateInput, align: 'center' | 'start' = 'center') => {
+    const day = startOfDay(toDate(d));
+    if (align === 'start') return scrollToTime(day, 'start');
+    viewport.scrollLeft = Math.max(0, (x(day) + x(addDays(day, 1))) / 2 - (viewport.clientWidth - resW()) / 2);
   };
   /** при открытии: в дне — к 8:00 или к «сейчас», в неделе — к сегодняшнему дню; initialScroll: 'start' — к началу периода */
   const initialScroll = () => {
     const now = new Date();
     const { start, end } = range();
     if (o.initialScroll === 'start') { if (view === 'day') scrollToTime(new Date(start.getTime() + (o.hours?.[0] ?? 8) * HOUR)); else viewport.scrollLeft = 0; return; }
+    if (o.initialScroll === 'center' && now >= start && now < end) { if (view === 'day') scrollToTime(now, 'center'); else scrollToDate(now); return; }
     if (now >= start && now < end) scrollToTime(view === 'day' ? new Date(Math.max(now.getTime() - 2 * HOUR, start.getTime())) : startOfDay(now));
     else if (view === 'day') scrollToTime(new Date(start.getTime() + 8 * HOUR));
     else viewport.scrollLeft = 0;
@@ -1034,6 +1102,23 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     setBands(list) { bands = normBands(list); render(); },
     getEvents: () => events.map(({ s, e, ...rest }) => ({ ...rest, start: s, end: e })),
     scrollToTime,
+    scrollToDate,
+    get days() { return nDays; },
+    setDays(n) { handle.setRange(view === 'days' ? anchor : range().start, n); },
+    setRange(start, n) {
+      const keep = viewport.scrollTop;
+      nDays = clampDays(n);
+      anchor = startOfDay(toDate(start));
+      syncDaysSeg();
+      if (view !== 'days') {
+        view = 'days';
+        root.querySelectorAll<HTMLInputElement>('.b24-segmented input').forEach((i) => { i.checked = i.value === 'days'; });
+      }
+      render();
+      viewport.scrollTop = keep;
+      initialScroll();
+      void reload();
+    },
     editEvent(id) { const ev = evById(id); if (ev) openEditorFor(pub(ev), ev); },
     createEvent(draft) { if (editorOpts()) openEditorFor({ id: '', title: draft.title ?? '', ...draft }); },
     zoomIn() { zoomCenter(pxh() * 1.25); },

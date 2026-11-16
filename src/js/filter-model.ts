@@ -7,7 +7,8 @@ import { t } from './i18n';
 
 export type FilterFieldType = 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'checkbox';
 
-export interface FilterOption { value: string; label: string }
+/** count — число рядом с названием: «Нанят 68» */
+export interface FilterOption { value: string; label: string; count?: number }
 
 export interface FilterField {
   id: string;
@@ -31,7 +32,18 @@ export interface FilterPreset {
   values: FilterValues;
   /** системный пресет нельзя удалить */
   system?: boolean;
+  /** число рядом с названием */
+  count?: number;
 }
+/** числа у пресетов и вариантов полей: { presets: { hired: 68 }, fields: { stage: { new: 12 } } } */
+export interface FilterCounts {
+  presets?: Record<string, number | undefined>;
+  fields?: Record<string, Record<string, number | undefined>>;
+}
+const fmtCount = (n: number) => n.toLocaleString('ru-RU');
+/** подпись варианта в <option>: «Нанят (68)» — внутри select разметки нет */
+export const optionText = (o: FilterOption): string => (o.count != null ? `${o.label} (${fmtCount(o.count)})` : o.label);
+export const countText = (n: number): string => fmtCount(n);
 
 export interface FilterState {
   presetId: string | null;

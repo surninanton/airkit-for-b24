@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PeriodValue } from '../js/date';
 import {
-  chips, cleanValues, countActive, toBitrixFilter,
+  chips, cleanValues, countActive, countText, optionText, toBitrixFilter,
   type FilterField, type FilterPreset, type FilterState, type FilterValue, type NumberRange,
 } from '../js/filter-model';
 import { Button } from './Button';
@@ -75,7 +75,7 @@ export function Filter({
             id={id}
             value={(v as string) ?? ''}
             onChange={(e) => setField(f.id, e.target.value)}
-            options={[{ value: '', label: t('Не выбрано') }, ...(f.type === 'checkbox' ? [{ value: 'Y', label: t('Да') }, { value: 'N', label: t('Нет') }] : f.options ?? [])]}
+            options={[{ value: '', label: t('Не выбрано') }, ...(f.type === 'checkbox' ? [{ value: 'Y', label: t('Да') }, { value: 'N', label: t('Нет') }] : (f.options ?? []).map((o) => ({ value: o.value, label: optionText(o) })))]}
           />
         );
         break;
@@ -86,7 +86,7 @@ export function Filter({
             {f.options?.map((o) => (
               <Checkbox
                 key={o.value}
-                label={o.label}
+                label={o.count != null ? <>{o.label}<span className="b24-filter-popup__count">{countText(o.count)}</span></> : o.label}
                 checked={sel.has(o.value)}
                 onChange={(e) => {
                   const next = new Set(sel);
@@ -207,6 +207,7 @@ export function Filter({
               }}
             >
               <span>{p.name}</span>
+              {p.count != null && <span className="b24-filter-popup__count">{countText(p.count)}</span>}
               {!p.system && onPresetsChange && (
                 <span
                   role="button"

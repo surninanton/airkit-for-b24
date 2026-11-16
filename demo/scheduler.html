@@ -46,6 +46,8 @@
     'Внедрение': [['Остап Ильин', 'Руководитель проектов'], ['Ульяна Рябова', 'Аналитик'], ['Демид Голованов', 'Консультант'], ['Таисия Миронова', 'Консультант'], ['Лука Субботин', 'Разработчик'], ['Ангелина Кравец', 'Разработчик'], ['Платон Седов', 'Тестировщик'], ['Нелли Аксёнова', 'Консультант']],
   };
   const resources = Object.entries(people).flatMap(([group, list], gi) => list.map(([name, meta], i) => ({ id: `u${gi}${i}`, name, meta, group })));
+  // статус «в сети»: точка у аватара, подсказка «Был(а) в сети N мин назад»
+  resources.forEach((r, i) => { if (i % 3 === 0) r.online = true; else if (i % 5 === 1) r.status = 'away'; else r.lastSeen = new Date(Date.now() - (i * 17 % 300) * 60000); });
 
   // неделя от понедельника; всё относительно сегодняшнего дня, чтобы демо всегда было заполнено
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -65,6 +67,8 @@
   bands.push({ resourceId: 'u03', start: at(1, 0), end: at(5, 0), kind: 'vacation' });
   bands.push({ resourceId: 'u14', start: at(0, 0), end: at(2, 0), kind: 'sick' });
   bands.push({ resourceId: 'u22', start: at(2, 0), end: at(4, 0), kind: 'trip', label: 'Командировка, Казань' });
+  // свой вид графика: пожелания сотрудника — подпись и цвет из данных, встречи поверх не конфликт
+  bands.push({ resourceId: 'u01', start: at(3, 8), end: at(3, 14), kind: 'wish', label: 'Пожелание: утро', color: '#9dcf00' });
 
   const titles = ['Планёрка', 'Встреча с клиентом', 'Демо продукта', 'Созвон по внедрению', 'Обучение', 'Ревью задач', 'Звонок партнёру', 'Разбор обращений', 'Интервью', '1:1'];
   const eventTypes = [
@@ -94,10 +98,11 @@
   events.push({ id: 'e-overlap-b', resourceId: 'u00', start: at(1, 11), end: at(1, 13), title: 'Демо для «Луча»', type: 'call' });
   events.push({ id: 'e-late', resourceId: 'u20', start: at(2, 19), end: at(2, 21), title: 'Выкатка релиза', type: 'urgent' });
   events.push({ id: 'e-off', resourceId: 'u07', start: at(4, 9), end: at(5, 0), title: 'Выходной', type: 'off' });
+  events.push({ id: 'e-draft', resourceId: 'u02', start: at(2, 15), end: at(2, 17), title: 'Черновик: планёрка', variant: 'dashed', comment: 'Время ещё не согласовано' });
   events.push({ id: 'e-all-hands', resourceId: 'u10', start: at(3, 12), end: at(3, 13), title: 'Общее собрание', readonly: true, color: '#828b95' });
 
   const delay = (ms) => new Promise((r) => setTimeout(r, ms));
-  const isAbsent = (rid, s, e) => bands.some((b) => b.resourceId === rid && b.kind !== 'work' && b.start < e && b.end > s);
+  const isAbsent = (rid, s, e) => bands.some((b) => b.resourceId === rid && b.kind !== 'work' && b.kind !== 'wish' && b.start < e && b.end > s);
 
   window.scheduler = B24UI.createScheduler(document.getElementById('scheduler'), {
     resources, events, bands, eventTypes, view: 'week', height: 620,

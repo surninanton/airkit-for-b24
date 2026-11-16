@@ -171,4 +171,10 @@ export const enData: Record<string, string> = {
   'Отмечено: {n} / {m}': 'Selected: {n} / {m}',
   'Быстрое добавление': 'Quick add',
   'Стадия': 'Stage',
+  'В сети': 'Online',
+  'Нет на месте': 'Away',
+  'Был(а) в сети только что': 'Last seen just now',
+  'Был(а) в сети {n} мин назад': 'Last seen {n} min ago',
+  'Был(а) в сети {n} ч назад': 'Last seen {n} h ago',
+  'Был(а) в сети {date}': 'Last seen {date}',
 };
