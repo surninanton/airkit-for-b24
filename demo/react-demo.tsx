@@ -546,7 +546,8 @@ function Demo() {
         header={
           <>
             <TopNav items={[
-              { label: 'Сделки', active: true, counter: 24 }, { label: 'Счета' }, { label: 'Компании' }, { label: 'Контакты', counter: 13 }, { label: 'Аналитика' },
+              { label: 'Сделки', active: true, counter: 24 }, { label: 'Счета' }, { label: 'Компании' }, { label: 'Контакты', counter: 13 },
+              { label: 'Товары и склады' }, { label: 'Аналитика' }, { label: 'Роботы', counter: 2 }, { label: 'Настройки CRM' },
             ]} />
             <span className="b24-spacer" />
             <Button variant="glass" size="sm" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? 'Тёмная тема' : 'Светлая тема'}</Button>

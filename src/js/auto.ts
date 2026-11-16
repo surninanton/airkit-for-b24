@@ -24,6 +24,7 @@ import { t } from './i18n';
 import { warnLayout } from './page-header';
 import { createRating, getRating } from './rating';
 import { setAutoInit } from './dom';
+import { initTopnavMore } from './topnav-more';
 
 /**
  * Декларативная инициализация по data-атрибутам (удобно для PHP/Jinja-шаблонов):
@@ -52,6 +53,7 @@ import { setAutoInit } from './dom';
  *                                    data-counter — непрочитанные обращения; потом getVendor(el).setCounter(n) или событие b24:vendor-counter
  *   [data-b24-gallery]             — галерея скриншотов: a.b24-gallery__item → лайтбокс (←/→, Esc)
  *   .b24-topnav[data-b24-topnav]   — верхнее меню сайта: на ≤768px пункты прячутся в «☰»
+ *   .b24-page-header__menu, .b24-topnav[data-b24-more] — меню раздела: не поместившиеся пункты в «Ещё ▾»
  *   .b24-site-header[data-b24-site-header] — липкая шапка сайта: бургер на ≤960px, группы меню (details)
  *   .b24-anchor-nav[data-b24-anchor-nav]   — якорное меню: подсветка текущей секции
  *   a.b24-video[data-b24-video]    — видео: по клику плеер на месте постера (data-embed — iframe)
@@ -237,6 +239,12 @@ export function init(root: ParentNode = document): void {
     if (el.dataset.b24Ready) return;
     el.dataset.b24Ready = '1';
     initGallery(el);
+  });
+
+  // меню раздела: не поместившиеся пункты — в «Ещё ▾» (data-b24-more="off" — выключить)
+  root.querySelectorAll<HTMLElement>('.b24-page-header__menu, .b24-topnav[data-b24-more]').forEach((el) => {
+    if (el.dataset.b24More === 'off' || el.matches('[data-b24-topnav]')) return;
+    initTopnavMore(el);
   });
 
   root.querySelectorAll<HTMLElement>('.b24-topnav[data-b24-topnav]').forEach((el) => {

@@ -21,6 +21,8 @@
 .b24-page-header__menu::-webkit-scrollbar { display: none; }
 .b24-page-header__menu .b24-topnav__item { flex: 0 0 auto; }
 .b24-page-header__menu .b24-topnav__item > .b24-counter { position: static; }
+/* с «Ещё ▾» меню не прокручивается и не выталкивает служебный угол на новую строку */
+.b24-page-header__menu.has-more { overflow: hidden; flex: 1 1 0; min-width: 96px; }
 
 /* строка 1 */
 .b24-page-header__title {

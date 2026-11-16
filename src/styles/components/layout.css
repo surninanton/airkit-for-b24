@@ -117,6 +117,7 @@
 }
 .b24-sidebar__item:hover { background: rgba(255, 255, 255, 0.12); }
 .b24-sidebar__item[aria-current="page"],
+.b24-sidebar__item[aria-current="true"],
 .b24-sidebar__item.is-active { background: rgba(255, 255, 255, 0.3); }
 .b24-sidebar__item > svg { width: 20px; height: 20px; flex: 0 0 auto; opacity: 0.9; }
 .b24-sidebar__item > .b24-counter { margin-left: auto; }
@@ -156,6 +157,13 @@ button.b24-topnav__item { appearance: none; margin: 0; border: 0; background: tr
 .b24-topnav__item[aria-selected="true"],
 .b24-topnav__item.is-active { color: #fff; background: rgba(255, 255, 255, 0.22); }
 .b24-topnav__item > .b24-counter { position: absolute; top: -7px; right: -4px; }
+/* «Ещё ▾»: пункты, что не поместились, спрятаны в меню (initTopnavMore) */
+.b24-topnav__item[hidden] { display: none; }
+.b24-topnav.has-more { overflow: hidden; }
+.b24-topnav__more { flex: 0 0 auto; }
+.b24-topnav__more > svg { width: 14px; height: 14px; opacity: 0.8; }
+.b24-topnav-menu .b24-menu__counter { position: static; margin-left: auto; }
+.b24-topnav-menu .b24-menu__item.is-active { font-weight: var(--b24-font-weight-medium); color: var(--b24-color-link); }
 
 /* Мобильная адаптация shell */
 @media (max-width: 768px) {

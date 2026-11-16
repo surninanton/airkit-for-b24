@@ -121,6 +121,36 @@ el.dispatchEvent(new CustomEvent('b24:vendor-counter', { detail: { count: 5 } })
 
 Все правила и примеры для агентов — в [`AGENTS.md`](AGENTS.md), он же лежит в `dist/AGENTS.md`. В CLAUDE.md своего приложения достаточно строки: «UI — по правилам из …/dist/AGENTS.md».
 
+### Раздел и подразделы: как CRM в Битрикс24
+
+В левом меню — только разделы («CRM», «Расписание смен»). Подразделы раздела («Сделки · Счета · Компании · Контакты») — **меню раздела** над заголовком, а не вложенные пункты сайдбара.
+
+- **Сайдбар**: пункт раздела подсвечен на всех его подстраницах — `aria-current="page"` (или `"true"`, или `.is-active`) ставит сервер / роутер по префиксу адреса; в React — `<SidebarItem active>`. Вложенных пунктов в сайдбаре нет.
+- **Меню раздела**: `menu` у `createPageHeader` / `<PageHeader>` (или разметка `.b24-page-header__nav > nav.b24-topnav.b24-page-header__menu`). Текущий подраздел — `active` / `aria-current="page"`, счётчик — `counter` / `<span class="b24-counter">` внутри пункта.
+- **«Ещё ▾»**: пункты, что не помещаются по ширине, сами уходят в выпадающее меню «Ещё» со своими счётчиками; сумма счётчиков — на «Ещё», открытый подраздел всегда остаётся на виду. Работает в шапке раздела и `<TopNav>`, для своей разметки — `.b24-topnav[data-b24-more]` или `initTopnavMore(nav)`; выключить — `data-b24-more="off"`.
+- **Вид страницы** (Канбан · Список · Дела) — вторая строка шапки: `views` или `.b24-tabs.b24-tabs--glass` (на тёмной подложке, сам по себе с отступами и скруглением) / `.b24-tabs--pills` на светлой.
+
+```html
+<aside class="b24-shell__sidebar"><nav class="b24-sidebar">…
+  <a class="b24-sidebar__item" href="/staff/schedule/" aria-current="page">Расписание смен</a>   <!-- и на /staff/schedule/team/ -->
+</nav></aside>
+<header class="b24-page-header">
+  <div class="b24-page-header__nav">
+    <nav class="b24-topnav b24-page-header__menu" aria-label="Разделы">
+      <a class="b24-topnav__item" href="/staff/schedule/" aria-current="page">Расписание</a>
+      <a class="b24-topnav__item" href="/staff/schedule/team/">Состав смен <span class="b24-counter">3</span></a>
+      <a class="b24-topnav__item" href="/staff/schedule/wishes/">Пожелания</a>
+    </nav>
+  </div>
+  <div class="b24-page-header__main"><h1 class="b24-page-header__title">Расписание</h1>…</div>
+  <div class="b24-page-header__sub">
+    <div class="b24-page-header__views"><div class="b24-tabs b24-tabs--glass" data-b24-tabs>
+      <button class="b24-tabs__item" data-b24-tab="week" aria-selected="true">Неделя</button><button class="b24-tabs__item" data-b24-tab="month">Месяц</button>
+    </div></div>
+  </div>
+</header>
+```
+
 ## Быстрый старт
 
 ```bash

@@ -8,6 +8,7 @@ import { Vendor } from './Vendor';
 import type { VendorOptions } from '../js/vendor';
 import { t } from '../js/i18n';
 import { warnLayout } from '../js/page-header';
+import { initTopnavMore } from '../js/topnav-more';
 import { Button, SplitButton } from './Button';
 import type { MenuEntry } from './Overlay';
 import { Tabs, type TabItem } from './Tabs';
@@ -76,7 +77,11 @@ const isCreateProps = (v: unknown): v is PageHeaderCreateProps => !!v && typeof 
 
 export function PageHeader({ menu, title, create, selectors, filter, tools, views, counters, extra, aside, vendor, light }: PageHeaderProps) {
   const ref = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
   useEffect(() => { if (ref.current) warnLayout(ref.current); });
+  // пункты меню раздела, что не помещаются, — в «Ещё ▾»
+  const hasMenu = !!menu?.length;
+  useEffect(() => (hasMenu && menuRef.current ? initTopnavMore(menuRef.current) : undefined), [hasMenu]);
   const corner = (aside || vendor) && (
     <div className="b24-page-header__aside">{aside}{vendor && <Vendor onDark={!light} {...vendor} />}</div>
   );
@@ -84,7 +89,7 @@ export function PageHeader({ menu, title, create, selectors, filter, tools, view
     <header ref={ref} className={cx('b24-page-header', light && 'b24-page-header--light')}>
       {menu?.length ? (
         <div className="b24-page-header__nav">
-          <nav className="b24-topnav b24-page-header__menu" aria-label={t('Разделы')}>
+          <nav ref={menuRef} className="b24-topnav b24-page-header__menu" aria-label={t('Разделы')}>
             {menu.map((it, i) => (!it.href && it.onClick ? (
               // вкладка на этой же странице — кнопка
               <button key={i} type="button" className="b24-topnav__item" aria-current={it.active ? 'page' : undefined} onClick={it.onClick}>
@@ -264,9 +269,12 @@ export function SidebarItem({ label, icon, href = '#', active, counter, onClick 
   );
 }
 
-export function TopNav({ items }: { items: NavItemProps[] }) {
+/** Меню раздела; more — не поместившиеся пункты в «Ещё ▾» (по умолчанию) */
+export function TopNav({ items, more = true }: { items: NavItemProps[]; more?: boolean }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => (more && ref.current ? initTopnavMore(ref.current) : undefined), [more]);
   return (
-    <nav className="b24-topnav">
+    <nav ref={ref} className="b24-topnav">
       {items.map((it, i) => (
         <a
           key={i}

@@ -4,6 +4,7 @@ import { dropdown, type DropdownHandle } from './dropdown';
 import { createFilter, type FilterHandle, type FilterOptions } from './filter';
 import { t } from './i18n';
 import { initTabs } from './tabs';
+import { initTopnavMore } from './topnav-more';
 import { createVendor, type VendorHandle, type VendorOptions } from './vendor';
 
 /* ── Шапка раздела ─────────────────────────────────────────
@@ -114,6 +115,9 @@ export function createPageHeader(host: HTMLElement, options: PageHeaderOptions):
       menu.append(a);
     }
     if (o.menu.some((m) => m.tab)) { menu.setAttribute('data-b24-tabs', ''); tabsMenu = menu; }
+    // пункты, что не помещаются, уходят в «Ещё ▾»
+    const offMore = initTopnavMore(menu);
+    cleanups.push(offMore);
   }
   const setMenu = (value: string) => {
     const hit = menuLinks.find(([k]) => k === value);

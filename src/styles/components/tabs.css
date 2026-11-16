@@ -65,8 +65,13 @@
   box-shadow: var(--b24-shadow-2xs);
 }
 
-/* Glass — те же pills поверх Air-подложки */
-.b24-tabs--glass { background: var(--b24-glass-bg); }
+/* Glass — те же pills поверх Air-подложки; геометрия pills и без --pills (Канбан · Список · Дела на тёмной шапке) */
+.b24-tabs--glass {
+  display: inline-flex; gap: 2px; padding: 2px; border: 0; border-radius: var(--b24-radius-sm); max-width: 100%;
+  background: var(--b24-glass-bg);
+}
+.b24-tabs--glass .b24-tabs__item { height: 26px; padding: 0 10px; font-size: var(--b24-font-size-sm); border-radius: 6px; }
+.b24-tabs--glass .b24-tabs__item::after { display: none; }
 .b24-tabs--glass .b24-tabs__item { color: var(--b24-glass-text-secondary); }
 .b24-tabs--glass .b24-tabs__item:hover { color: var(--b24-glass-text); }
 .b24-tabs--glass .b24-tabs__item[aria-selected="true"],

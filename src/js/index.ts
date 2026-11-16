@@ -21,6 +21,7 @@ export { createTagSelector, type TagSelectorOptions, type TagSelectorHandle } fr
 export { createUploader, formatSize, type UploaderOptions, type UploaderHandle, type UploaderFile, type UploadContext, type UploadStatus } from './uploader';
 export { createEntityEditor, formatMoney, type EntityEditorOptions, type EntityEditorHandle, type EditorField, type EditorSection, type EditorValues, type EditorFieldType } from './editor';
 export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
+export { initTopnavMore } from './topnav-more';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';
 export { creditHtml, REPO_URL } from './credit';
 export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePickerHandle } from './timepicker';
