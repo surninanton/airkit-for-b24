@@ -10,7 +10,7 @@ import {
   type FilterField, type FilterPreset, type FilterState, type DateRange,
   Combobox, EntitySelector, Uploader, EntityEditor, Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer,
   formatTimelineTime, Icon, Credit, openSidePanel, modal, type DialogItem, type EditorField, type EditorSection, type EditorValues,
-  ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, Avatar, type ChatMessage, type ChatListItem,
+  ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, Avatar, MessengerBar, ChatDock, type ChatMessage, type ChatListItem,
 } from '../src/react';
 
 const STAGES: Stage[] = [
@@ -511,6 +511,10 @@ function CalendarDemo() {
 function Demo() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [section, setSection] = useState('crm');
+  // правая панель мессенджера: аватар открывает плавающее окно чата
+  const [dockId, setDockId] = useState<string | null>(null);
+  const [dockMsgs, setDockMsgs] = useState<Record<string, ChatMessage[]>>({});
+  const dockDlg = CHAT_DIALOGS.find((d) => d.id === dockId);
   return (
     <B24Provider theme={theme}>
       <AppShell
@@ -561,6 +565,25 @@ function Demo() {
         )}
         <Credit />
       </AppShell>
+      <MessengerBar
+        items={CHAT_DIALOGS.map((d) => ({ id: d.id, name: d.name, counter: d.unread, status: d.status, channel: typeof d.channel === 'string' ? d.channel : d.channel?.label }))}
+        value={dockId}
+        onSelect={setDockId}
+        onAll={() => setSection('chat')}
+        actions={[{ id: 'bell', icon: 'bell', label: 'Уведомления', counter: 2 }]}
+      />
+      {dockDlg && (
+        <ChatDock
+          id={dockDlg.id}
+          name={dockDlg.name}
+          status={dockDlg.status}
+          meta={typeof dockDlg.channel === 'string' ? dockDlg.channel : dockDlg.channel?.label}
+          messages={dockMsgs[dockDlg.id] ?? [{ id: 'm1', dir: 'in', time: dockDlg.time!, text: dockDlg.preview }]}
+          onSend={(text) => setDockMsgs((m) => ({ ...m, [dockDlg.id]: [...(m[dockDlg.id] ?? [{ id: 'm1', dir: 'in', time: dockDlg.time!, text: dockDlg.preview }]), { id: String(Date.now()), dir: 'out', time: new Date(), text, status: 'delivered' }] }))}
+          onExpand={() => { setSection('chat'); setDockId(null); }}
+          onClose={() => setDockId(null)}
+        />
+      )}
     </B24Provider>
   );
 }

@@ -28,6 +28,16 @@
       </div>
       <aside class="b24-chat__aside" id="chat-aside"></aside>
     </div>
+    <div class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Панель мессенджера и окно чата</h2><span class="b24-card__subtitle">&nbsp;как в кассе: окно с покупателем рядом с чеком</span></div>
+      <div class="b24-card__body b24-row" style="flex-wrap:wrap">
+        <button type="button" class="b24-btn b24-btn--primary" id="dock-open">Открыть окно чата</button>
+        <button type="button" class="b24-btn b24-btn--secondary" id="dock-incoming">Входящее сообщение</button>
+        <button type="button" class="b24-btn b24-btn--secondary" id="notify-perm">Включить уведомления</button>
+        <button type="button" class="b24-btn b24-btn--secondary" id="notify-sound">Звук «дзынь»</button>
+        <span class="b24-text-sm b24-text-secondary">Панель справа: аватар — окно чата этого диалога, «Все чаты» — полный раздел. Свернуть — «−» или клик по шапке окна.</span>
+      </div>
+    </div>
     <p class="b24-text-sm" style="color: var(--b24-glass-text-secondary); margin: 0">
       Список: стрелки ↑/↓, Enter — открыть. Enter в поле — отправить, Shift+Enter — новая строка. Сообщение со словом «ошибка» «не доставится» — нажмите «Повторить».
       Прокрутите ленту вверх — подгрузятся ранние сообщения, позиция не прыгнет. На телефоне — одна колонка и «назад», на ≤1100px карточка открывается кнопкой справа в шапке.
@@ -158,6 +168,39 @@
     list.update(active, { muted: true, preview: 'Диалог закрыт', previewOut: false });
     dialogs.find((x) => x.id === active).muted = true;
   });
+  // правая панель и окна чата
+  const bar = B24UI.createMessengerBar({
+    items: dialogs.map((d) => ({ id: d.id, name: d.name, counter: d.unread, status: d.status, channel: typeof d.channel === 'string' ? d.channel : d.channel.label })),
+    onAll: () => document.getElementById('chat').scrollIntoView({ behavior: 'smooth' }),
+    allCounter: 5,
+    onSelect: (id) => openDock(id),
+    actions: [{ id: 'bell', icon: 'bell', label: 'Уведомления', counter: 3 }, { id: 'search', icon: 'search', label: 'Поиск' }],
+  });
+  const openDock = (id) => {
+    const d = dialogs.find((x) => x.id === id);
+    bar.update(id, { counter: 0 });
+    return B24UI.openChatDock({
+      id, name: d.name, status: d.status, meta: typeof d.channel === 'string' ? d.channel : d.channel.label,
+      onExpand: () => { list.setActive(id); open(id); document.getElementById('chat').scrollIntoView({ behavior: 'smooth' }); },
+      onClose: () => bar.setActive(null),
+      feed: { messages: feeds[id] ?? (feeds[id] = sample(d)) },
+      composer: { quickReplies: ['Заказ передан курьеру', 'Доставка — 60 минут'], onSend: (text) => { const m = { id: `n${msgId++}`, dir: 'out', author: 'Оператор Елена', time: new Date(), text, status: 'delivered' }; feeds[id] = [...feeds[id], m]; B24UI.getChatDocks().find((x) => x.id === id)?.feed.setMessages(feeds[id]); } },
+    });
+  };
+  document.getElementById('dock-open').addEventListener('click', () => openDock('d2'));
+  document.getElementById('dock-incoming').addEventListener('click', () => {
+    const id = 'd5';
+    const m = { id: `n${msgId++}`, dir: 'in', time: new Date(), text: 'Можно оплатить картой курьеру?' };
+    const d = dialogs.find((x) => x.id === id);
+    feeds[id] = [...(feeds[id] ?? sample(d)), m];
+    const dock = B24UI.getChatDocks().find((x) => x.id === id) ?? openDock(id);
+    dock.feed.setMessages(feeds[id]);
+    if (dock.isMinimized()) dock.setCounter(1);
+    B24UI.notifySound({ dedupeKey: m.id });
+    B24UI.desktopNotify({ title: d.name, body: m.text, tag: m.id, onClick: () => dock.restore() });
+  });
+  document.getElementById('notify-perm').addEventListener('click', async () => B24UI.toast(`Уведомления: ${await B24UI.requestNotifyPermission()}`));
+  document.getElementById('notify-sound').addEventListener('click', () => B24UI.notifySound());
   document.getElementById('chat-search').addEventListener('input', (e) => {
     const q = e.target.value.toLowerCase();
     list.setItems(dialogs.filter((d) => d.name.toLowerCase().includes(q)));

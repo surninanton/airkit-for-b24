@@ -28,6 +28,11 @@ export {
   type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle,
   type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
 } from './chat';
+export {
+  createMessengerBar, openChatDock, getChatDocks,
+  type MessengerBarItem, type MessengerBarAction, type MessengerBarOptions, type MessengerBarHandle, type ChatDockOptions, type ChatDockHandle,
+} from './messenger';
+export { notifySound, desktopNotify, requestNotifyPermission, claimNotify, type NotifySoundOptions, type DesktopNotifyOptions } from './notify';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';
 export { creditHtml, REPO_URL } from './credit';
 export { timepicker, parseTime, formatTime, type TimePickerOptions, type TimePickerHandle } from './timepicker';

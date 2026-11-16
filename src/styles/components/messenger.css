@@ -1,0 +1,105 @@
+/* ── Мессенджер сквозь раздел ─────────────────────────────
+ * .b24-im-bar — правая панель (fixed): __top («Все чаты») · __list (аватары) · __bottom (кнопки)
+ *   html.b24-has-im-bar — контент .b24-shell__main / .b24-app не заезжает под панель
+ * .b24-chat-docks > .b24-chat-dock (.is-minimized) — плавающие окна чата у правого края
+ */
+:root {
+  --b24-im-bar-width: 64px;
+  --b24-im-bar-top: 0px;
+  --b24-chat-dock-width: 360px;
+  --b24-chat-dock-height: min(520px, calc(100vh - 96px));
+}
+html:has(.b24-shell) .b24-im-bar { --b24-im-bar-top: var(--b24-header-height); }
+
+.b24-im-bar {
+  position: fixed; z-index: calc(var(--b24-z-panel) - 10); top: var(--b24-im-bar-top); right: 0; bottom: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: var(--b24-im-bar-width); padding: 8px 0; box-sizing: border-box;
+  background: rgba(10, 20, 45, 0.16); backdrop-filter: blur(8px); border-top-left-radius: var(--b24-radius-lg);
+}
+.b24-im-bar__top, .b24-im-bar__bottom { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.b24-im-bar__top:empty, .b24-im-bar__bottom:empty { display: none; }
+.b24-im-bar__top { padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.18); }
+.b24-im-bar__bottom { padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.18); }
+.b24-im-bar__list {
+  flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 4px 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain;
+}
+.b24-im-bar__list::-webkit-scrollbar { display: none; }
+.b24-im-bar__btn {
+  position: relative; flex: 0 0 auto; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; margin: 0;
+  color: #fff; background: transparent; border: 0; border-radius: 50%; cursor: pointer;
+  transition: background-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast);
+}
+.b24-im-bar__btn > svg { width: 22px; height: 22px; }
+.b24-im-bar__all, .b24-im-bar__action { background: rgba(255, 255, 255, 0.16); }
+.b24-im-bar__all:hover, .b24-im-bar__action:hover { background: rgba(255, 255, 255, 0.26); }
+.b24-im-bar__item .b24-avatar { --_s: 40px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
+.b24-im-bar__item .b24-avatar__status { box-shadow: 0 0 0 2px var(--b24-air-bg-color, #1f4ea8); }
+.b24-im-bar__item:hover .b24-avatar { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5); }
+.b24-im-bar__btn.is-active { box-shadow: 0 0 0 2px #fff; }
+.b24-im-bar__item.is-active .b24-avatar { box-shadow: none; }
+.b24-im-bar__btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.b24-im-bar__counter { position: absolute; top: -3px; right: -4px; pointer-events: none; box-shadow: 0 0 0 2px var(--b24-air-bg-color, #1f4ea8); }
+.b24-im-bar__tip {
+  position: fixed; z-index: var(--b24-z-tooltip); transform: translateY(-50%);
+  max-width: 260px; padding: 6px 10px; font-size: var(--b24-font-size-xs); line-height: 1.4; white-space: nowrap;
+  color: #fff; background: var(--b24-bg-tooltip); border-radius: var(--b24-radius-xs); pointer-events: none;
+}
+.b24-im-bar__tip[hidden] { display: none; }
+
+/* контент не заезжает под панель */
+@media (min-width: 769px) {
+  html.b24-has-im-bar .b24-shell__main { padding-right: calc(var(--b24-im-bar-width) + var(--b24-space-xs)); }
+  html.b24-has-im-bar .b24-shell__header { padding-right: calc(var(--b24-im-bar-width) + var(--b24-space-xs)); }
+  html.b24-has-im-bar body > .b24-app, html.b24-has-im-bar .b24-root > .b24-app { padding-right: calc(var(--b24-im-bar-width) + var(--b24-space-md)); }
+}
+@media (max-width: 768px) {
+  .b24-im-bar { display: none; }
+}
+
+/* Окна чата */
+.b24-chat-docks {
+  position: fixed; z-index: var(--b24-z-panel); right: 12px; bottom: 0;
+  display: flex; flex-direction: row-reverse; align-items: flex-end; gap: 12px;
+  pointer-events: none;
+}
+html.b24-has-im-bar .b24-chat-docks { right: calc(var(--b24-im-bar-width) + 8px); }
+.b24-chat-dock {
+  pointer-events: auto; display: flex; flex-direction: column;
+  width: var(--b24-chat-dock-width); height: var(--b24-chat-dock-height);
+  overflow: hidden; background: var(--b24-bg-surface); border-radius: 14px 14px 0 0; box-shadow: var(--b24-shadow-3xl);
+  animation: b24-dock-in var(--b24-duration) var(--b24-ease, ease) both;
+}
+@keyframes b24-dock-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.b24-chat-dock__head { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; min-height: 52px; padding: 6px 6px 6px 10px; background: var(--b24-bg-surface); border-bottom: 1px solid var(--b24-divider); }
+.b24-chat-dock__title { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 0; margin: 0; font: inherit; text-align: left; color: inherit; background: none; border: 0; cursor: pointer; }
+.b24-chat-dock__avatar { display: inline-flex; flex: 0 0 auto; }
+.b24-chat-dock__avatar .b24-avatar { --_s: 32px; }
+.b24-chat-dock__who { display: flex; flex-direction: column; min-width: 0; }
+.b24-chat-dock__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--b24-font-weight-medium); }
+.b24-chat-dock__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-chat-dock__counter { flex: 0 0 auto; margin-left: auto; }
+.b24-chat-dock__tools { display: flex; flex: 0 0 auto; }
+.b24-chat-dock__tool { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer; }
+.b24-chat-dock__tool:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-chat-dock__tool:focus-visible, .b24-chat-dock__title:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
+.b24-chat-dock__body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--b24-chat-feed-bg, var(--b24-bg-surface-2)); }
+.b24-chat-dock .b24-chat-feed { padding: 10px; }
+.b24-chat-dock .b24-chat-msg { max-width: 86%; }
+.b24-chat-dock .b24-chat-composer { padding: 8px; }
+/* свёрнутое — полоска с именем и счётчиком */
+.b24-chat-dock.is-minimized { width: 240px; height: auto; border-radius: 12px 12px 0 0; }
+.b24-chat-dock.is-minimized .b24-chat-dock__body { display: none; }
+.b24-chat-dock.is-minimized .b24-chat-dock__head { border-bottom: 0; min-height: 44px; }
+.b24-chat-dock.is-minimized .b24-chat-dock__meta { display: none; }
+.b24-chat-dock.is-minimized .b24-chat-dock__expand { display: none; }
+
+/* телефон: нижний лист на 70% высоты, видно последнее открытое окно; свёрнутые — полоски над ним */
+@media (max-width: 768px) {
+  .b24-chat-docks, html.b24-has-im-bar .b24-chat-docks { left: 0; right: 0; flex-direction: column-reverse; align-items: stretch; gap: 0; }
+  .b24-chat-dock { width: 100%; height: 70vh; height: 70dvh; border-radius: 16px 16px 0 0; }
+  .b24-chat-dock:not(.is-minimized) ~ .b24-chat-dock:not(.is-minimized) { display: none; }
+  .b24-chat-dock.is-minimized { width: 100%; border-radius: 0; box-shadow: 0 -1px 0 var(--b24-divider); }
+}
+@media (prefers-reduced-motion: reduce) { .b24-chat-dock { animation: none; } }

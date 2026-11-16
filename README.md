@@ -384,7 +384,7 @@ import { B24Provider, App, PageHeader, SearchInput, DataTable, SidePanel, Stages
 </B24Provider>
 ```
 
-Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`, `StagePicker`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), `ChatLayout`, `ChatHeader`, `ChatList`, `ChatFeed`, `ChatComposer`, раскладка: `B24Provider`, `App`, `PageHeader`, `Toolbar` (устарел для шапки раздела), `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
+Компоненты: `Button`, `SplitButton`, `ButtonGroup`, `Field`, `Input`, `InputGroup`, `SearchInput`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch`, `Card`, `SectionTitle`, `Props`, `Stat`, `EmptyState`, `Badge`, `Counter`, `Tag`, `Dot`, `Alert`, `Avatar`, `AvatarStack`, `User`, `Spinner`, `Loader`, `Skeleton`, `Progress`, `Stages`, `StageMini`, `Tabs`, `DataTable`, `Pagination`, `Modal`, `SidePanel`, `Dropdown`, `Menu`, `Popover`, `Tooltip`, `Icon`, `Calendar`, `DatePicker`, `DateRangePicker`, `PeriodPicker`, `Vendor`, `Filter`, `Kanban` (+ `KanbanCard`, `applyKanbanMove`, `StagePicker`), `Combobox`, `EntitySelector`, `Uploader`, `EntityEditor`, `Timeline` (+ `TimelineItem`, `TimelineActivity`, `TimelineDivider`, `TimelineComposer`), `ChatLayout`, `ChatHeader`, `ChatList`, `ChatFeed`, `ChatComposer`, `MessengerBar`, `ChatDock`, раскладка: `B24Provider`, `App`, `PageHeader`, `Toolbar` (устарел для шапки раздела), `AppShell`, `Sidebar`, `SidebarGroup`, `SidebarItem`, `TopNav`.
 
 Канбан в React контролируемый: DnD только сообщает о переносе, состояние обновляете вы.
 
@@ -543,6 +543,22 @@ B24UI.createChatComposer(composerEl, { quickReplies: ['Здравствуйте!
   <ChatComposer quickReplies={replies} onSend={send} />
 </ChatLayout>
 ```
+
+### Мессенджер сквозь раздел: правая панель и окна чата
+
+Как в Битрикс24: чат с клиентом под рукой на любой странице — например, в кассе рядом с чеком.
+
+- **Правая панель** `createMessengerBar({ items, value, onSelect, onAll, allCounter, actions })` — fixed-колонка у правого края под шапкой `AppShell`: «Все чаты», аватары диалогов (счётчик 99+, точка статуса, подсказка «имя · канал»), кнопки внизу (`actions: [{ id, icon, label, counter, active, onClick }]`), активный — с обводкой. Прокрутка без полосы, на ≤768px скрыта. Пока панель открыта, `html.b24-has-im-bar` — контент `.b24-shell__main` и `.b24-app` отступает. `setItems`, `update(id, patch)`, `setActive`, `setActions`, `setAllCounter`.
+- **Окно чата** `openChatDock({ id, name, avatar, status, meta, feed, composer, onExpand, onClose })` — плавающее окно у правого края (рядом с панелью): шапка с «Открыть полностью», «Свернуть», «Закрыть»; внутри `createChatFeed` (`feed: { messages, … }`) и `createChatComposer` (`composer: { onSend, quickReplies }`, без `onSend` — только чтение). Повторный вызов с тем же `id` разворачивает открытое окно. Несколько окон — в ряд, лишние по ширине сворачиваются. Свёрнутое — полоска с именем и счётчиком (`setCounter(n)`). На телефоне — нижний лист на 70% высоты. Хэндл: `feed`, `composer`, `minimize`, `restore`, `toggle`, `setHeader`, `close`; `getChatDocks()`.
+- **Звук и уведомления**: `notifySound({ dedupeKey })` — короткий «дзынь» через WebAudio, без файла (до первого клика на странице браузер звук не даст — вернётся `false`); `requestNotifyPermission()` — из обработчика клика; `desktopNotify({ title, body, tag, onClick })` — системное уведомление, по умолчанию только если вкладка не на виду. Ключ `dedupeKey` / `tag` — из нескольких открытых вкладок звенит и показывает одна (`claimNotify(key)` через localStorage).
+
+```js
+const bar = B24UI.createMessengerBar({ items, onSelect: (id) => openDock(id), onAll: () => location.href = '/staff/chats/' });
+const dock = B24UI.openChatDock({ id, name: 'Мария', meta: 'Telegram', feed: { messages }, composer: { onSend: (text) => api.send(id, text) } });
+socket.on('message', (m) => { dock.feed.append([m]); if (dock.isMinimized()) dock.setCounter(++unread); B24UI.notifySound({ dedupeKey: m.id }); });
+```
+
+React: `<MessengerBar items value onSelect onAll actions />`, `<ChatDock id name meta messages onSend onClose minimized counter />` — рендерятся поверх страницы, на месте ничего не выводят.
 
 ## Планировщик: сотрудники и время
 

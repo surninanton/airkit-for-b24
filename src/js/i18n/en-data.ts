@@ -205,4 +205,9 @@ export const enData: Record<string, string> = {
   'Отправить': 'Send',
   'Прикрепить файл': 'Attach file',
   'Карточка': 'Card',
+  'Мессенджер': 'Messenger',
+  'Все чаты': 'All chats',
+  'Открыть полностью': 'Open in full',
+  'Свернуть': 'Minimize',
+  'Развернуть': 'Expand',
 };

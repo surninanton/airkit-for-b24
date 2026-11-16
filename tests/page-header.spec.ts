@@ -12,7 +12,7 @@ test.describe('шапка раздела', () => {
     const warned = warnings(page);
     const { errors } = await open(page, '/index.html');
     const header = page.locator('#demo-app-header .b24-page-header');
-    await expect(header.locator('.b24-page-header__menu .b24-topnav__item')).toHaveCount(4);
+    await expect(header.locator('.b24-page-header__menu .b24-topnav__item:not(.b24-topnav__more)')).toHaveCount(4);
     await expect(header.locator('.b24-page-header__title')).toHaveText('Обращения портала');
 
     if (!isMobile(page)) {

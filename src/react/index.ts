@@ -43,5 +43,7 @@ export { plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors
 export { t, setLocale, getLocale, addMessages } from '../js/index';
 export { toast, confirm, alert, modal, openSidePanel, setTheme, setAirPreset, bx24, toBitrixFilter, toQuery, resolvePeriod, formatDate, parseDate, bx24UserLoader, openEntityDialog, formatSize, formatMoney, type DateRange, type PeriodValue } from '../js/index';
 export type { IconName } from '../icons';
-export { ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, type ChatLayoutProps, type ChatListProps, type ChatFeedProps, type ChatComposerProps } from './Chat';
+export { ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, MessengerBar, ChatDock, type ChatLayoutProps, type ChatListProps, type ChatFeedProps, type ChatComposerProps, type MessengerBarProps, type ChatDockProps } from './Chat';
+export { notifySound, desktopNotify, requestNotifyPermission, claimNotify } from '../js/notify';
+export type { MessengerBarItem, MessengerBarAction } from '../js/messenger';
 export type { ChatMessage, ChatListItem, ChatAttachment, ChatChannel } from '../js/chat';
