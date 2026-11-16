@@ -21,6 +21,8 @@ export interface FilterProps {
   onChange: (state: FilterState, restFilter: Record<string, unknown>) => void;
   placeholder?: string;
   glass?: boolean;
+  /** наибольшая ширина строки: по умолчанию 800px; число — px, 'none' — вся ширина контейнера */
+  maxWidth?: number | string;
   /** задержка поиска при вводе, мс; 0 — только Enter */
   searchDebounce?: number;
   className?: string;
@@ -29,7 +31,7 @@ export interface FilterProps {
 export const emptyFilterState: FilterState = { presetId: null, values: {}, search: '' };
 
 export function Filter({
-  fields, presets = [], onPresetsChange, value, onChange, placeholder = t('Фильтр и поиск'), glass, searchDebounce = 400, className,
+  fields, presets = [], onPresetsChange, value, onChange, placeholder = t('Фильтр и поиск'), glass, searchDebounce = 400, className, maxWidth,
 }: FilterProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<FilterState>(value);
@@ -129,7 +131,8 @@ export function Filter({
       <div
         ref={barRef}
         role="search"
-        className={cx('b24-filter', glass && 'b24-filter--glass', open && 'is-open', className)}
+        className={cx('b24-filter', glass && 'b24-filter--glass', maxWidth === 'none' && 'b24-filter--full', open && 'is-open', className)}
+        style={maxWidth != null && maxWidth !== 'none' ? { maxWidth } : undefined}
         onClick={(e) => { if (e.target === e.currentTarget) inputRef.current?.focus(); }}
       >
         <div className="b24-filter__chips">

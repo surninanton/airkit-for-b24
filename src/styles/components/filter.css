@@ -9,6 +9,8 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
+  /* как в Битрикс24: строка не растягивается на весь широкий экран; вся ширина — .b24-filter--full / maxWidth: 'none' */
+  max-width: var(--b24-filter-max-width, 800px);
   height: var(--b24-size-md);
   padding: 0 4px 0 4px;
   background: var(--b24-bg-surface);
@@ -17,6 +19,7 @@
   cursor: text;
   transition: border-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast), background-color var(--b24-duration-fast);
 }
+.b24-filter--full { max-width: none; }
 .b24-filter:hover { border-color: var(--b24-text-disabled); }
 .b24-filter.is-open,
 .b24-filter:focus-within { border-color: var(--b24-color-primary-light); box-shadow: 0 0 0 3px rgba(88, 177, 255, 0.22); }

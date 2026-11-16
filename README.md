@@ -321,11 +321,11 @@ B24UI.createTagSelector(el, { name: 'ASSIGNED_BY_ID', load: B24UI.bx24UserLoader
 </header>
 ```
 
-В JS — `createPageHeader(host, { title, create, filter: { fields, presets } })`, в React — `<PageHeader filter={<Filter glass … />}>`. Фильтр на всю ширину карточки — просто положите его в карточку.
+В JS — `createPageHeader(host, { title, create, filter: { fields, presets } })`, в React — `<PageHeader filter={<Filter glass … />}>`. Вне шапки строка фильтра не шире 800px, как в Битрикс24 (`--b24-filter-max-width`); своя ширина — `maxWidth: 600`, на всю ширину контейнера — `maxWidth: 'none'` или класс `.b24-filter--full`.
 
 Число рядом с названием пресета или варианта («Нанят 68») — `count` у пресета и у `options[]`; обновить — `filter.setCounts({ presets: { hired: 70 }, fields: { stage: { new: 3 } } })`. В `<select>` число идёт в скобках.
 
-Состояние фильтра само превращается в `filter` для `crm.*.list`: `toBitrixFilter(fields, state)`.
+Состояние фильтра само превращается в `filter` для `crm.*.list`: `toBitrixFilter(fields, state)`. Для своей серверной фильтрации значение поля `type: 'date'` (`{ type: 'week' }`, `{ type: 'range', from, to }`…) переводится в даты через `resolvePeriod(value)` → `{ from, to }` (оба дня включительно, `any` → `null`).
 
 ```js
 // поля: { id: 'DATE_CREATE', type: 'date' }, { id: 'OPPORTUNITY', type: 'number' }, { id: 'STAGE_ID', type: 'select' }

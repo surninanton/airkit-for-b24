@@ -16,6 +16,8 @@ export interface FilterOptions {
   state?: Partial<FilterState>;
   placeholder?: string;
   glass?: boolean;
+  /** наибольшая ширина строки: по умолчанию 800px; число — px, 'none' — вся ширина контейнера */
+  maxWidth?: number | string;
   /**
    * 'event' — только событие b24:filter-apply + onApply
    * 'get'   — перейти на ?filter[...] (удобно для PHP-страниц)
@@ -52,7 +54,8 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
   const pickers: DatePickerHandle[] = [];
 
   /* ── Bar ── */
-  const bar = h('div', { class: `b24-filter${glass ? ' b24-filter--glass' : ''}`, role: 'search' });
+  const bar = h('div', { class: `b24-filter${glass ? ' b24-filter--glass' : ''}${options.maxWidth === 'none' ? ' b24-filter--full' : ''}`, role: 'search' });
+  if (options.maxWidth != null && options.maxWidth !== 'none') bar.style.maxWidth = typeof options.maxWidth === 'number' ? `${options.maxWidth}px` : options.maxWidth;
   const chipsEl = h('div', { class: 'b24-filter__chips' });
   const input = h('input', { class: 'b24-filter__input', type: 'search', placeholder, 'aria-label': t('Поиск') });
   const filterBtn = h('button', { type: 'button', class: 'b24-filter__icon', 'aria-label': t('Открыть фильтр'), 'aria-haspopup': 'dialog' }, html(icon('filter')));
