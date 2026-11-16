@@ -6,6 +6,8 @@ const paths = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
+  reply: '<path d="M10 8 5 13l5 5"/><path d="M5 13h9a5 5 0 0 1 5 5v1"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
   chevronUp: '<path d="m6 15 6-6 6 6"/>',

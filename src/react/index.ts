@@ -45,6 +45,7 @@ export { toast, confirm, alert, modal, openSidePanel, setTheme, setAirPreset, bx
 export type { IconName } from '../icons';
 export { ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, MessengerBar, ChatDock, MemberList, type MemberListProps, type ChatLayoutProps, type ChatListProps, type ChatFeedProps, type ChatComposerProps, type MessengerBarProps, type ChatDockProps } from './Chat';
 export { notifySound, desktopNotify, requestNotifyPermission, claimNotify } from '../js/notify';
+export { openEmojiPicker, searchEmoji, getRecentEmoji, type EmojiPickerOptions } from '../js/emoji';
 export { pickUser, matchMember, type Member, type PickUserOptions } from '../js/members';
 export type { MessengerBarItem, MessengerBarAction } from '../js/messenger';
-export type { ChatMessage, ChatListItem, ChatAttachment, ChatChannel } from '../js/chat';
+export type { ChatMessage, ChatListItem, ChatAttachment, ChatChannel, ChatReaction, ChatMessageAction } from '../js/chat';

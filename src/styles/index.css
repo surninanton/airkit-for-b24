@@ -24,6 +24,7 @@
 @import "./components/chat.css";
 @import "./components/messenger.css";
 @import "./components/members.css";
+@import "./components/emoji.css";
 @import "./components/vendor.css";
 @import "./components/screens.css";
 @import "./components/editors.css";

@@ -101,14 +101,18 @@ export interface ChatFeedProps extends Omit<ChatFeedOptions, 'messages'> { messa
  * Лента: передавайте весь список messages — кит сам поймёт, что пришло сверху («Показать раньше», позиция сохраняется)
  * или снизу (прокрутка вниз, если пользователь был у низа или сообщение наше).
  */
-export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText }: ChatFeedProps) {
+export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, onReact, quickReactions, onReply, copy, actions, decorate }: ChatFeedProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatFeedHandle | null>(null);
-  const cbs = useRef({ onLoadMore, onRetry, onPhotoClick });
-  cbs.current = { onLoadMore, onRetry, onPhotoClick };
+  const cbs = useRef({ onLoadMore, onRetry, onPhotoClick, onReact, onReply, actions, decorate });
+  cbs.current = { onLoadMore, onRetry, onPhotoClick, onReact, onReply, actions, decorate };
   useEffect(() => {
     h.current = createChatFeed(host.current!, {
-      messages, hasMore, showAvatars, emptyText,
+      messages, hasMore, showAvatars, emptyText, quickReactions, copy,
+      onReact: onReact ? (id, e, m) => cbs.current.onReact?.(id, e, m) : undefined,
+      onReply: onReply ? (m) => cbs.current.onReply?.(m) : undefined,
+      actions: actions ? (m) => cbs.current.actions?.(m) ?? [] : undefined,
+      decorate: decorate ? (m, el) => cbs.current.decorate?.(m, el) : undefined,
       onLoadMore: onLoadMore ? () => cbs.current.onLoadMore?.() : undefined,
       onRetry: onRetry ? (m) => cbs.current.onRetry?.(m) : undefined,
       onPhotoClick: onPhotoClick ? (a, m) => cbs.current.onPhotoClick?.(a, m) : undefined,
@@ -125,14 +129,14 @@ export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick,
 
 export interface ChatComposerProps extends ChatComposerOptions { /** превью вложений над полем */ attachments?: ReactNode }
 /** Поле ответа: Enter — отправить, Shift+Enter — новая строка; false из onSend — текст остаётся */
-export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength }: ChatComposerProps) {
+export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji }: ChatComposerProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatComposerHandle | null>(null);
   const cbs = useRef({ onSend, onAttach });
   cbs.current = { onSend, onAttach };
   useEffect(() => {
     h.current = createChatComposer(host.current!, {
-      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength,
+      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji,
       onSend: (text) => cbs.current.onSend(text),
       onAttach: onAttach ? (files) => cbs.current.onAttach?.(files) : undefined,
     });

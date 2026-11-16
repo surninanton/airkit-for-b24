@@ -544,6 +544,23 @@ B24UI.createChatComposer(composerEl, { quickReplies: ['Здравствуйте!
 </ChatLayout>
 ```
 
+### Эмодзи, реакции и меню сообщения
+
+- **Выбор эмодзи**: `createChatComposer(host, { emoji: true })` (в React — `<ChatComposer emoji />`, в окне — `composer: { emoji: true }`) добавляет кнопку 🙂 рядом со скрепкой. Панель: «Частые» (хранятся в localStorage), разделы, поиск по русским словам («пицца», «спасибо», «сердце»; «ё» = «е»); стрелки и Enter, Esc закрывает; эмодзи вставляется в позицию курсора. На ≤768px панель — нижний лист. Отдельно: `openEmojiPicker(anchor, { onSelect, align, placement })`, `attachEmojiPicker(composer)`, `searchEmoji(q)`, `getRecentEmoji()`.
+- **Реакции**: `ChatMessage.reactions: [{ emoji, count, mine, users }]` — чипы «👍 3» под пузырём (`mine` — подсвечен, `users` — в подсказке). `onReact(messageId, emoji, message)` — клик по чипу или по эмодзи в полоске быстрых реакций. Кит сам реакцию не меняет: поставьте или снимите её на сервере и передайте новый `reactions` через `setMessages` / `update`. Полоска (`quickReactions`, по умолчанию 👍 ❤️ 😂 😮 😢 🙏, «🙂» — любая другая) появляется у сообщения по наведению и фокусу, на телефоне — по долгому нажатию.
+- **Меню сообщения «⋯»**: `onReply(message)` — «Ответить», «Копировать» текст (`copy: false` — убрать), свои пункты — `actions: (m) => [{ id, label, icon, danger, onClick }]`.
+- **Свой контент в сообщении**: `decorate(message, el)` вызывается для каждого сообщения после отрисовки и после каждой перерисовки (`setMessages` перерисовывает ленту целиком) — дописывайте разметку в `el`, MutationObserver не нужен.
+
+```js
+const composer = B24UI.createChatComposer(el, { emoji: true, onSend });
+const feed = B24UI.createChatFeed(feedEl, {
+  messages, onReply: (m) => composer.setValue(`> ${m.text}\n`),
+  onReact: async (id, emoji) => feed.setMessages(await api.toggleReaction(id, emoji)),
+  actions: (m) => (m.dir === 'out' ? [{ id: 'del', label: 'Удалить', icon: 'trash', danger: true, onClick: remove }] : []),
+  decorate: (m, el) => { if (m.data?.order) el.querySelector('.b24-chat-msg__bubble').append(orderBadge(m.data.order)); },
+});
+```
+
 ### Мессенджер сквозь раздел: правая панель и окна чата
 
 Как в Битрикс24: чат с клиентом под рукой на любой странице — например, в кассе рядом с чеком.

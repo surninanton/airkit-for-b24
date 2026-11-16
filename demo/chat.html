@@ -98,7 +98,7 @@
     d1: [
       ...older(6),
       { id: 'm1', dir: 'system', time: day(1, 18, 0), text: 'Диалог принят оператором Елена' },
-      { id: 'm2', dir: 'in', time: day(1, 18, 1), text: 'Здравствуйте! Хочу заказать две пиццы на вечер.' },
+      { id: 'm2', dir: 'in', time: day(1, 18, 1), text: 'Здравствуйте! Хочу заказать две пиццы на вечер.', reactions: [{ emoji: '🍕', count: 2, users: ['Иван', 'Елена'] }] },
       { id: 'm3', dir: 'out', author: 'Оператор Елена', time: day(1, 18, 3), text: 'Добрый вечер! Подскажите адрес доставки — посчитаю стоимость.', status: 'read' },
       { id: 'm4', dir: 'in', time: day(1, 18, 5), attachments: [{ type: 'geo', lat: 56.0889, lng: 54.2483, label: 'ул. Строителей, 12' }] },
       { id: 'm5', dir: 'in', time: day(1, 18, 6), attachments: [{ type: 'photo', url: photo, width: 240, height: 160 }], text: 'Вот такую, как на фото 🙂' },
@@ -120,6 +120,21 @@
   let loaded = 0;
   const feed = B24UI.createChatFeed(document.getElementById('chat-feed'), {
     messages: feeds.d1, hasMore: true,
+    onReact: (id, emoji) => {
+      // ставим / снимаем свою реакцию; сервер в реальном приложении вернёт новое message.reactions
+      feeds[active] = feeds[active].map((m) => {
+        if (m.id !== id) return m;
+        const list = (m.reactions ?? []).map((r) => ({ ...r }));
+        const r = list.find((x) => x.emoji === emoji);
+        if (!r) list.push({ emoji, count: 1, mine: true, users: ['Вы'] });
+        else if (r.mine) { r.count -= 1; r.mine = false; r.users = (r.users ?? []).filter((u) => u !== 'Вы'); }
+        else { r.count += 1; r.mine = true; r.users = [...(r.users ?? []), 'Вы']; }
+        return { ...m, reactions: list.filter((x) => x.count > 0) };
+      });
+      feed.setMessages(feeds[active]);
+    },
+    onReply: (m) => { composer.setValue(`> ${m.text ?? ''}\n`); composer.focus(); },
+    decorate: (m, el) => { if (m.text && /заказ/i.test(m.text) && m.dir !== 'system') el.dataset.hasOrder = '1'; },
     onLoadMore: () => new Promise((r) => setTimeout(() => {
       const cur = feeds[active] ?? [];
       feeds[active] = [...older(8), ...cur];
@@ -134,6 +149,7 @@
     },
   });
   const composer = B24UI.createChatComposer(document.getElementById('chat-composer'), {
+    emoji: true,
     quickReplies: ['Здравствуйте! Чем могу помочь?', 'Заказ передан курьеру', 'Доставка — 60 минут', 'Спасибо за заказ!'],
     onAttach: (files) => B24UI.toast(`Файлов: ${files.length}`),
     onSend: (text) => new Promise((resolve) => {

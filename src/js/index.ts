@@ -24,7 +24,7 @@ export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } fro
 export { initTopnavMore } from './topnav-more';
 export {
   createChatList, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
-  type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
+  type ChatReaction, type ChatMessageAction, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
   type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle,
   type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
 } from './chat';
@@ -32,6 +32,8 @@ export {
   createMessengerBar, openChatDock, getChatDocks,
   type MessengerBarItem, type MessengerBarAction, type MessengerBarOptions, type MessengerBarHandle, type ChatDockOptions, type ChatDockHandle,
 } from './messenger';
+export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
+export { showFloat, type FloatOptions, type FloatHandle } from './float';
 export { createMemberList, pickUser, matchMember, type Member, type MemberListOptions, type MemberListHandle, type PickUserOptions } from './members';
 export { notifySound, desktopNotify, requestNotifyPermission, claimNotify, type NotifySoundOptions, type DesktopNotifyOptions } from './notify';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';

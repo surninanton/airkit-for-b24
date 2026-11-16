@@ -8,11 +8,13 @@
  *     .b24-chat__aside  — карточка клиента
  * На ≤768px одна колонка: список, а после выбора диалога — переписка с кнопкой «назад»; на ≤1100px карточка скрыта.
  */
-import { icon } from '../icons';
+import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
 import { autoResize } from './timeline';
 import { h, html } from './dom';
 import { getLocale, intlLocale, t } from './i18n';
+import { attachEmojiPicker, openEmojiPicker } from './emoji';
+import { showFloat } from './float';
 
 export type ChatDate = Date | string | number;
 const toDate = (d: ChatDate) => (d instanceof Date ? d : new Date(d));
@@ -206,6 +208,21 @@ export type ChatAttachment =
   | { type: 'voice'; url: string; duration?: number }
   | { type: 'geo'; lat: number; lng: number; label?: string; url?: string };
 
+export interface ChatReaction {
+  emoji: string;
+  count: number;
+  /** вы уже поставили эту реакцию */
+  mine?: boolean;
+  /** кто поставил — в подсказке чипа */
+  users?: string[];
+}
+export interface ChatMessageAction {
+  id: string;
+  label: string;
+  icon?: IconName;
+  danger?: boolean;
+  onClick: (message: ChatMessage) => void;
+}
 export interface ChatMessage {
   id: string;
   /** in — входящее, out — наше, system — служебная строка по центру («Диалог закрыт») */
@@ -219,6 +236,8 @@ export interface ChatMessage {
   /** причина «не доставлено» */
   error?: string;
   attachments?: ChatAttachment[];
+  /** реакции под пузырём: чипы «👍 3» */
+  reactions?: ChatReaction[];
 }
 export interface ChatFeedOptions {
   messages?: ChatMessage[];
@@ -232,6 +251,21 @@ export interface ChatFeedOptions {
   onRetry?: (message: ChatMessage) => void;
   onPhotoClick?: (attachment: ChatAttachment & { type: 'photo' }, message: ChatMessage) => void;
   emptyText?: string;
+  /**
+   * Реакция: клик по чипу или эмодзи в полоске быстрых реакций. Ваш код ставит / снимает реакцию и передаёт новое
+   * message.reactions. Задан onReact — у сообщения по наведению (на телефоне — по долгому нажатию) появляется полоска.
+   */
+  onReact?: (messageId: string, emoji: string, message: ChatMessage) => void;
+  /** быстрые реакции в полоске (по умолчанию 👍 ❤️ 😂 😮 😢 🙏), «+» открывает панель эмодзи */
+  quickReactions?: string[];
+  /** «Ответить» в меню сообщения */
+  onReply?: (message: ChatMessage) => void;
+  /** «Копировать» текст в меню сообщения (по умолчанию да) */
+  copy?: boolean;
+  /** свои пункты меню сообщения (после «Ответить» и «Копировать»); вернуть [] — без своих */
+  actions?: (message: ChatMessage) => ChatMessageAction[];
+  /** вызывается для каждого сообщения после отрисовки (и после каждой перерисовки): добавить свою разметку в el */
+  decorate?: (message: ChatMessage, el: HTMLElement) => void;
 }
 export interface ChatFeedHandle {
   element: HTMLElement;
@@ -249,6 +283,16 @@ export interface ChatFeedHandle {
 
 const fmtSize = (n?: number) => (n == null ? '' : n < 1024 ? `${n} ${t('Б')}` : n < 1048576 ? `${Math.round(n / 1024)} ${t('КБ')}` : `${(n / 1048576).toFixed(1).replace('.', ',')} ${t('МБ')}`);
 const fmtDur = (s?: number) => (s == null ? '' : `${Math.floor(s / 60)}:${pad(Math.round(s % 60))}`);
+
+async function copyText(text: string): Promise<void> {
+  try { await navigator.clipboard.writeText(text); return; } catch { /* нет доступа к буферу — запасной путь */ }
+  const ta = h('textarea', { style: 'position:fixed;opacity:0;pointer-events:none' }) as HTMLTextAreaElement;
+  ta.value = text;
+  document.body.append(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch { /* нечем копировать */ }
+  ta.remove();
+}
 
 export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {}): ChatFeedHandle {
   let messages: ChatMessage[] = options.messages ?? [];
@@ -318,11 +362,85 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       }
       col.append(err);
     }
+    if (m.reactions?.some((r) => r.count > 0)) {
+      const chips = h('div', { class: 'b24-chat-reactions', role: 'group', 'aria-label': t('Реакции') });
+      for (const r of m.reactions) {
+        if (r.count <= 0) continue;
+        const chip = h('button', {
+          type: 'button', class: `b24-chat-reaction${r.mine ? ' is-mine' : ''}`, 'data-emoji': r.emoji, 'aria-pressed': String(!!r.mine),
+          title: r.users?.length ? r.users.join(', ') : undefined, 'aria-label': `${r.emoji} ${r.count}`,
+        }, h('span', { class: 'b24-chat-reaction__emoji' }, r.emoji), h('span', { class: 'b24-chat-reaction__count' }, String(r.count)));
+        if (options.onReact) chip.addEventListener('click', () => options.onReact!(m.id, r.emoji, m));
+        else chip.disabled = true;
+        chips.append(chip);
+      }
+      col.append(chips);
+    }
+    const tools = buildTools(m);
+    if (tools) col.append(tools);
     el.append(col);
     return el;
   };
 
+  const messageActions = (m: ChatMessage): ChatMessageAction[] => {
+    const list: ChatMessageAction[] = [];
+    if (options.onReply) list.push({ id: 'reply', label: t('Ответить'), icon: 'reply', onClick: options.onReply });
+    if (m.text && options.copy !== false) list.push({ id: 'copy', label: t('Копировать'), icon: 'copy', onClick: (x) => void copyText(x.text ?? '') });
+    return [...list, ...(options.actions?.(m) ?? [])];
+  };
+
+  /** Полоска быстрых реакций и «⋯» над пузырём: по наведению / фокусу, на телефоне — по долгому нажатию (.is-tools). */
+  const buildTools = (m: ChatMessage): HTMLElement | null => {
+    const acts = messageActions(m);
+    if (!options.onReact && !acts.length) return null;
+    const bar = h('div', { class: 'b24-chat-msg__tools', role: 'toolbar', 'aria-label': t('Действия с сообщением') });
+    if (options.onReact) {
+      for (const e of options.quickReactions ?? ['👍', '❤️', '😂', '😮', '😢', '🙏']) {
+        const b = h('button', { type: 'button', class: 'b24-chat-msg__tool b24-chat-msg__tool--emoji', 'aria-label': e, 'data-emoji': e }, e);
+        b.addEventListener('click', () => { options.onReact!(m.id, e, m); hideTools(); });
+        bar.append(b);
+      }
+      const plus = h('button', { type: 'button', class: 'b24-chat-msg__tool', 'aria-label': t('Другая реакция'), title: t('Другая реакция') }, html(icon('smile', { size: 16 })));
+      plus.addEventListener('click', () => {
+        openEmojiPicker(plus, { align: m.dir === 'out' ? 'end' : 'start', onSelect: (e) => { options.onReact!(m.id, e, m); hideTools(); } });
+      });
+      bar.append(plus);
+    }
+    if (acts.length) {
+      const more = h('button', { type: 'button', class: 'b24-chat-msg__tool', 'aria-label': t('Ещё'), title: t('Ещё'), 'aria-haspopup': 'menu' }, html(icon('more', { size: 16 })));
+      more.addEventListener('click', () => {
+        const menu = h('div', { class: 'b24-chat-menu', role: 'menu' });
+        const fl = showFloat(more, menu, { align: m.dir === 'out' ? 'end' : 'start', sheet: false, onClose: () => more.focus({ preventScroll: true }) });
+        for (const a of acts) {
+          const item = h('button', { type: 'button', role: 'menuitem', class: `b24-chat-menu__item${a.danger ? ' is-danger' : ''}` }, a.icon ? html(icon(a.icon, { size: 16 })) : '', h('span', {}, a.label));
+          item.addEventListener('click', () => { fl.close(); hideTools(); a.onClick(m); });
+          menu.append(item);
+        }
+        fl.reposition();
+        (menu.firstElementChild as HTMLElement | null)?.focus();
+      });
+      bar.append(more);
+    }
+    return bar;
+  };
+
+  /** Долгое нажатие (телефон) показывает полоску; касание в другом месте скрывает. */
+  let pressTimer = 0;
+  let toolsEl: HTMLElement | null = null;
+  const hideTools = () => { toolsEl?.classList.remove('is-tools'); toolsEl = null; };
+  list.addEventListener('pointerdown', (e) => {
+    const target = e.target as HTMLElement;
+    const msg = target.closest<HTMLElement>('.b24-chat-msg');
+    if (toolsEl && (!msg || msg !== toolsEl) && !target.closest('.b24-chat-msg__tools')) hideTools();
+    if (e.pointerType !== 'touch' || !msg || !msg.querySelector('.b24-chat-msg__tools') || target.closest('a, button, audio')) return;
+    clearTimeout(pressTimer);
+    pressTimer = window.setTimeout(() => { hideTools(); msg.classList.add('is-tools'); toolsEl = msg; }, 450);
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointermove']) list.addEventListener(ev, () => clearTimeout(pressTimer), { passive: true });
+  list.addEventListener('contextmenu', (e) => { if (toolsEl || (e.target as HTMLElement).closest('.b24-chat-msg__bubble') && matchMedia('(pointer: coarse)').matches) e.preventDefault(); });
+
   const render = () => {
+    toolsEl = null;
     more.hidden = !hasMore;
     if (!messages.length) {
       list.replaceChildren(h('div', { class: 'b24-chat-feed__empty' }, options.emptyText ?? t('Сообщений пока нет')));
@@ -336,7 +454,9 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
         out.push(h('div', { class: 'b24-chat-date', role: 'separator' }, h('span', {}, formatChatDay(d))));
         prev = undefined;
       }
-      out.push(buildMessage(m, prev));
+      const el = buildMessage(m, prev);
+      if (options.decorate) { try { options.decorate(m, el); } catch (err) { console.error('[airkit-for-b24] decorate:', err); } }
+      out.push(el);
       prev = m;
     }
     list.replaceChildren(...out);
@@ -430,6 +550,8 @@ export interface ChatComposerOptions {
   /** причина, почему ответить нельзя («Диалог закрыт») — вместо поля */
   disabledText?: string;
   maxLength?: number;
+  /** кнопка выбора эмодзи рядом со скрепкой: панель с «Частыми», разделами и поиском; вставка в позицию курсора */
+  emoji?: boolean;
 }
 export interface ChatComposerHandle {
   element: HTMLElement;
@@ -527,6 +649,8 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     setQuickReplies: setQuick,
     destroy() { unResize(); root.remove(); },
   };
+  const emojiBtn = options.emoji ? attachEmojiPicker(handle) : null;
+  if (emojiBtn) { const base = handle.destroy; handle.destroy = () => { emojiBtn.destroy(); base(); }; }
   if (options.disabled || options.disabledText) handle.setDisabled(true, options.disabledText);
   sync();
   return handle;

@@ -1,0 +1,75 @@
+/* ── Эмодзи и реакции ─────────────────────────────────────
+ * .b24-float > .b24-emoji (__head · __tabs > __tab · __title · __grid > __btn) — панель выбора эмодзи у кнопки
+ * .b24-float-backdrop — затемнение под нижним листом (только ≤768px)
+ * .b24-chat-reactions > .b24-chat-reaction (.is-mine) — чипы под пузырём
+ * .b24-chat-msg__tools — полоска быстрых реакций и «⋯» над пузырём (:hover, :focus-within, .is-tools)
+ * .b24-chat-menu > __item — меню действий сообщения
+ */
+.b24-float { position: fixed; z-index: var(--b24-z-panel); }
+.b24-float-backdrop { display: none; }
+.b24-emoji {
+  display: flex; flex-direction: column; gap: 6px; width: 340px; max-width: calc(100vw - 16px); height: 360px; max-height: calc(100vh - 16px); box-sizing: border-box; padding: 10px;
+  color: var(--b24-text-primary); background: var(--b24-bg-surface); border-radius: var(--b24-radius-md); box-shadow: var(--b24-shadow-3xl);
+}
+.b24-emoji__head { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: var(--b24-bg-surface); border: 1px solid var(--b24-border-field); border-radius: var(--b24-radius-sm); color: var(--b24-text-subtle); }
+.b24-emoji__head svg { flex: 0 0 auto; width: 16px; height: 16px; }
+.b24-emoji__head:focus-within { border-color: var(--b24-color-primary); }
+.b24-emoji .b24-emoji__search, .b24-emoji .b24-emoji__search:focus { outline: 0; flex: 1 1 auto; min-width: 0; height: 32px; padding: 0; border: 0; box-shadow: none !important; background: transparent; }
+.b24-emoji__tabs { flex: 0 0 auto; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.b24-emoji__tabs::-webkit-scrollbar { display: none; }
+.b24-emoji__tab { flex: 0 0 auto; width: 36px; height: 32px; padding: 0; font-size: 18px; line-height: 1; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: var(--b24-radius-xs); cursor: pointer; filter: grayscale(1); opacity: 0.7; }
+.b24-emoji__tab:hover { background: var(--b24-bg-hover); opacity: 1; }
+.b24-emoji__tab.is-active { border-bottom-color: var(--b24-color-primary); filter: none; opacity: 1; }
+.b24-emoji__tab:focus-visible, .b24-emoji__btn:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-emoji__title { flex: 0 0 auto; font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-semibold); color: var(--b24-text-subtle); }
+.b24-emoji__grid { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); align-content: start; overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain; }
+.b24-emoji__btn { display: grid; place-items: center; height: 36px; padding: 0; font-size: 22px; line-height: 1; background: none; border: 0; border-radius: var(--b24-radius-xs); cursor: pointer; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.b24-emoji__btn:hover { background: var(--b24-bg-hover); }
+.b24-emoji__empty { grid-column: 1 / -1; padding: 24px 8px; text-align: center; color: var(--b24-text-subtle); }
+
+/* нижний лист на телефоне */
+@media (max-width: 768px) {
+  .b24-float-backdrop { display: block; position: fixed; inset: 0; background: var(--b24-bg-overlay, rgba(0, 0, 0, 0.35)); }
+  .b24-float--sheet { top: auto !important; left: 0 !important; right: 0; bottom: 0; }
+  .b24-float--sheet .b24-emoji { width: 100%; max-width: none; height: min(60vh, 420px); border-radius: 16px 16px 0 0; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .b24-emoji__btn { height: 42px; font-size: 26px; }
+  .b24-emoji__grid { grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); }
+}
+
+/* реакции */
+.b24-chat-reactions { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; }
+.b24-chat-msg.is-out .b24-chat-reactions { justify-content: flex-end; }
+.b24-chat-reaction {
+  display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; margin: 0; font: inherit; font-size: var(--b24-font-size-xs); line-height: 1;
+  color: var(--b24-text-secondary); background: var(--b24-bg-surface); border: 1px solid var(--b24-divider); border-radius: 12px; cursor: pointer;
+  transition: background-color var(--b24-duration-fast), border-color var(--b24-duration-fast);
+}
+.b24-chat-reaction:disabled { cursor: default; }
+.b24-chat-reaction:hover:not(:disabled) { background: var(--b24-bg-hover); }
+.b24-chat-reaction__emoji { font-size: 14px; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.b24-chat-reaction__count { font-variant-numeric: tabular-nums; font-weight: var(--b24-font-weight-medium); }
+.b24-chat-reaction.is-mine { color: var(--b24-color-primary); background: var(--b24-color-soft-blue-3, #e5f4ff); border-color: var(--b24-color-primary); }
+.b24-chat-reaction:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
+
+/* полоска над пузырём */
+.b24-chat-msg__col { position: relative; }
+.b24-chat-msg__tools {
+  position: absolute; z-index: 2; bottom: calc(100% - 10px); left: 0; display: flex; align-items: center; gap: 1px; padding: 2px;
+  background: var(--b24-bg-surface); border: 1px solid var(--b24-divider); border-radius: 18px; box-shadow: var(--b24-shadow-xs, 0 2px 8px rgba(0, 0, 0, 0.12));
+  visibility: hidden; opacity: 0; transition: opacity var(--b24-duration-fast);
+}
+.b24-chat-msg.is-out .b24-chat-msg__tools { left: auto; right: 0; }
+.b24-chat-msg:hover > .b24-chat-msg__col > .b24-chat-msg__tools,
+.b24-chat-msg:focus-within > .b24-chat-msg__col > .b24-chat-msg__tools,
+.b24-chat-msg.is-tools > .b24-chat-msg__col > .b24-chat-msg__tools { visibility: visible; opacity: 1; }
+.b24-chat-msg__tool { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; margin: 0; font-size: 18px; line-height: 1; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.b24-chat-msg__tool:hover { background: var(--b24-bg-hover); color: var(--b24-text-primary); }
+.b24-chat-msg__tool:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+@media (hover: none) { .b24-chat-msg:hover > .b24-chat-msg__col > .b24-chat-msg__tools:not(:focus-within) { visibility: hidden; opacity: 0; } .b24-chat-msg.is-tools:hover > .b24-chat-msg__col > .b24-chat-msg__tools { visibility: visible; opacity: 1; } }
+
+/* меню действий */
+.b24-chat-menu { display: flex; flex-direction: column; min-width: 180px; padding: 4px; background: var(--b24-bg-surface); border-radius: var(--b24-radius-md); box-shadow: var(--b24-shadow-3xl); }
+.b24-chat-menu__item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; margin: 0; font: inherit; text-align: left; color: var(--b24-text-primary); background: none; border: 0; border-radius: var(--b24-radius-xs); cursor: pointer; }
+.b24-chat-menu__item:hover, .b24-chat-menu__item:focus-visible { background: var(--b24-bg-hover); outline: 0; }
+.b24-chat-menu__item svg { flex: 0 0 auto; color: var(--b24-text-subtle); }
+.b24-chat-menu__item.is-danger { color: var(--b24-color-danger); }
