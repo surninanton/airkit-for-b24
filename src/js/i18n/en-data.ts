@@ -236,4 +236,7 @@ export const enData: Record<string, string> = {
   'Ответить': 'Reply',
   'Видят только сотрудники': 'Visible to staff only',
   'Режим ответа': 'Reply mode',
+  'Файл «{name}» больше {size}': 'File "{name}" is larger than {size}',
+  'Можно прикрепить не больше {n} файлов': 'You can attach up to {n} files',
+  'Файл «{name}» этого типа прикрепить нельзя': 'File "{name}" type is not allowed',
 };

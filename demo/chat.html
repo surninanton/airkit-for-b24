@@ -99,6 +99,7 @@
       ...older(6),
       { id: 'm1', dir: 'system', time: day(1, 18, 0), text: 'Диалог принят оператором Елена' },
       { id: 'm2', dir: 'in', time: day(1, 18, 1), text: 'Здравствуйте! Хочу заказать две пиццы на вечер.', reactions: [{ emoji: '🍕', count: 2, users: ['Иван', 'Елена'] }] },
+      { id: 'mc', dir: 'note', mine: false, author: 'Игорь Сафонов', time: day(1, 18, 2), text: 'Адрес проверил, это новостройка — звоните за 10 минут.' },
       { id: 'mn', dir: 'note', author: 'Оператор Елена', time: day(1, 18, 2), text: 'Постоянный клиент, скидка 10%.' },
       { id: 'm3', dir: 'out', author: 'Оператор Елена', time: day(1, 18, 3), text: 'Добрый вечер! Подскажите адрес доставки — посчитаю стоимость.', status: 'read' },
       { id: 'm4', dir: 'in', time: day(1, 18, 5), attachments: [{ type: 'geo', lat: 56.0889, lng: 54.2483, label: 'ул. Строителей, 12' }] },
@@ -153,6 +154,12 @@
   });
   const composer = window.__composer = B24UI.createChatComposer(document.getElementById('chat-composer'), {
     emoji: true,
+    // файлы можно бросать на всю переписку; проверка размера, числа и типа — для перетаскивания, вставки и скрепки
+    dropTarget: document.querySelector('#chat .b24-chat__main'),
+    accept: 'image/*,.pdf,.txt',
+    maxSize: 5 * 1024 * 1024,
+    maxFiles: 5,
+    clearFailedOnSend: true,
     quickReplies: ['Здравствуйте! Чем могу помочь?', 'Заказ передан курьеру', 'Доставка — 60 минут', 'Спасибо за заказ!'],
     modes: [{ id: 'reply', label: 'Ответ клиенту' }, { id: 'note', label: 'Скрытое сообщение', tone: 'note', placeholder: 'Заметка: клиент её не увидит' }],
     // файлы из скрепки, перетаскивания и вставки из буфера: чип с прогрессом, отправка заблокирована до конца загрузки

@@ -86,3 +86,57 @@ test('окно чата: свои кнопки в шапке; лайтбокс �
   await page.locator('#chat-feed .b24-chat-att--photo').first().click();
   await expect(page.locator('.b24-lightbox')).toHaveAttribute('aria-label', 'Просмотр изображения');
 });
+
+test('файлы: dropTarget — вся переписка; maxSize/maxFiles/accept работают и для перетаскивания', async ({ page }) => {
+  await open(page, '/chat.html');
+  await openDialog(page);
+  const main = page.locator('#chat .b24-chat__main');
+  const comp = page.locator('#chat-composer .b24-chat-composer');
+  await main.evaluate((el) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(['x'], 'a.txt', { type: 'text/plain' }));
+    el.dispatchEvent(new DragEvent('dragenter', { dataTransfer: dt, bubbles: true }));
+    (el as HTMLElement).dataset.over = String(el.classList.contains('b24-chat-dropzone-active'));
+    el.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+  });
+  expect(await main.getAttribute('data-over')).toBe('true');
+  await expect(main).not.toHaveClass(/b24-chat-dropzone-active/);
+  await expect(comp.locator('.b24-chat-attchip__name')).toHaveText('a.txt');
+  // не тот тип и слишком большой: тост, чип не добавляется
+  await main.evaluate((el) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(['x'], 'run.exe', { type: 'application/x-msdownload' }));
+    dt.items.add(new File([new Uint8Array(6 * 1024 * 1024)], 'big.pdf', { type: 'application/pdf' }));
+    el.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+  });
+  await expect(page.locator('.b24-toast')).toHaveCount(2);
+  await expect(comp.locator('.b24-chat-attchip')).toHaveCount(1);
+});
+
+test('отправка вернула false: чипы снова доступны, прогресс отправки снят', async ({ page }) => {
+  await open(page, '/chat.html');
+  await openDialog(page);
+  const res = await page.evaluate(async () => {
+    const B24UI = (window as unknown as { B24UI: typeof import('../src/js/index') }).B24UI;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const c = B24UI.createChatComposer(host, { onAttach: () => undefined, onSend: async () => { c.updateAttachment('x', { progress: 0.4 }); return false; } });
+    c.addAttachment({ id: 'x', name: 'x.png' });
+    (host.querySelector('.b24-chat-composer__send') as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 100));
+    return { progress: c.getAttachments()[0].progress, sending: !!host.querySelector('.is-sending'), canSend: !(host.querySelector('.b24-chat-composer__send') as HTMLButtonElement).disabled };
+  });
+  expect(res).toEqual({ progress: undefined, sending: false, canSend: true });
+});
+
+test('заметка коллеги: слева, с аватаром и именем', async ({ page }) => {
+  await open(page, '/chat.html');
+  await openDialog(page);
+  const note = page.locator('#chat-feed .b24-chat-msg[data-id="mc"]');
+  await expect(note).toHaveClass(/is-in/);
+  await expect(note).toHaveClass(/is-note/);
+  await expect(note.locator('.b24-avatar')).toHaveCount(1);
+  await expect(note.locator('.b24-chat-msg__author')).toHaveText('Игорь Сафонов');
+  const mine = page.locator('#chat-feed .b24-chat-msg[data-id="mn"]');
+  await expect(mine).toHaveClass(/is-out/);
+});

@@ -15,6 +15,7 @@ import { h, html } from './dom';
 import { getLocale, intlLocale, t } from './i18n';
 import { attachEmojiPicker, openEmojiPicker } from './emoji';
 import { showFloat } from './float';
+import { toast } from './toast';
 
 export type ChatDate = Date | string | number;
 const toDate = (d: ChatDate) => (d instanceof Date ? d : new Date(d));
@@ -232,6 +233,8 @@ export interface ChatMessageAction {
 }
 export interface ChatMessage {
   id: string;
+  /** для dir: 'note': false — заметка коллеги: слева, с аватаром и именем (по умолчанию — ваша, справа) */
+  mine?: boolean;
   /** in — входящее, out — наше, system — служебная строка по центру («Диалог закрыт»), note — заметка для сотрудников (жёлтая, с замком) */
   dir: 'in' | 'out' | 'system' | 'note';
   text?: string;
@@ -356,8 +359,8 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const d = toDate(m.time);
     // подряд от одного автора в пределах 5 минут — без повторной подписи
     const grouped = !!prev && prev.dir === m.dir && prev.author === m.author && dayNum(toDate(prev.time)) === dayNum(d) && d.getTime() - toDate(prev.time).getTime() < 5 * 60000;
-    const el = h('div', { class: `b24-chat-msg is-${m.dir === 'note' ? 'out is-note' : m.dir}${m.status === 'failed' ? ' is-failed' : ''}${grouped ? ' is-grouped' : ''}`, 'data-id': m.id });
-    if (options.showAvatars && m.dir === 'in') el.append(grouped ? h('span', { class: 'b24-chat-msg__avatar' }) : html(avatarHtml(m.author ?? '', m.avatar, 'sm')).firstElementChild!);
+    const el = h('div', { class: `b24-chat-msg is-${m.dir === 'note' ? `${m.mine === false ? 'in' : 'out'} is-note` : m.dir}${m.status === 'failed' ? ' is-failed' : ''}${grouped ? ' is-grouped' : ''}`, 'data-id': m.id });
+    if ((options.showAvatars && m.dir === 'in') || (m.dir === 'note' && m.mine === false)) el.append(grouped ? h('span', { class: 'b24-chat-msg__avatar' }) : html(avatarHtml(m.author ?? '', m.avatar, 'sm')).firstElementChild!);
     const bubble = h('div', { class: 'b24-chat-msg__bubble' });
     if (m.dir === 'note') bubble.append(h('div', { class: 'b24-chat-msg__note' }, html(icon('lock', { size: 12 })), h('span', {}, options.noteLabel ?? t('Видят только сотрудники'))));
     if (m.author && !grouped) bubble.append(h('div', { class: 'b24-chat-msg__author' }, m.author));
@@ -414,7 +417,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       }
       const plus = h('button', { type: 'button', class: 'b24-chat-msg__tool', 'aria-label': t('Другая реакция'), title: t('Другая реакция') }, html(icon('smile', { size: 16 })));
       plus.addEventListener('click', () => {
-        openEmojiPicker(plus, { align: m.dir === 'out' || m.dir === 'note' ? 'end' : 'start', onSelect: (e) => { options.onReact!(m.id, e, m); hideTools(); } });
+        openEmojiPicker(plus, { align: m.dir === 'out' || (m.dir === 'note' && m.mine !== false) ? 'end' : 'start', onSelect: (e) => { options.onReact!(m.id, e, m); hideTools(); } });
       });
       bar.append(plus);
     }
@@ -422,7 +425,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       const more = h('button', { type: 'button', class: 'b24-chat-msg__tool', 'aria-label': t('Ещё'), title: t('Ещё'), 'aria-haspopup': 'menu' }, html(icon('more', { size: 16 })));
       more.addEventListener('click', () => {
         const menu = h('div', { class: 'b24-chat-menu', role: 'menu' });
-        const fl = showFloat(more, menu, { align: m.dir === 'out' || m.dir === 'note' ? 'end' : 'start', sheet: false, onClose: () => more.focus({ preventScroll: true }) });
+        const fl = showFloat(more, menu, { align: m.dir === 'out' || (m.dir === 'note' && m.mine !== false) ? 'end' : 'start', sheet: false, onClose: () => more.focus({ preventScroll: true }) });
         for (const a of acts) {
           const item = h('button', { type: 'button', role: 'menuitem', class: `b24-chat-menu__item${a.danger ? ' is-danger' : ''}` }, a.icon ? html(icon(a.icon, { size: 16 })) : '', h('span', {}, a.label));
           item.addEventListener('click', () => { fl.close(); hideTools(); a.onClick(m); });
@@ -489,7 +492,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const replaced = !wasEmpty && !next.some((m) => m.id === oldFirst || m.id === oldLast);
     if (wasEmpty || replaced) handle.scrollToBottom();
     else if (prepended && !appended) { root.scrollTop = root.scrollHeight - fromBottom; stick = false; }
-    else if (appended && (atBottom || ['out', 'note'].includes(next[next.length - 1].dir))) handle.scrollToBottom(true);
+    else if (appended && (atBottom || (next[next.length - 1].dir === 'out' || (next[next.length - 1].dir === 'note' && next[next.length - 1].mine !== false)))) handle.scrollToBottom(true);
     else root.scrollTop = prevTop;
   };
 
@@ -588,8 +591,18 @@ export interface ChatComposerOptions {
   onModeChange?: (mode: string) => void;
   /** крестик на чипе вложения (по умолчанию чип просто убирается) */
   onRemoveAttachment?: (attachment: ComposerAttachment) => void;
+  /** куда можно бросать файлы: элемент (например .b24-chat__main — вся переписка) или функция; по умолчанию — само поле ответа */
+  dropTarget?: HTMLElement | (() => HTMLElement | null);
+  /** проверка файлов из скрепки, перетаскивания и вставки: размер в байтах, общее число вложений (с уже добавленными) */
+  maxSize?: number;
+  maxFiles?: number;
+  /** файл отклонён проверкой; по умолчанию — тост. reason: 'size' | 'count' | 'type' */
+  onReject?: (file: File, reason: 'size' | 'count' | 'type') => void;
+  /** после успешной отправки убирать и чипы с ошибкой (по умолчанию они остаются) */
+  clearFailedOnSend?: boolean;
   /** файлы из скрепки, перетаскивания на поле и вставки из буфера (Ctrl+V с картинкой): показывайте их через addAttachment и грузите сами */
   onAttach?: (files: File[]) => void;
+  /** допустимые типы: «.pdf,image/*» — для скрепки, перетаскивания и вставки */
   accept?: string;
   /** быстрые ответы над полем: клик вставляет текст */
   quickReplies?: string[];
@@ -635,11 +648,30 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   const actions = h('div', { class: 'b24-chat-composer__actions' });
   const send = h('button', { type: 'button', class: 'b24-btn b24-btn--primary b24-btn--icon b24-chat-composer__send', 'aria-label': t('Отправить'), title: t('Отправить') }, html(icon('send')));
   const blocked = h('div', { class: 'b24-chat-composer__blocked', hidden: '' });
+  const typeOk = (f: File) => {
+    const rules = (options.accept ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+    if (!rules.length) return true;
+    const name = f.name.toLowerCase();
+    const type = f.type.toLowerCase();
+    return rules.some((r) => (r.startsWith('.') ? name.endsWith(r) : r.endsWith('/*') ? type.startsWith(r.slice(0, -1)) : type === r));
+  };
+  /** проверка размера, числа и типа; годные файлы — в onAttach, остальные — в onReject (по умолчанию тост) */
+  const accept = (list: File[]) => {
+    let room = options.maxFiles != null ? options.maxFiles - files.size : Infinity;
+    const okList: File[] = [];
+    for (const f of list) {
+      const reason = !typeOk(f) ? 'type' : options.maxSize != null && f.size > options.maxSize ? 'size' : room <= 0 ? 'count' : null;
+      if (!reason) { okList.push(f); room -= 1; continue; }
+      if (options.onReject) options.onReject(f, reason);
+      else toast(reason === 'size' ? t('Файл «{name}» больше {size}', { name: f.name, size: fmtSize(options.maxSize) }) : reason === 'count' ? t('Можно прикрепить не больше {n} файлов', { n: options.maxFiles ?? 0 }) : t('Файл «{name}» этого типа прикрепить нельзя', { name: f.name }), { type: 'warning' });
+    }
+    if (okList.length) options.onAttach!(okList);
+  };
   if (options.onAttach) {
     const file = h('input', { type: 'file', multiple: true, hidden: '', accept: options.accept });
     const clip = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--icon b24-chat-composer__attach', 'aria-label': t('Прикрепить файл'), title: t('Прикрепить файл') }, html(icon('paperclip')));
     clip.addEventListener('click', () => file.click());
-    file.addEventListener('change', () => { if (file.files?.length) options.onAttach!(Array.from(file.files)); file.value = ''; });
+    file.addEventListener('change', () => { if (file.files?.length) accept(Array.from(file.files)); file.value = ''; });
     actions.append(clip, file);
   }
   const modesEl = h('div', { class: 'b24-chat-composer__modes', role: 'radiogroup', 'aria-label': t('Режим ответа') });
@@ -650,6 +682,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
 
   /* вложения */
   const files = new Map<string, { a: ComposerAttachment; el: HTMLElement }>();
+  const sending = new Set<string>();
   const uploading = (a: ComposerAttachment) => !a.error && a.progress != null && a.progress < 1;
   const ready = () => Array.from(files.values()).map((x) => x.a).filter((a) => !a.error && !uploading(a));
   const sync = () => {
@@ -661,7 +694,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   const paintChip = (rec: { a: ComposerAttachment; el: HTMLElement }) => {
     const a = rec.a;
     const pct = a.progress != null ? Math.round(Math.max(0, Math.min(1, a.progress)) * 100) : 100;
-    rec.el.className = `b24-chat-attchip${a.error ? ' is-error' : ''}${uploading(a) ? ' is-uploading' : ''}`;
+    rec.el.className = `b24-chat-attchip${a.error ? ' is-error' : ''}${uploading(a) ? ' is-uploading' : ''}${sending.has(a.id) ? ' is-sending' : ''}`;
     const thumb = a.thumb ? h('img', { class: 'b24-chat-attchip__thumb', src: a.thumb, alt: '' }) : h('span', { class: 'b24-chat-attchip__icon' }, html(icon('file', { size: 18 })));
     const info = a.error ? a.error : uploading(a) ? `${pct}%` : fmtSize(a.size);
     const rm = h('button', { type: 'button', class: 'b24-chat-attchip__remove', 'aria-label': `${t('Убрать')} ${a.name}`, title: t('Убрать') }, html(icon('close', { size: 14 })));
@@ -696,10 +729,21 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     if (Array.from(files.values()).some((x) => uploading(x.a))) return;
     root.classList.add('is-busy');
     sync();
+    const sendingIds = new Set(atts.map((a) => a.id));
+    sendingIds.forEach((id) => { sending.add(id); const rec = files.get(id); if (rec) paintChip(rec); });
+    let ok = false;
     try {
       const r = await options.onSend(text, { attachments: atts, mode });
-      if (r !== false) { input.value = ''; fit(); atts.forEach((a) => handle.removeAttachment(a.id)); }
+      ok = r !== false;
+      if (ok) {
+        input.value = ''; fit();
+        atts.forEach((a) => handle.removeAttachment(a.id));
+        if (options.clearFailedOnSend) Array.from(files.values()).filter((x) => x.a.error).forEach((x) => handle.removeAttachment(x.a.id));
+      }
     } finally {
+      // отправка не удалась: вложения снова доступны, «прогресс отправки», выставленный вашим кодом, снимаем
+      if (!ok) sendingIds.forEach((id) => { const rec = files.get(id); if (rec && rec.a.progress != null && rec.a.progress < 1 && !rec.a.error) { rec.a = { ...rec.a, progress: undefined }; paintChip(rec); } });
+      sendingIds.forEach((id) => { sending.delete(id); const rec = files.get(id); if (rec) paintChip(rec); });
       root.classList.remove('is-busy');
       sync();
       input.focus();
@@ -713,26 +757,33 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     if (enter ? !e.shiftKey && !mod : mod) { e.preventDefault(); void submit(); }
   });
   send.addEventListener('click', () => void submit());
+  const dropCleanup: Array<() => void> = [];
   if (options.onAttach) {
     const hasFiles = (e: DragEvent) => !!e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files');
+    const target = (typeof options.dropTarget === 'function' ? options.dropTarget() : options.dropTarget) ?? root;
     let depth = 0;
-    root.addEventListener('dragenter', (e) => { if (hasFiles(e)) { depth += 1; root.classList.add('is-dragover'); } });
-    root.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
-    root.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) root.classList.remove('is-dragover'); });
-    root.addEventListener('drop', (e) => {
+    const mark = (on: boolean) => { root.classList.toggle('is-dragover', on); if (target !== root) target.classList.toggle('b24-chat-dropzone-active', on); };
+    const on = <K extends keyof HTMLElementEventMap>(type: K, fn: (e: HTMLElementEventMap[K]) => void) => {
+      target.addEventListener(type, fn as EventListener);
+      dropCleanup.push(() => target.removeEventListener(type, fn as EventListener));
+    };
+    on('dragenter', (e) => { if (hasFiles(e as DragEvent)) { depth += 1; mark(true); } });
+    on('dragover', (e) => { if (hasFiles(e as DragEvent)) e.preventDefault(); });
+    on('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) mark(false); });
+    on('drop', (e) => {
       depth = 0;
-      root.classList.remove('is-dragover');
-      if (!hasFiles(e) || root.classList.contains('is-disabled')) return;
+      mark(false);
+      if (!hasFiles(e as DragEvent) || root.classList.contains('is-disabled')) return;
       e.preventDefault();
-      const list = Array.from(e.dataTransfer!.files);
-      if (list.length) options.onAttach!(list);
+      const list = Array.from((e as DragEvent).dataTransfer!.files);
+      if (list.length) accept(list);
     });
     // вставка картинки или файла из буфера; обычный текст вставляется как всегда
     input.addEventListener('paste', (e) => {
       const list = Array.from(e.clipboardData?.files ?? []);
       if (!list.length || e.clipboardData?.getData('text/plain')) return;
       e.preventDefault();
-      options.onAttach!(list);
+      accept(list);
     });
   }
 
@@ -804,7 +855,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
       sync();
     },
     setQuickReplies: setQuick,
-    destroy() { unResize(); root.remove(); },
+    destroy() { unResize(); dropCleanup.forEach((fn) => fn()); root.remove(); },
   };
   const emojiBtn = options.emoji ? attachEmojiPicker(handle) : null;
   if (emojiBtn) { const base = handle.destroy; handle.destroy = () => { emojiBtn.destroy(); base(); }; }

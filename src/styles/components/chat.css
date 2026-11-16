@@ -225,3 +225,10 @@
 .b24-chat-list__group:not(:first-child) { box-shadow: inset 0 1px 0 var(--b24-divider); }
 .b24-chat-list__group + .b24-chat-list__item { box-shadow: none; }
 .b24-chat-att--voice .b24-chat-att__meta { flex: 0 0 auto; white-space: nowrap; }
+
+/* отправка идёт: чипы приглушены, убрать нельзя */
+.b24-chat-attchip.is-sending { opacity: 0.6; }
+.b24-chat-attchip.is-sending .b24-chat-attchip__remove { pointer-events: none; visibility: hidden; }
+/* свой dropTarget (вся переписка): подсветка при перетаскивании файла */
+.b24-chat-dropzone-active { position: relative; }
+.b24-chat-dropzone-active::after { content: ""; position: absolute; inset: 6px; z-index: 5; pointer-events: none; border: 2px dashed var(--b24-color-primary); border-radius: var(--b24-radius-md); background: color-mix(in srgb, var(--b24-color-primary) 8%, transparent); }

@@ -134,14 +134,14 @@ export interface ChatComposerProps extends ChatComposerOptions {
   composerRef?: MutableRefObject<ChatComposerHandle | null>;
 }
 /** Поле ответа: Enter — отправить, Shift+Enter — новая строка; false из onSend — текст остаётся */
-export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji, modes, mode, onModeChange, onRemoveAttachment, composerRef }: ChatComposerProps) {
+export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji, modes, mode, onModeChange, onRemoveAttachment, composerRef, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend }: ChatComposerProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatComposerHandle | null>(null);
   const cbs = useRef({ onSend, onAttach, onModeChange, onRemoveAttachment });
   cbs.current = { onSend, onAttach, onModeChange, onRemoveAttachment };
   useEffect(() => {
     h.current = createChatComposer(host.current!, {
-      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji, modes, mode,
+      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji, modes, mode, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend,
       onModeChange: onModeChange ? (m) => cbs.current.onModeChange?.(m) : undefined,
       onRemoveAttachment: onRemoveAttachment ? (a) => cbs.current.onRemoveAttachment?.(a) : undefined,
       onSend: (text, ctx) => cbs.current.onSend(text, ctx),
