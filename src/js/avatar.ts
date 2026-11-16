@@ -2,8 +2,16 @@ import { escapeHtml } from './dom';
 
 const AVATAR_COLORS = ['#7fa3c8', '#2fc6f6', '#1bce7b', '#faa72c', '#f85e9e', '#853af5', '#37c5d8', '#b89238', '#0075ff'];
 
+/** Инициалы: первые буквы двух первых слов. Слова без букв и цифр (эмодзи, знаки) пропускаются; символы берутся целиком, не по UTF-16. */
 export function initials(name = ''): string {
-  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const named = words.filter((w) => /[\p{L}\p{N}]/u.test(w));
+  const pick = (w: string) => {
+    const ch = Array.from(w).find((c) => /[\p{L}\p{N}]/u.test(c)) ?? Array.from(w)[0] ?? '';
+    return ch.toUpperCase();
+  };
+  // нет ни одного слова с буквами (только эмодзи) — показываем первый символ как есть
+  return (named.length ? named : words).slice(0, 2).map(pick).join('');
 }
 
 /** Стабильный цвет по имени. */
