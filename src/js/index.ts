@@ -23,8 +23,8 @@ export { createEntityEditor, formatMoney, type EntityEditorOptions, type EntityE
 export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
 export { initTopnavMore } from './topnav-more';
 export {
-  createChatList, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
-  type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
+  createChatList, createChatRail, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
+  type ChatRailItem, type ChatRailOptions, type ChatRailHandle, type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
   type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle,
   type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
 } from './chat';

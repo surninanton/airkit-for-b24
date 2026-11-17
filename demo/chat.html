@@ -67,6 +67,17 @@
     filter: { fields: [{ id: 'channel', label: 'Канал', type: 'multiselect', options: [{ value: 'tg', label: 'Telegram', count: 4 }, { value: 'vk', label: 'VK', count: 2 }, { value: 'max', label: 'MAX', count: 2 }] }], placeholder: 'Фильтр и поиск' },
     views: { items: [{ value: 'open', label: 'Открытые' }, { value: 'closed', label: 'Закрытые' }], value: 'open' },
   });
+  // рейл слева от списка: «Чаты / Линии / CRM / Телефон»
+  B24UI.createChatRail(document.getElementById('chat'), {
+    value: 'lines',
+    items: [
+      { id: 'chats', label: 'Чаты', icon: 'chat', counter: 3 },
+      { id: 'lines', label: 'Линии', icon: 'headset', counter: 5 },
+      { id: 'crm', label: 'CRM', icon: 'crm' },
+      { id: 'phone', label: 'Телефон', icon: 'phone', counter: 1, title: 'Пропущенные звонки' },
+    ],
+    onSelect: (id) => B24UI.toast(`Раздел: ${id}`),
+  });
   document.querySelector('[data-b24-chat-back]').innerHTML = B24UI.icon('arrowLeft');
   document.querySelector('[data-b24-chat-aside]').innerHTML = B24UI.icon('user');
 

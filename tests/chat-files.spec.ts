@@ -140,3 +140,36 @@ test('заметка коллеги: слева, с аватаром и имен
   const mine = page.locator('#chat-feed .b24-chat-msg[data-id="mn"]');
   await expect(mine).toHaveClass(/is-out/);
 });
+
+test('рейл слева от списка: пункты, активный, счётчик, клик; на телефоне — панель над списком, скрыта в переписке', async ({ page }) => {
+  await open(page, '/chat.html');
+  const rail = page.locator('#chat > .b24-chat__rail');
+  await expect(rail.locator('.b24-chat-rail__item')).toHaveText(['3Чаты', '5Линии', 'CRM', '1Телефон']);
+  await expect(rail.locator('.b24-chat-rail__item[aria-current]')).toHaveText('5Линии');
+  await expect(rail.locator('.b24-chat-rail__item').first().locator('.b24-chat-rail__counter')).toHaveText('3');
+  await rail.locator('.b24-chat-rail__item', { hasText: 'Телефон' }).click();
+  await expect(rail.locator('.b24-chat-rail__item[aria-current]')).toHaveText('1Телефон');
+  await expect(page.locator('.b24-toast').last()).toContainText('phone');
+  const r = (await rail.boundingBox())!;
+  const list = (await page.locator('#chat .b24-chat__list').boundingBox())!;
+  if (!mobile(page)) {
+    expect(Math.round(r.width)).toBe(68);
+    expect(list.x).toBeGreaterThanOrEqual(r.x + r.width - 1);        // список справа от рейла
+  } else {
+    expect(r.y + r.height).toBeLessThanOrEqual(list.y + 1);            // панель над списком
+    expect(Math.round(r.width)).toBe(Math.round(list.width));
+    await page.locator('#chat-list .b24-chat-list__item').first().click();
+    await expect(rail).toBeHidden();                                  // открыта переписка
+    await page.locator('[data-b24-chat-back]').click();
+    await expect(rail).toBeVisible();
+  }
+});
+
+test('иконки для софтфона: headset, phoneIncoming / Outgoing / Missed', async ({ page }) => {
+  await open(page, '/chat.html');
+  const ok = await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: { icon(n: string): string } }).B24UI;
+    return ['headset', 'phone', 'chart', 'phoneIncoming', 'phoneOutgoing', 'phoneMissed', 'userPlus'].map((n) => B.icon(n).startsWith('<svg') && B.icon(n).includes('<path'));
+  });
+  expect(ok.every(Boolean)).toBe(true);
+});

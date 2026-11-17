@@ -10,7 +10,7 @@ import {
   type FilterField, type FilterPreset, type FilterState, type DateRange,
   Combobox, EntitySelector, Uploader, EntityEditor, Timeline, TimelineItem, TimelineActivity, TimelineDivider, TimelineComposer,
   formatTimelineTime, Icon, Credit, openSidePanel, modal, type DialogItem, type EditorField, type EditorSection, type EditorValues,
-  ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, Avatar, MessengerBar, ChatDock, MemberList, pickUser, type Member, type ChatMessage, type ChatListItem,
+  ChatLayout, ChatHeader, ChatList, ChatFeed, ChatComposer, Avatar, MessengerBar, ChatDock, ChatRail, MemberList, pickUser, type Member, type ChatMessage, type ChatListItem,
 } from '../src/react';
 
 const STAGES: Stage[] = [
@@ -606,6 +606,7 @@ function ChatsPage() {
     <>
       <PageHeader title="Мессенджер" menu={[{ label: 'Открытые линии', active: true, counter: 1 }, { label: 'Чат сотрудников' }]} />
       <ChatLayout
+        rail={<ChatRail value="lines" items={[{ id: 'chats', label: 'Чаты', icon: 'chat', counter: 3 }, { id: 'lines', label: 'Линии', icon: 'headset' }, { id: 'phone', label: 'Телефон', icon: 'phone' }]} />}
         dialogOpen={!!active}
         onBack={() => setActive(null)}
         list={<ChatList items={list} value={active} onSelect={(id) => { setActive(id); setList((l) => l.map((d) => (d.id === id ? { ...d, unread: 0 } : d))); }} />}

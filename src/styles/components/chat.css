@@ -232,3 +232,35 @@
 /* свой dropTarget (вся переписка): подсветка при перетаскивании файла */
 .b24-chat-dropzone-active { position: relative; }
 .b24-chat-dropzone-active::after { content: ""; position: absolute; inset: 6px; z-index: 5; pointer-events: none; border: 2px dashed var(--b24-color-primary); border-radius: var(--b24-radius-md); background: color-mix(in srgb, var(--b24-color-primary) 8%, transparent); }
+
+/* ── Рейл слева от списка: .b24-chat__rail > .b24-chat-rail__item (.is-active) ─── */
+.b24-chat { --b24-chat-rail-width: 68px; }
+.b24-chat__rail {
+  display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 0; min-height: 0; padding: 8px 4px; box-sizing: border-box; overflow-y: auto; scrollbar-width: none;
+  background: var(--b24-bg-surface); border-right: 1px solid var(--b24-divider);
+}
+.b24-chat__rail::-webkit-scrollbar { display: none; }
+.b24-chat-rail__item {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 2px 6px; margin: 0; font: inherit; text-decoration: none; text-align: center;
+  color: var(--b24-text-secondary); background: none; border: 0; border-radius: var(--b24-radius-md); cursor: pointer; transition: background-color var(--b24-duration-fast), color var(--b24-duration-fast);
+}
+.b24-chat-rail__item:hover:not([aria-disabled="true"]) { background: var(--b24-bg-hover); color: var(--b24-text-primary); }
+.b24-chat-rail__item.is-active, .b24-chat-rail__item[aria-current] { color: var(--b24-color-primary); background: var(--b24-color-soft-blue-3, #e5f4ff); }
+.b24-chat-rail__item:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-chat-rail__item[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.b24-chat-rail__icon { position: relative; display: grid; place-items: center; width: 28px; height: 28px; }
+.b24-chat-rail__counter { position: absolute; top: -5px; left: 14px; box-shadow: 0 0 0 2px var(--b24-bg-surface); }
+.b24-chat-rail__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-xs); line-height: 1.2; }
+.b24-chat:has(> .b24-chat__rail) { grid-template-columns: var(--b24-chat-rail-width) var(--b24-chat-list-width) minmax(0, 1fr) var(--b24-chat-aside-width); }
+.b24-chat:has(> .b24-chat__rail):not(:has(> .b24-chat__aside)) { grid-template-columns: var(--b24-chat-rail-width) var(--b24-chat-list-width) minmax(0, 1fr); }
+@media (max-width: 1100px) {
+  .b24-chat:has(> .b24-chat__rail), .b24-chat:has(> .b24-chat__rail):not(:has(> .b24-chat__aside)) { grid-template-columns: var(--b24-chat-rail-width) var(--b24-chat-list-width) minmax(0, 1fr); }
+}
+/* ≤768px: горизонтальная панель над списком; открыта переписка — панель скрыта */
+@media (max-width: 768px) {
+  .b24-chat:has(> .b24-chat__rail), .b24-chat:has(> .b24-chat__rail):not(:has(> .b24-chat__aside)) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .b24-chat__rail { grid-area: 1 / 1; flex-direction: row; gap: 4px; padding: 6px 8px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--b24-divider); }
+  .b24-chat__rail > .b24-chat-rail__item { flex: 1 0 auto; min-width: 64px; padding: 6px 8px; }
+  .b24-chat:has(> .b24-chat__rail) .b24-chat__list, .b24-chat:has(> .b24-chat__rail) .b24-chat__main { grid-area: 2 / 1; }
+  .b24-chat.is-dialog-open > .b24-chat__rail { display: none; }
+}

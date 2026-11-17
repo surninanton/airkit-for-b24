@@ -252,4 +252,5 @@ export const enData: Record<string, string> = {
   'мм': 'mm',
   'Чек': 'Receipt',
   'символов в строке': 'characters per line',
+  'Разделы чата': 'Chat sections',
 };

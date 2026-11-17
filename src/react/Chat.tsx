@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useRef, type MutableRefObject, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, type MouseEvent, type MutableRefObject, type ReactNode } from 'react';
 import {
   createChatComposer, createChatFeed, createChatList, initChatLayout,
   type ChatComposerHandle, type ChatComposerOptions, type ChatFeedHandle, type ChatFeedOptions,
-  type ChatLayoutHandle, type ChatListHandle, type ChatListOptions, type ChatMessage, type ChatListItem,
+  type ChatLayoutHandle, type ChatListHandle, type ChatRailItem, type ChatListOptions, type ChatMessage, type ChatListItem,
 } from '../js/chat';
 import {
   createMessengerBar, openChatDock,
@@ -18,6 +18,8 @@ import { t } from '../js/i18n';
 const LayoutCtx = createContext<{ onBack: () => void } | null>(null);
 
 export interface ChatLayoutProps {
+  /** рейл слева от списка: <ChatRail> (на ≤768px — панель над списком) */
+  rail?: ReactNode;
   /** левая колонка: шапка списка и <ChatList> */
   list: ReactNode;
   /** правая колонка: карточка клиента; на ≤1100px выезжает по <ChatHeader asideToggle> */
@@ -31,7 +33,7 @@ export interface ChatLayoutProps {
   className?: string;
   children: ReactNode;
 }
-export function ChatLayout({ list, aside, dialogOpen, onBack, height, className, children }: ChatLayoutProps) {
+export function ChatLayout({ rail, list, aside, dialogOpen, onBack, height, className, children }: ChatLayoutProps) {
   const ref = useRef<HTMLDivElement>(null);
   const handle = useRef<ChatLayoutHandle | null>(null);
   const back = useRef(onBack);
@@ -46,6 +48,7 @@ export function ChatLayout({ list, aside, dialogOpen, onBack, height, className,
   return (
     <LayoutCtx.Provider value={ctx}>
       <div ref={ref} className={cx('b24-chat', className)} style={height != null ? { ['--b24-chat-height' as string]: typeof height === 'number' ? `${height}px` : height } : undefined}>
+        {rail}
         <div className="b24-chat__list">{list}</div>
         <div className="b24-chat__main">{children}</div>
         {aside != null && <aside className="b24-chat__aside">{aside}</aside>}
@@ -74,6 +77,43 @@ export function ChatHeader({ title, meta, avatar, actions, asideToggle }: { titl
         </button>
       )}
     </div>
+  );
+}
+
+export interface ChatRailProps {
+  items: ChatRailItem[];
+  value?: string | null;
+  onSelect?: (id: string, item: ChatRailItem, event: MouseEvent<HTMLElement>) => void;
+  label?: string;
+}
+/** Рейл «Чаты / Линии / CRM / Телефон»: передайте в <ChatLayout rail={…}>. Пункт с href — ссылка, без — кнопка. */
+export function ChatRail({ items, value, onSelect, label }: ChatRailProps) {
+  return (
+    <nav className="b24-chat__rail" aria-label={label ?? t('Разделы чата')}>
+      {items.map((it) => {
+        const on = it.id === value;
+        const props = {
+          className: cx('b24-chat-rail__item', on && 'is-active'),
+          title: it.title ?? it.label,
+          'aria-current': on ? (it.href ? ('page' as const) : ('true' as const)) : undefined,
+          'aria-disabled': it.disabled || undefined,
+          'aria-label': it.counter ? `${it.label}, ${t('непрочитанных: {n}', { n: it.counter })}` : undefined,
+          onClick: (e: MouseEvent<HTMLElement>) => { if (it.disabled) { e.preventDefault(); return; } onSelect?.(it.id, it, e); },
+        };
+        const inner = (
+          <>
+            <span className="b24-chat-rail__icon">
+              <Icon name={it.icon} size={24} />
+              {!!it.counter && <span className="b24-counter b24-chat-rail__counter">{it.counter > 99 ? '99+' : it.counter}</span>}
+            </span>
+            <span className="b24-chat-rail__label">{it.label}</span>
+          </>
+        );
+        return it.href && !it.disabled
+          ? <a key={it.id} href={it.href} {...props}>{inner}</a>
+          : <button key={it.id} type="button" disabled={it.disabled} {...props}>{inner}</button>;
+      })}
+    </nav>
   );
 }
 

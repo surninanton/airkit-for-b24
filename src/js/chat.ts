@@ -865,6 +865,80 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   return handle;
 }
 
+/* ── Вертикальная навигация слева от списка ──────────────── */
+
+export interface ChatRailItem {
+  id: string;
+  label: string;
+  icon: IconName;
+  /** ссылка вместо кнопки */
+  href?: string;
+  /** число на значке (непрочитанные, пропущенные) */
+  counter?: number;
+  /** подсказка; по умолчанию — подпись */
+  title?: string;
+  disabled?: boolean;
+}
+export interface ChatRailOptions {
+  items: ChatRailItem[];
+  /** активный пункт */
+  value?: string | null;
+  onSelect?: (id: string, item: ChatRailItem, event: MouseEvent) => void;
+  label?: string;
+}
+export interface ChatRailHandle {
+  element: HTMLElement;
+  setItems(items: ChatRailItem[]): void;
+  update(id: string, patch: Partial<ChatRailItem>): void;
+  setActive(id: string | null): void;
+  destroy(): void;
+}
+
+/**
+ * Узкий рейл «Чаты / Линии / CRM / Телефон» — слот слева от .b24-chat__list внутри .b24-chat (как в десктопном Битрикс24).
+ * Пункт — значок и подпись под ним, кнопка или ссылка; активный — с подложкой и цветом акцента (aria-current).
+ * На ≤768px — горизонтальная панель над списком; когда открыта переписка (.is-dialog-open) — скрыта.
+ * host — сам .b24-chat (рейл встанет первым) или любой контейнер.
+ */
+export function createChatRail(host: HTMLElement, options: ChatRailOptions): ChatRailHandle {
+  let items = options.items;
+  let active = options.value ?? null;
+  const root = h('nav', { class: 'b24-chat__rail', 'aria-label': options.label ?? t('Разделы чата') });
+  if (host.classList.contains('b24-chat')) host.prepend(root); else host.append(root);
+
+  const build = (it: ChatRailItem): HTMLElement => {
+    const el = it.href ? h('a', { href: it.disabled ? undefined : it.href }) : h('button', { type: 'button' });
+    el.className = `b24-chat-rail__item${it.id === active ? ' is-active' : ''}`;
+    el.dataset.id = it.id;
+    el.title = it.title ?? it.label;
+    if (it.id === active) el.setAttribute('aria-current', it.href ? 'page' : 'true');
+    if (it.disabled) { el.setAttribute('aria-disabled', 'true'); if (el instanceof HTMLButtonElement) el.disabled = true; }
+    const ico = h('span', { class: 'b24-chat-rail__icon' }, html(icon(it.icon, { size: 24 })));
+    if (it.counter) ico.append(h('span', { class: 'b24-counter b24-chat-rail__counter' }, it.counter > 99 ? '99+' : String(it.counter)));
+    el.append(ico, h('span', { class: 'b24-chat-rail__label' }, it.label));
+    if (it.counter) el.setAttribute('aria-label', `${it.label}, ${t('непрочитанных: {n}', { n: it.counter })}`);
+    return el;
+  };
+  const render = () => root.replaceChildren(...items.map(build));
+  root.addEventListener('click', (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-rail__item');
+    if (!el || el.getAttribute('aria-disabled') === 'true') { if (el) e.preventDefault(); return; }
+    const it = items.find((x) => x.id === el.dataset.id);
+    if (!it) return;
+    handle.setActive(it.id);
+    options.onSelect?.(it.id, it, e);
+  });
+  render();
+  const handle: ChatRailHandle = {
+    element: root,
+    setItems(next) { items = next; render(); },
+    update(id, patch) { items = items.map((x) => (x.id === id ? { ...x, ...patch } : x)); render(); },
+    setActive(id) { active = id; render(); },
+    destroy() { root.remove(); },
+  };
+  return handle;
+}
+
 /* ── Каркас «список | переписка | карточка» ──────────────── */
 
 export interface ChatLayoutHandle {
