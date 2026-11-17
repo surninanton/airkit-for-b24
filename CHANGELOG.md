@@ -4,6 +4,15 @@
 
 ## Не выпущено
 
+### Софтфон
+- `createDialpad` / `<Dialpad>` — клавиатура набора: буквы на кнопках, «+» по удержанию «0», ввод с клавиатуры, вставка с нормализацией (`normalizePhone`, `formatPhone`), `onDial`, режим DTMF (`onKey`).
+- `createCallCard` / `<CallCard>` — карточка звонка: входящий («Ответить / Отклонить»), таймер, «Без звука / Удержание / Клавиши / Перевести», «Завершить».
+- `createLineStatus` / `<LineStatus>` — точка и подпись статуса линии, выбор «На линии / Перерыв».
+- `createMicMeter` / `<MicMeter>` — индикатор уровня микрофона (`connect(stream)`).
+- `popover({ content, width, className })` — popover со своим контентом.
+- Кнопки панели мессенджера: `variant`, `className`, `status`, `pulse`, `disabled`; `onClick(button, event)`.
+- Иконки `micOff`, `pause`, `phoneForward`; демо `demo/phone.html`.
+
 ### Рейл чата
 - `createChatRail` / `<ChatRail>` + `<ChatLayout rail>` — вертикальная навигация слева от списка диалогов; на ≤768px — панель над списком, скрыта в переписке.
 - Иконки `headset`, `phoneIncoming`, `phoneOutgoing`, `phoneMissed`.

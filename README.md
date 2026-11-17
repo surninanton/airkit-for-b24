@@ -620,6 +620,24 @@ const receipt = B24UI.createReceipt(el2, { paper: 58, switcher: true, lines: [{ 
 B24UI.createTree(el3, { items, select: false, valueOptions: zones, values: { all: ['desk'] }, onValueChange: save });
 ```
 
+## Софтфон: набор, карточка звонка, статус линии
+
+Пример — `demo/phone.html`. Компоненты показывают состояние и сообщают о действиях; сами звонки (WebRTC, SIP, телефония Битрикс24) — ваш код.
+
+- **Клавиатура** `createDialpad(host, { onDial, onKey, mode })` / `<Dialpad>`: поле номера и кнопки 1–9 * 0 # с буквами (ABC, DEF…, у 0 — «+»; удержание «0» вводит «+»). Ввод с клавиатуры компьютера (буквы игнорируются), Enter — позвонить; вставка нормализуется: «8 (999) 123-45-67» → «+7 (999) 123-45-67» (российские 8…/7…/9… — в +7, остальное как есть, `*100#` не трогается). `onDial(number, formatted)`; `mode: 'dtmf'` / `setMode('dtmf')` — во время звонка: каждое нажатие уходит в `onKey(key)`, номер не набирается. `captureKeyboard: true` — слушать клавиатуру на всём документе (для popover). `normalizePhone(text)`, `formatPhone(number)`.
+- **Карточка звонка** `createCallCard(host, { state, name, number, onAnswer, onDecline, onHangup, onAction })` / `<CallCard>`: `incoming` — «Ответить / Отклонить»; `dialing`, `active` (таймер mm:ss), `held`, `ended` — кнопки «Без звука / Удержание / Клавиши / Перевести» (`actions` — свои; `toggle` — переключатель с `aria-pressed`) и красная «Завершить». `onAction(id, pressed)`; «Удержание» само переводит в `held`. `setState`, `setInfo`, `setPressed`, `getDuration`; `slots.extra` — место под кнопками (клавиатура DTMF, индикатор микрофона).
+- **Статус линии** `createLineStatus(host, { status, onChange })` / `<LineStatus>`: точка `online` / `away` / `offline` / `disconnected` и подпись («На линии», «Перерыв», «Не на линии», «Нет связи»; `label` и `labels` — свои). С `onChange` — выбор «На линии / Перерыв».
+- **Уровень микрофона** `createMicMeter(host, { bars })` / `<MicMeter>`: деления, `setLevel(0–1)`, `setMuted`; `connect(stream)` — уровень считается сам из потока `getUserMedia`.
+- **Popover со своим контентом**: `popover(anchor, { content: node, width, className })` — клавиатура или карточка звонка над кнопкой; Esc и клик мимо закрывают.
+- **Кнопки панели мессенджера**: у `MessengerBarAction` — `variant: 'success' | 'danger' | 'primary'` (зелёная круглая кнопка звонка), `className`, `status` (точка на значке), `pulse` (идёт звонок), `disabled`; `onClick(button, event)` — кнопка вторым аргументом для popover. Оформление живёт в данных и не слетает при перерисовке.
+- Иконки: `micOff`, `pause`, `phoneForward` (рядом с `phone`, `phoneIncoming`, `phoneOutgoing`, `phoneMissed`, `headset`).
+
+```js
+const pad = B24UI.createDialpad(el, { onDial: (number) => softphone.call(number) });
+const card = B24UI.createCallCard(el2, { state: 'incoming', name: 'Мария', number: '89991234567', onAnswer: () => softphone.answer(), onHangup: () => softphone.hangup(), onAction: (id, on) => id === 'mute' && softphone.mute(on) });
+bar.setActions([{ id: 'phone', icon: 'phone', label: 'Телефон', variant: 'success', status: 'online', pulse: inCall, onClick: (btn) => popover(btn, { content: pad.element, width: 300, placement: 'left' }) }]);
+```
+
 ## Планировщик: сотрудники и время
 
 `createScheduler(host, options)` — шкала «сотрудники × время» по мотивам Bryntum Scheduler, на токенах кита. Пример — `demo/scheduler.html`.

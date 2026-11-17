@@ -34,6 +34,7 @@ export {
 } from './messenger';
 export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';
+export { createDialpad, createCallCard, createLineStatus, createMicMeter, normalizePhone, formatPhone, formatCallTime, type DialpadOptions, type DialpadHandle, type CallState, type CallCardAction, type CallCardOptions, type CallCardHandle, type LineStatus, type LineStatusOptions, type LineStatusHandle, type MicMeterOptions, type MicMeterHandle } from './phone';
 export { createSortable, type SortableItem, type SortableOptions, type SortableHandle } from './sortable';
 export { createReceipt, layoutReceipt, wrapReceiptText, type ReceiptLine, type ReceiptTextLine, type ReceiptColsLine, type ReceiptSepLine, type ReceiptQrLine, type ReceiptBarcodeLine, type ReceiptBlankLine, type ReceiptOptions, type ReceiptHandle } from './receipt';
 export { qrMatrix, qrSvg, createQr, type QrEcc, type QrSvgOptions, type QrOptions, type QrHandle } from './qr';

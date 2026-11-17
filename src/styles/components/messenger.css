@@ -108,3 +108,19 @@ html.b24-has-im-bar .b24-chat-docks { right: calc(var(--b24-im-bar-width) + 8px)
 .b24-chat-dock__extra { display: flex; align-items: center; flex: 0 0 auto; gap: 4px; min-width: 0; }
 .b24-chat-dock__extra:empty { display: none; }
 .b24-chat-dock.is-minimized .b24-chat-dock__extra { display: none; }
+
+/* кнопки панели: окраска, точка статуса, «идёт звонок» */
+.b24-im-bar__action { position: relative; }
+.b24-im-bar__action--success, .b24-im-bar__action--success:hover { background: var(--b24-color-success, #1bce7b); }
+.b24-im-bar__action--success:hover { filter: brightness(1.08); }
+.b24-im-bar__action--danger, .b24-im-bar__action--danger:hover { background: var(--b24-color-danger, #ff5752); }
+.b24-im-bar__action--primary, .b24-im-bar__action--primary:hover { background: var(--b24-color-primary); }
+.b24-im-bar__action:disabled { opacity: 0.45; cursor: not-allowed; }
+.b24-im-bar__dot { position: absolute; right: 2px; bottom: 2px; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9aa3ad; box-shadow: 0 0 0 2px var(--b24-air-bg-color, #1f4ea8); pointer-events: none; }
+.b24-im-bar__dot.is-online { background: #1bce7b; }
+.b24-im-bar__dot.is-away { background: #faa72c; }
+.b24-im-bar__dot.is-offline { background: #9aa3ad; }
+.b24-im-bar__dot.is-disconnected { background: #ff5752; }
+.b24-im-bar__action.is-pulse::before { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 0 color-mix(in srgb, var(--b24-color-success, #1bce7b) 70%, transparent); animation: b24-im-pulse 1.6s ease-out infinite; pointer-events: none; }
+@keyframes b24-im-pulse { to { box-shadow: 0 0 0 14px transparent; } }
+@media (prefers-reduced-motion: reduce) { .b24-im-bar__action.is-pulse::before { animation: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--b24-color-success, #1bce7b) 45%, transparent); } }

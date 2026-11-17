@@ -225,7 +225,7 @@ export function MessengerBar({ items, value, onSelect, onAll, allLabel, allCount
     return () => h.current?.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const wrapActions = (list?: MessengerBarAction[]) => list?.map((a) => ({ ...a, onClick: () => cbs.current.actions?.find((x) => x.id === a.id)?.onClick?.() }));
+  const wrapActions = (list?: MessengerBarAction[]) => list?.map((a) => ({ ...a, onClick: (...args: Parameters<NonNullable<MessengerBarAction['onClick']>>) => cbs.current.actions?.find((x) => x.id === a.id)?.onClick?.(...args) }));
   const first = useRef(true);
   const iKey = JSON.stringify(items);
   const aKey = JSON.stringify(actions?.map(({ onClick: _o, ...rest }) => rest) ?? []);

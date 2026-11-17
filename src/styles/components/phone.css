@@ -1,0 +1,84 @@
+/* ── Софтфон ──────────────────────────────────────────────
+ * .b24-dialpad (.is-dtmf) > __display (__input, __back) · __grid > __key (__digit, __letters) · __tones · __call
+ * .b24-callcard.is-incoming|dialing|active|held|ended > __who (__name, __number, __meta) · __status (.is-timer) · __actions > __action (.is-pressed) · __foot · __extra
+ * .b24-linestatus.is-online|away|offline|disconnected > __dot · __text
+ * .b24-micmeter (.is-muted) > __icon · __bars > i.is-on
+ * .b24-popover--content — popover со своим контентом
+ */
+.b24-popover--content { padding: 12px; }
+.b24-popover--content > .b24-popover__close { top: 6px; right: 6px; }
+
+.b24-dialpad { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 280px; margin: 0 auto; box-sizing: border-box; }
+.b24-dialpad__display { display: flex; align-items: center; gap: 4px; padding: 0 4px 0 12px; background: var(--b24-bg-surface); border: 1px solid var(--b24-border-field); border-radius: var(--b24-radius-md); }
+.b24-dialpad__display:focus-within { border-color: var(--b24-color-primary); }
+.b24-dialpad__input { flex: 1 1 auto; min-width: 0; height: 44px; padding: 0; font: inherit; font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; color: var(--b24-text-primary); background: transparent; border: 0; outline: 0; box-shadow: none; }
+.b24-dialpad__input::placeholder { font-size: var(--b24-font-size-md); letter-spacing: 0; color: var(--b24-text-subtle); }
+.b24-dialpad__back { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; margin: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.b24-dialpad__back:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-dialpad__back[hidden] { display: none; }
+.b24-dialpad__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.b24-dialpad__key {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; height: 56px; padding: 0; margin: 0; font: inherit;
+  color: var(--b24-text-primary); background: var(--b24-bg-surface-2, #f1f4f7); border: 0; border-radius: var(--b24-radius-md); cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  transition: background-color var(--b24-duration-fast), transform 80ms;
+}
+.b24-dialpad__key:hover:not(:disabled) { background: var(--b24-bg-hover); }
+.b24-dialpad__key:active:not(:disabled), .b24-dialpad__key.is-pressed { background: var(--b24-color-soft-blue-3, #e5f4ff); transform: scale(0.96); }
+.b24-dialpad__key:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
+.b24-dialpad__digit { font-size: 22px; line-height: 1.1; font-weight: var(--b24-font-weight-medium); }
+.b24-dialpad__letters { min-height: 10px; font-size: 9px; line-height: 1; letter-spacing: 0.12em; color: var(--b24-text-subtle); }
+.b24-dialpad__tones { min-height: 20px; text-align: center; font-size: var(--b24-font-size-md); letter-spacing: 0.1em; color: var(--b24-text-secondary); word-break: break-all; }
+.b24-dialpad__tones[hidden], .b24-dialpad__call[hidden] { display: none; }
+.b24-dialpad__call { width: 100%; justify-content: center; gap: 8px; height: 44px; }
+.b24-dialpad.is-dtmf .b24-dialpad__display { background: transparent; border-color: transparent; }
+.b24-dialpad.is-disabled { opacity: 0.6; pointer-events: none; }
+
+.b24-callcard { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; margin: 0 auto; box-sizing: border-box; }
+.b24-callcard__who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.b24-callcard__text { min-width: 0; display: flex; flex-direction: column; }
+.b24-callcard__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-lg, 16px); font-weight: var(--b24-font-weight-semibold); }
+.b24-callcard__number, .b24-callcard__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
+.b24-callcard__status { font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
+.b24-callcard__status.is-timer { font-size: 20px; font-variant-numeric: tabular-nums; font-weight: var(--b24-font-weight-medium); color: var(--b24-text-primary); }
+.b24-callcard.is-incoming .b24-callcard__status { color: var(--b24-color-success, #1bce7b); }
+.b24-callcard.is-incoming .b24-callcard__who .b24-avatar { animation: b24-call-ring 1.4s ease-in-out infinite; }
+@keyframes b24-call-ring { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--b24-color-success, #1bce7b) 55%, transparent); } 50% { box-shadow: 0 0 0 8px transparent; } }
+.b24-callcard.is-held .b24-callcard__status { color: var(--b24-color-warning, #faa72c); }
+.b24-callcard__actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.b24-callcard__actions[hidden] { display: none; }
+.b24-callcard__action { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; margin: 0; font: inherit; color: var(--b24-text-secondary); background: none; border: 0; border-radius: var(--b24-radius-md); cursor: pointer; }
+.b24-callcard__action-icon { display: grid; place-items: center; width: 40px; height: 40px; background: var(--b24-bg-surface-2, #f1f4f7); border-radius: 50%; transition: background-color var(--b24-duration-fast), color var(--b24-duration-fast); }
+.b24-callcard__action:hover:not(:disabled) .b24-callcard__action-icon { background: var(--b24-bg-hover); }
+.b24-callcard__action.is-pressed .b24-callcard__action-icon { color: #fff; background: var(--b24-color-primary); }
+.b24-callcard__action-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-xs); }
+.b24-callcard__action:focus-visible { outline: 2px solid var(--b24-focus-color); }
+.b24-callcard__action:disabled { opacity: 0.45; cursor: not-allowed; }
+.b24-callcard__foot { display: flex; gap: 8px; }
+.b24-callcard__foot:empty { display: none; }
+.b24-callcard__foot .b24-btn { flex: 1 1 0; justify-content: center; gap: 8px; height: 44px; }
+.b24-callcard__hangup svg { transform: rotate(135deg); }
+.b24-callcard__decline svg { transform: none; }
+.b24-callcard__extra:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { .b24-callcard.is-incoming .b24-callcard__who .b24-avatar { animation: none; } }
+
+.b24-linestatus { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 6px; margin: 0; font: inherit; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); background: none; border: 0; border-radius: 14px; }
+button.b24-linestatus { cursor: pointer; padding-right: 6px; }
+button.b24-linestatus:hover:not(:disabled) { background: var(--b24-bg-hover); }
+button.b24-linestatus:focus-visible { outline: 2px solid var(--b24-focus-color); }
+button.b24-linestatus:disabled { cursor: default; }
+.b24-linestatus__dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #9aa3ad; }
+.b24-linestatus.is-online .b24-linestatus__dot, .b24-linestatus__option.is-online .b24-linestatus__dot { background: #1bce7b; }
+.b24-linestatus.is-away .b24-linestatus__dot, .b24-linestatus__option.is-away .b24-linestatus__dot { background: #faa72c; }
+.b24-linestatus.is-offline .b24-linestatus__dot { background: #9aa3ad; }
+.b24-linestatus.is-disconnected .b24-linestatus__dot { background: #ff5752; }
+.b24-linestatus.is-disconnected { color: var(--b24-color-danger); }
+.b24-linestatus__option[aria-checked="true"] { font-weight: var(--b24-font-weight-medium); background: var(--b24-bg-hover); }
+
+.b24-micmeter { display: inline-flex; align-items: center; gap: 8px; color: var(--b24-text-subtle); }
+.b24-micmeter__icon { display: grid; place-items: center; }
+.b24-micmeter__bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
+.b24-micmeter__bars > i { display: block; width: 4px; border-radius: 2px; background: var(--b24-divider); transition: background-color 60ms; }
+.b24-micmeter__bars > i.is-on { background: var(--b24-color-success, #1bce7b); }
+.b24-micmeter__bars > i.is-on:nth-last-child(-n + 2) { background: var(--b24-color-warning, #faa72c); }
+.b24-micmeter.is-muted .b24-micmeter__bars > i.is-on { background: var(--b24-divider); }
+.b24-micmeter.is-muted { opacity: 0.6; }

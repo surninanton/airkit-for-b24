@@ -383,6 +383,12 @@ export interface PopoverAction { label: string; variant?: 'primary' | 'secondary
 export interface PopoverOptions {
   title?: string;
   text?: string;
+  /** свой контент (Node) вместо или вместе с text: клавиатура набора, карточка звонка, форма. Закрывается по клику мимо и Esc */
+  content?: Node;
+  /** ширина в px (по умолчанию по контенту) */
+  width?: number;
+  /** свой класс на .b24-popover */
+  className?: string;
   /** кнопки; onClick вернул false — подсказка не закрывается */
   actions?: PopoverAction[];
   placement?: 'bottom' | 'top' | 'right' | 'left';
@@ -398,11 +404,13 @@ export interface PopoverHandle { element: HTMLElement; close(): void; reposition
 
 export function popover(anchor: HTMLElement, options: PopoverOptions): PopoverHandle {
   const o = options;
-  const el = h('div', { class: `b24-popover b24-root${o.dark ? ' b24-popover--dark' : ''}`, role: 'dialog', 'aria-label': o.title ?? o.text ?? '' });
+  const el = h('div', { class: `b24-popover b24-root${o.dark ? ' b24-popover--dark' : ''}${o.content ? ' b24-popover--content' : ''}${o.className ? ` ${o.className}` : ''}`, role: 'dialog', 'aria-label': o.title ?? o.text ?? (o.content instanceof HTMLElement ? o.content.getAttribute('aria-label') ?? '' : '') });
+  if (o.width) el.style.width = `${o.width}px`;
   const arrow = h('span', { class: 'b24-popover__arrow', 'aria-hidden': 'true' });
   el.append(arrow);
   if (o.title) el.append(h('p', { class: 'b24-popover__title' }, o.title));
   if (o.text) el.append(h('p', { class: 'b24-popover__text' }, o.text));
+  if (o.content) el.append(o.content);
   if (o.actions?.length || o.step) {
     const row = h('div', { class: 'b24-popover__actions' });
     if (o.step) row.append(h('span', { class: 'b24-popover__step' }, o.step));

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Софтфон — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1200px">
+    <div id="header"></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap:16px; align-items:start">
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Клавиатура</h2><span class="b24-card__subtitle">&nbsp;createDialpad</span></div>
+        <div class="b24-card__body">
+          <div id="dialpad"></div>
+          <p class="b24-text-sm b24-text-secondary" style="margin:10px 0 0">Печатайте цифры на клавиатуре, вставьте «8 (999) 123-45-67» — станет «+7 (999) 123-45-67». Удержание «0» — «+». Enter — позвонить.</p>
+          <div class="b24-row" style="margin-top:10px"><label class="b24-switch"><input type="checkbox" id="dtmf"><span>Режим тонов (DTMF)</span></label></div>
+          <div class="b24-text-sm b24-text-secondary" id="dial-log" style="margin-top:6px; min-height:20px"></div>
+        </div>
+      </div>
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Звонок</h2><span class="b24-card__subtitle">&nbsp;createCallCard · createMicMeter</span></div>
+        <div class="b24-card__body">
+          <div id="callcard"></div>
+          <div class="b24-row" style="flex-wrap:wrap; margin-top:12px">
+            <button type="button" class="b24-btn b24-btn--secondary b24-btn--sm" data-state="incoming">Входящий</button>
+            <button type="button" class="b24-btn b24-btn--secondary b24-btn--sm" data-state="dialing">Исходящий</button>
+            <button type="button" class="b24-btn b24-btn--secondary b24-btn--sm" data-state="active">Разговор</button>
+          </div>
+        </div>
+      </div>
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Линия и микрофон</h2><span class="b24-card__subtitle">&nbsp;createLineStatus</span></div>
+        <div class="b24-card__body" style="display:flex; flex-direction:column; gap:12px; align-items:flex-start">
+          <div id="line-select"></div>
+          <div class="b24-row" style="flex-wrap:wrap; gap:4px" id="line-static"></div>
+          <div id="mic"></div>
+          <button type="button" class="b24-btn b24-btn--secondary b24-btn--sm" id="mic-real">Включить микрофон</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  B24UI.createPageHeader(document.getElementById('header'), {
+    menu: [{ label: 'Телефон', href: '#', active: true }, { label: 'Журнал звонков', href: '#' }],
+    title: 'Софтфон',
+  });
+  const log = document.getElementById('dial-log');
+
+  const dialpad = B24UI.createDialpad(document.getElementById('dialpad'), {
+    onDial: (n, f) => { log.textContent = `Звоним: ${f} (${n})`; setCall(); },
+    onKey: (k) => { if (document.getElementById('dtmf').checked) log.textContent = `Тон: ${k}`; },
+  });
+  document.getElementById('dtmf').addEventListener('change', (e) => dialpad.setMode(e.target.checked ? 'dtmf' : 'dial'));
+
+  const card = B24UI.createCallCard(document.getElementById('callcard'), {
+    state: 'incoming', name: 'Мария Образцова', number: '89991234567', meta: 'Линия: Доставка',
+    onAnswer: () => card.setState('active'),
+    onDecline: () => card.setState('ended'),
+    onHangup: () => card.setState('ended'),
+    onAction: (id, pressed) => {
+      if (id === 'mute') mic.setMuted(pressed);
+      if (id === 'transfer') B24UI.toast('Перевести: выберите сотрудника');
+      if (id === 'keys') {
+        if (pressed) { const pad = B24UI.createDialpad(card.slots.extra, { mode: 'dtmf', onKey: (k) => B24UI.toast(`Тон ${k}`, { duration: 800 }) }); pad.element.dataset.dtmfPad = '1'; }
+        else card.slots.extra.replaceChildren();
+      }
+    },
+  });
+  const mic = B24UI.createMicMeter(document.getElementById('mic'));
+  let sim = 0;
+  setInterval(() => { if (!document.hidden && card.getState() === 'active' && !realMic) mic.setLevel(Math.abs(Math.sin(sim += 0.7)) * 0.8 * Math.random() + 0.1); }, 120);
+  let realMic = false;
+  document.getElementById('mic-real').addEventListener('click', async () => {
+    try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); mic.connect(stream); realMic = true; } catch { B24UI.toast('Нет доступа к микрофону', { type: 'warning' }); }
+  });
+  document.querySelectorAll('[data-state]').forEach((b) => b.addEventListener('click', () => { card.slots.extra.replaceChildren(); card.setPressed('keys', false); card.setState(b.dataset.state); }));
+  const setCall = () => { card.setInfo({ name: '', number: dialpad.getValue(), meta: '' }); card.setState('dialing'); setTimeout(() => card.setState('active'), 1500); };
+
+  B24UI.createLineStatus(document.getElementById('line-select'), { status: 'online', onChange: (s) => B24UI.toast(s === 'away' ? 'Перерыв' : 'На линии') });
+  const stat = document.getElementById('line-static');
+  for (const s of ['online', 'away', 'offline', 'disconnected']) B24UI.createLineStatus(stat, { status: s });
+
+  // кнопка звонка на панели мессенджера: зелёная, статус линии, пульс во время звонка, popover с клавиатурой
+  let pop = null;
+  const phoneAction = (extra = {}) => ({
+    id: 'phone', icon: 'phone', label: 'Телефон', variant: 'success', status: 'online', ...extra,
+    onClick: (btn) => {
+      if (pop) { pop.close(); return; }
+      const box = document.createElement('div');
+      B24UI.createDialpad(box, { captureKeyboard: true, onDial: (n, f) => { B24UI.toast(`Звоним: ${f}`); pop.close(); bar.setActions([phoneAction({ pulse: true, label: 'Идёт звонок' })]); } });
+      pop = B24UI.popover(btn, { content: box, width: 300, placement: 'left', closable: false, onClose: () => { pop = null; } });
+    },
+  });
+  const bar = B24UI.createMessengerBar({ items: [], actions: [phoneAction()] });
+</script>
+<script type="module" src="./demo-nav.ts"></script>
+</body>
+</html>

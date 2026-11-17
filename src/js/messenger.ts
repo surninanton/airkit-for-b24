@@ -33,7 +33,17 @@ export interface MessengerBarAction {
   label: string;
   counter?: number;
   active?: boolean;
-  onClick?: () => void;
+  /** окраска: success — зелёная круглая кнопка (звонок), danger, primary */
+  variant?: 'success' | 'danger' | 'primary';
+  /** свой класс кнопки: оформление не слетает при перерисовке панели */
+  className?: string;
+  /** точка статуса на значке: online, away, offline, disconnected */
+  status?: 'online' | 'away' | 'offline' | 'disconnected';
+  /** идёт звонок или другое длящееся действие: кнопка пульсирует */
+  pulse?: boolean;
+  disabled?: boolean;
+  /** клик; вторым аргументом — кнопка, чтобы показать popover над ней */
+  onClick?: (button: HTMLElement, event: MouseEvent) => void;
 }
 export interface MessengerBarOptions {
   items: MessengerBarItem[];
@@ -105,8 +115,10 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
   const renderList = () => list.replaceChildren(...items.map(itemEl));
   const renderBottom = () => {
     bottom.replaceChildren(...actions.map((a) => {
-      const b = h('button', { type: 'button', class: `b24-im-bar__btn b24-im-bar__action${a.active ? ' is-active' : ''}`, 'aria-label': a.label, 'data-tip': a.label, 'aria-pressed': a.active ? 'true' : undefined }, html(icon(a.icon)), counterEl(a.counter));
-      b.addEventListener('click', () => a.onClick?.());
+      const cls = ['b24-im-bar__btn', 'b24-im-bar__action', a.variant ? `b24-im-bar__action--${a.variant}` : '', a.pulse ? 'is-pulse' : '', a.active ? 'is-active' : '', a.className ?? ''].filter(Boolean).join(' ');
+      const b = h('button', { type: 'button', class: cls, 'data-id': a.id, 'aria-label': a.label, 'data-tip': a.label, 'aria-pressed': a.active ? 'true' : undefined, disabled: a.disabled || undefined }, html(icon(a.icon)), counterEl(a.counter));
+      if (a.status) b.append(h('span', { class: `b24-im-bar__dot is-${a.status}`, 'aria-hidden': 'true' }));
+      b.addEventListener('click', (e) => a.onClick?.(b, e));
       return b;
     }));
   };

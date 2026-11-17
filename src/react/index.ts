@@ -35,6 +35,8 @@ export {
   type RadioCardOption, type CheckGroupOption, type TreeProps, type TreeItem, type RatingProps,
 } from './Controls';
 export { Credit } from './Credit';
+export { Dialpad, CallCard, LineStatus, MicMeter, type DialpadProps, type CallCardProps, type LineStatusProps, type MicMeterProps } from './Phone';
+export { normalizePhone, formatPhone, type CallState, type LineStatus as LineStatusValue, type CallCardAction } from '../js/phone';
 export { Receipt, Qr, SortableList, type ReceiptProps, type QrProps, type SortableListProps, type SortableListItem } from './Receipt';
 export type { ReceiptLine, SortableItem } from '../js/index';
 export { qrSvg, qrMatrix } from '../js/qr';
