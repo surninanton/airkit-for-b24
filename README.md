@@ -604,6 +604,21 @@ const added = await B24UI.pickUser({ users: staff, multiple: true, exclude: memb
 
 React: `<MemberList items title onSelect compact selected />`; `pickUser` — та же функция из `airkit-for-b24/react`.
 
+## Конструктор чеков: блоки, лента, QR, зоны печати
+
+Пример — `demo/receipt.html`. Все компоненты работают и поодиночке.
+
+- **Сортируемый список** `createSortable(host, { items, toggle, renderBody, renderItem, onReorder, onToggle })` / `<SortableList>`: строки-блоки с ручкой, включателем (`toggle: true`, `enabled`) и раскрывающейся частью (`renderBody(item, el)` — есть, строка раскрывается; вызывается один раз). Перетаскивание за ручку мышью, пером и пальцем; на телефоне ещё и долгое касание по строке (страница при этом не листается). С клавиатуры: Alt+↑ / Alt+↓ на ручке (↑ / ↓ без Alt — к соседней ручке), позиция озвучивается. Esc во время перетаскивания — отмена. Развёрнутая строка двигается целиком. `fixed: true` — строка стоит на месте («Итого» внизу). `onReorder(ids, { id, from, to })`; `update`, `move`, `expand`, `getOrder`, `contentOf` / `bodyOf`. В React `content` и `body` — обычные узлы (порталы), порядок хранит родитель.
+- **Чековая лента** `createReceipt(host, { lines, paper: 58 | 80, switcher })` / `<Receipt>`: моноширинный блок шириной в символах (58 мм — 32, 80 мм — 48; `width` — любое число), на подложке «бумага» с рваным краем (`torn: false` — без него); на узком экране масштабируется по ширине. Строки: `{ text, bold, dh, dw, align, invert }` (двойная высота / ширина, выравнивание, «белым по чёрному»), `{ sep: '-' }`, `{ cols: [слева, справа] }` (правая колонка по краю, левая переносится), `{ qr, label }`, `{ barcode, label }` (заглушка), `{ blank }`. Перенос по словам с учётом двойной ширины. `setLines`, `setPaper`, `setWidth`, `getText()` — ровно то, что напечатал бы принтер.
+- **QR-код** `createQr(host, text, { size, ecc, label })` / `<Qr value />`, `qrSvg(text)`, `qrMatrix(text)`: без зависимостей, версии 1–10 (до ~210 байт при уровне M), UTF-8, уровни L/M/Q/H. Проверен сторонним декодером.
+- **Дерево**: у `TreeItem` — `badges` (значки или чипы справа). Значение узла с наследованием: `valueOptions: [{ value, label, color }]`, `values: { id: ['kitchen'] }`, `onValueChange(id, value | null)`. Узел без своего значения показывает унаследованное серым с подписью «как у родителя» (`inheritLabel`); клик по значению — выбор набора, там же «Как у родителя»; ↺ — сбросить к родителю. Своё значение остаётся у потомка при смене родителя. `getValues`, `setValues`, `getEffective(id)`.
+
+```js
+const list = B24UI.createSortable(el, { items: blocks, toggle: true, renderBody: (item, body) => body.append(form(item)), onReorder: (ids) => save(ids) });
+const receipt = B24UI.createReceipt(el2, { paper: 58, switcher: true, lines: [{ text: 'ЧЕК', bold: true, dh: true, align: 'center' }, { cols: ['Пицца', '2 × 450'] }, { qr: url }] });
+B24UI.createTree(el3, { items, select: false, valueOptions: zones, values: { all: ['desk'] }, onValueChange: save });
+```
+
 ## Планировщик: сотрудники и время
 
 `createScheduler(host, options)` — шкала «сотрудники × время» по мотивам Bryntum Scheduler, на токенах кита. Пример — `demo/scheduler.html`.

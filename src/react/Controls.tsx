@@ -168,18 +168,22 @@ export interface TreeProps extends Omit<TreeOptions, 'selected' | 'onSelect'> {
   onSelect: (ids: string[], item: TreeItem) => void;
   className?: string;
 }
-export function Tree({ selected, onSelect, items, className, ...options }: TreeProps) {
+export function Tree({ selected, onSelect, items, className, values, onValueChange, ...options }: TreeProps) {
   const host = useRef<HTMLDivElement>(null);
   const tree = useRef<TreeHandle | null>(null);
   const cb = useRef(onSelect);
   cb.current = onSelect;
+  const vcb = useRef(onValueChange);
+  vcb.current = onValueChange;
   useEffect(() => {
-    tree.current = createTree(host.current!, { ...options, items, selected, onSelect: (ids, item) => cb.current(ids, item) });
+    tree.current = createTree(host.current!, { ...options, items, selected, values, onSelect: (ids, item) => cb.current(ids, item), onValueChange: (id, v, item) => vcb.current?.(id, v, item) });
     return () => tree.current?.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const itemsKey = JSON.stringify(items);
   useEffect(() => { tree.current?.setItems(items); }, [itemsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const valKey = JSON.stringify(values ?? null);
+  useEffect(() => { if (values && JSON.stringify(tree.current?.getValues()) !== JSON.stringify(Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v ?? null])))) tree.current?.setValues(values); }, [valKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const selKey = selected.join('|');
   useEffect(() => { if (tree.current && tree.current.getSelected().join('|') !== selKey) tree.current.setSelected(selected); }, [selKey]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div ref={host} className={className} />;

@@ -24,6 +24,7 @@ export default defineConfig({
         controls: resolve(__dirname, 'controls.html'),
         scheduler: resolve(__dirname, 'scheduler.html'),
         chat: resolve(__dirname, 'chat.html'),
+        receipt: resolve(__dirname, 'receipt.html'),
       },
     },
   },

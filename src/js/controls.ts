@@ -1,6 +1,7 @@
 import { icon, type IconName } from '../icons';
 import { bringToFront, h, html, pushLayer } from './dom';
 import { intlLocale, t as tr } from './i18n';
+import { showFloat } from './float';
 
 /* ── Группа чекбоксов ──────────────────────────────────────
  * .b24-check-group[data-b24-check-group]: счётчик .b24-check-group__count («Выбрано 2 из 7»),
@@ -128,7 +129,12 @@ export interface TreeItem {
   /** число справа: элементов в разделе */
   count?: number;
   disabled?: boolean;
+  /** значки или чипы справа от названия: ['Кухня', { label: 'Упаковка', color: '#1bce7b' }] */
+  badges?: Array<string | TreeBadge>;
 }
+export interface TreeBadge { label: string; title?: string; color?: string }
+/** Значение узла — набор вариантов (зон, ролей, прав) с наследованием от родителя. */
+export interface TreeValueOption { value: string; label: string; color?: string }
 export interface TreeOptions {
   items: TreeItem[];
   /** выбор: один, несколько (с флажками) или без выбора */
@@ -138,6 +144,16 @@ export interface TreeOptions {
   ariaLabel?: string;
   onSelect?: (ids: string[], item: TreeItem) => void;
   onToggle?: (id: string, expanded: boolean) => void;
+  /**
+   * Значение узла — набор из valueOptions. У узла без значения (null / нет в values) оно «как у родителя» и показывается серым;
+   * клик по значению открывает выбор; «Как у родителя» и крестик «сбросить к родителю» убирают своё значение.
+   * Своё значение остаётся у потомка при смене родителя.
+   */
+  valueOptions?: TreeValueOption[];
+  values?: Record<string, string[] | null | undefined>;
+  onValueChange?: (id: string, value: string[] | null, item: TreeItem) => void;
+  /** подпись унаследованного значения (по умолчанию «как у родителя») */
+  inheritLabel?: string;
 }
 export interface TreeHandle {
   element: HTMLElement;
@@ -145,6 +161,11 @@ export interface TreeHandle {
   setSelected(ids: string[]): void;
   expand(id: string, open?: boolean): void;
   setItems(items: TreeItem[]): void;
+  /** только свои значения узлов (null — как у родителя) */
+  getValues(): Record<string, string[] | null>;
+  setValues(values: Record<string, string[] | null | undefined>): void;
+  /** значение с учётом наследования */
+  getEffective(id: string): string[];
   destroy(): void;
 }
 
@@ -155,9 +176,88 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
   const selected = new Set(o.selected ?? []);
   const expanded = new Set(o.expanded ?? []);
   const byId = new Map<string, TreeItem>();
+  const parentOf = new Map<string, string | null>();
+  const own = new Map<string, string[] | null>(Object.entries(o.values ?? {}).map(([k, v]) => [k, v ?? null]));
+  const hasValues = !!o.valueOptions;
+  const optOf = (v: string) => o.valueOptions?.find((x) => x.value === v);
+  /** значение с учётом наследования и узел, от которого оно пришло */
+  const effective = (id: string): { value: string[]; from: string | null } => {
+    for (let cur: string | null | undefined = id; cur != null; cur = parentOf.get(cur)) {
+      const v = own.get(cur);
+      if (v) return { value: v, from: cur };
+    }
+    return { value: [], from: null };
+  };
   const root = h('ul', { class: 'b24-tree', role: 'tree', 'aria-label': o.ariaLabel, 'aria-multiselectable': mode === 'multiple' ? 'true' : undefined });
   host.append(root);
   let focusId: string | null = null;
+
+  const chip = (label: string, color?: string, title?: string) => {
+    const c = h('span', { class: 'b24-tree__chip', title }, label);
+    if (color) c.style.setProperty('--_c', color);
+    return c;
+  };
+  const renderValue = (item: TreeItem): HTMLElement => {
+    const mine = own.get(item.id);
+    const hasParent = parentOf.get(item.id) != null;
+    const eff = effective(item.id);
+    const inherited = !mine && eff.from != null;
+    const box = h('span', { class: `b24-tree__valuebox${inherited ? ' is-inherited' : ''}` });
+    const btn = h('button', { type: 'button', class: 'b24-tree__value', 'aria-haspopup': 'dialog', title: tr('Изменить') }, ...(eff.value.length
+      ? eff.value.map((v) => chip(optOf(v)?.label ?? v, optOf(v)?.color))
+      : [h('span', { class: 'b24-tree__novalue' }, tr('Не задано'))]));
+    if (item.disabled) btn.disabled = true;
+    box.append(btn);
+    if (inherited) box.append(h('span', { class: 'b24-tree__inherit' }, o.inheritLabel ?? tr('как у родителя')));
+    if (mine && hasParent) {
+      const reset = h('button', { type: 'button', class: 'b24-tree__reset', 'aria-label': `${tr('Сбросить к родителю')}: ${item.label}`, title: tr('Сбросить к родителю') }, html(icon('refresh', { size: 14 })));
+      box.append(reset);
+    }
+    return box;
+  };
+  const commit = (id: string, value: string[] | null) => {
+    own.set(id, value);
+    const item = byId.get(id)!;
+    render();
+    o.onValueChange?.(id, value, item);
+  };
+  const openValueDialog = (id: string, anchor: HTMLElement) => {
+    const item = byId.get(id)!;
+    const hasParent = parentOf.get(id) != null;
+    const mine = own.get(id);
+    const box = h('div', { class: 'b24-tree-values', role: 'dialog', 'aria-label': item.label });
+    box.append(h('div', { class: 'b24-tree-values__title' }, item.label));
+    let inh: HTMLInputElement | null = null;
+    const boxes: HTMLInputElement[] = [];
+    const apply = () => {
+      const picked = boxes.filter((b) => b.checked).map((b) => b.value);
+      if (inh?.checked) { commit(id, null); return; }
+      commit(id, picked);
+    };
+    if (hasParent) {
+      const l = h('label', { class: 'b24-check b24-tree-values__inherit' }, h('input', { type: 'checkbox' }), h('span', {}, o.inheritLabel ? o.inheritLabel[0].toUpperCase() + o.inheritLabel.slice(1) : tr('Как у родителя')));
+      inh = l.firstElementChild as HTMLInputElement;
+      inh.checked = !mine;
+      inh.addEventListener('change', () => {
+        boxes.forEach((b) => { b.disabled = inh!.checked; });
+        if (!inh!.checked) { const eff = effective(id).value; boxes.forEach((b) => { b.checked = eff.includes(b.value); }); }
+        apply();
+      });
+      box.append(l);
+    }
+    const cur = mine ?? effective(id).value;
+    for (const opt of o.valueOptions ?? []) {
+      const l = h('label', { class: 'b24-check b24-tree-values__opt' }, h('input', { type: 'checkbox', value: opt.value }), h('span', {}, opt.label));
+      const cb = l.firstElementChild as HTMLInputElement;
+      cb.checked = cur.includes(opt.value);
+      cb.disabled = !!inh?.checked;
+      cb.addEventListener('change', () => apply());
+      boxes.push(cb);
+      box.append(l);
+    }
+    showFloat(anchor, box, { sheet: false, align: 'end', onClose: () => { root.querySelector<HTMLElement>(`[data-id="${CSS.escape(id)}"] .b24-tree__value`)?.focus({ preventScroll: true }); } });
+    boxes.find((b) => !b.disabled)?.focus();
+  };
 
   const renderNode = (item: TreeItem, level: number): HTMLElement => {
     byId.set(item.id, item);
@@ -178,6 +278,8 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     if (item.icon) node.append(h('span', { class: 'b24-tree__icon' }, html(icon(item.icon))));
     node.append(h('span', { class: 'b24-tree__label' }, item.label));
     if (item.count != null) node.append(h('span', { class: 'b24-tree__count' }, String(item.count)));
+    if (item.badges?.length) node.append(h('span', { class: 'b24-tree__badges' }, ...item.badges.map((b) => (typeof b === 'string' ? chip(b) : chip(b.label, b.color, b.title)))));
+    if (hasValues) node.append(renderValue(item));
     li.append(node);
     if (hasKids) {
       const ul = h('ul', { role: 'group' });
@@ -186,8 +288,11 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     }
     return li;
   };
+  const indexParents = (list: TreeItem[], parent: string | null) => list.forEach((i) => { parentOf.set(i.id, parent); if (i.children) indexParents(i.children, i.id); });
   const render = () => {
     byId.clear();
+    parentOf.clear();
+    indexParents(items, null);
     root.textContent = '';
     items.forEach((i) => root.append(renderNode(i, 1)));
     const first = focusId && root.querySelector(`[data-id="${CSS.escape(focusId)}"]`) ? focusId : visibleIds()[0];
@@ -230,11 +335,15 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     const node = (e.target as HTMLElement).closest<HTMLElement>('.b24-tree__node');
     if (!node) return;
     const id = node.parentElement!.dataset.id!;
+    const valueBtn = (e.target as HTMLElement).closest<HTMLElement>('.b24-tree__value');
+    if (valueBtn) { setFocusable(id, false); openValueDialog(id, valueBtn); return; }
+    if ((e.target as HTMLElement).closest('.b24-tree__reset')) { commit(id, null); return; }
     setFocusable(id);
     if ((e.target as HTMLElement).closest('.b24-tree__toggle') || !mode) toggle(id);
     else choose(id);
   };
   const onKey = (e: KeyboardEvent) => {
+    if ((e.target as HTMLElement).closest('.b24-tree__value, .b24-tree__reset')) return;   // у кнопок значения свои Enter / пробел
     if (!focusId) return;
     const ids = visibleIds();
     const i = ids.indexOf(focusId);
@@ -262,6 +371,9 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     setSelected(ids) { selected.clear(); ids.forEach((i) => selected.add(i)); render(); },
     expand(id, open = true) { toggle(id, open); },
     setItems(next) { items = next; render(); },
+    getValues: () => Object.fromEntries(own),
+    setValues(v) { own.clear(); Object.entries(v).forEach(([k, x]) => own.set(k, x ?? null)); render(); },
+    getEffective: (id) => effective(id).value,
     destroy() { root.remove(); },
   };
 }

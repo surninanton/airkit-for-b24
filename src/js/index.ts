@@ -34,6 +34,9 @@ export {
 } from './messenger';
 export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';
+export { createSortable, type SortableItem, type SortableOptions, type SortableHandle } from './sortable';
+export { createReceipt, layoutReceipt, wrapReceiptText, type ReceiptLine, type ReceiptTextLine, type ReceiptColsLine, type ReceiptSepLine, type ReceiptQrLine, type ReceiptBarcodeLine, type ReceiptBlankLine, type ReceiptOptions, type ReceiptHandle } from './receipt';
+export { qrMatrix, qrSvg, createQr, type QrEcc, type QrSvgOptions, type QrOptions, type QrHandle } from './qr';
 export { createMemberList, pickUser, matchMember, type Member, type MemberAction, type MemberListOptions, type MemberListHandle, type PickUserOptions } from './members';
 export { notifySound, desktopNotify, requestNotifyPermission, claimNotify, type NotifySoundOptions, type DesktopNotifyOptions } from './notify';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';
@@ -49,7 +52,7 @@ export { createChart, sparkline, chartColor, type ChartOptions, type ChartSeries
 export { initSettings, initWizard, type SettingsHandle, type WizardHandle } from './screens';
 export {
   initCheckGroup, initRange, initColors, initSecret, createTree, popover, startTour, plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors,
-  type TreeItem, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
+  type TreeItem, type TreeBadge, type TreeValueOption, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
 } from './controls';
 export { createRating, getRating, type RatingOptions, type RatingHandle } from './rating';
 export { createLockScreen, openPinSetup, idleLock, type LockUser, type LockScreenOptions, type LockScreenHandle, type PinSetupOptions, type IdleLockOptions } from './lock-screen';

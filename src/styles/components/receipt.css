@@ -1,0 +1,43 @@
+/* ── Чековая лента и QR ───────────────────────────────────
+ * .b24-receipt-wrap > .b24-receipt__switch (58 / 80 мм) + .b24-receipt (.is-torn) > __body > __row (.is-bold .is-dh .is-dw .is-invert) > __text
+ *   __qr (svg) · __barcode > __bars > i
+ * .b24-qr > __code (svg) + __label
+ */
+.b24-receipt-wrap { display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; max-width: 100%; overflow-x: auto; padding: 4px 4px 8px; box-sizing: border-box; container-type: inline-size; }
+.b24-receipt-wrap > * { margin-inline: auto; }
+.b24-receipt__switch { display: inline-flex; gap: 2px; padding: 2px; background: var(--b24-bg-surface-2, #eef1f4); border-radius: var(--b24-radius-sm); }
+.b24-receipt__paper { height: 28px; padding: 0 12px; margin: 0; font: inherit; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); background: none; border: 0; border-radius: var(--b24-radius-xs); cursor: pointer; }
+.b24-receipt__paper.is-active { color: var(--b24-text-primary); background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-2xs); font-weight: var(--b24-font-weight-medium); }
+.b24-receipt__paper:focus-visible { outline: 2px solid var(--b24-focus-color); }
+
+.b24-receipt {
+  --_cols: var(--b24-receipt-cols, 48);
+  flex: 0 0 auto; box-sizing: content-box; padding: 18px 16px 22px; width: calc(var(--_cols) * 1ch);
+  --_fs: min(13px, calc((100cqw - 8px - 2 * 16px) / (var(--_cols) * 0.62)));
+  font: var(--_fs)/1.3 ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  font-variant-ligatures: none; color: #1b1b1b; background: #fffefa; border-radius: 2px; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+.b24-receipt.is-torn {
+  box-shadow: none; padding-top: 22px; padding-bottom: 26px; --_tooth: 10px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--_tooth) 100%, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--_tooth) 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--_tooth) 100%, conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--_tooth) 100%;
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+}
+.b24-receipt-wrap:has(.is-torn) .b24-receipt { filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2)); }
+.b24-receipt__body { display: flex; flex-direction: column; }
+.b24-receipt__row { white-space: pre; min-height: calc(var(--sy, 1) * 1.3em); overflow: hidden; }
+.b24-receipt__row.is-bold { font-weight: 700; }
+.b24-receipt__row.is-dw { --sx: 2; }
+.b24-receipt__row.is-dh { --sy: 2; }
+.b24-receipt__text { display: inline-block; transform: scale(var(--sx, 1), var(--sy, 1)); transform-origin: 0 0; margin-right: calc((var(--sx, 1) - 1) * var(--n, 0) * 1ch); }
+.b24-receipt__row.is-invert { color: #fffefa; background: #1b1b1b; }
+.b24-receipt__qr, .b24-receipt__barcode { display: flex; padding: 6px 0; }
+.b24-receipt__qr svg { display: block; max-width: 100%; height: auto; }
+.b24-receipt__bars { display: flex; height: 44px; align-items: stretch; }
+.b24-receipt__bars > i { display: block; background: #1b1b1b; }
+.b24-receipt__bars > i.is-gap { background: transparent; }
+
+.b24-qr { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; margin: 0; }
+.b24-qr__code svg { display: block; border-radius: 4px; }
+.b24-qr__label { font-size: var(--b24-font-size-xs); color: var(--b24-text-secondary); text-align: center; }
+.b24-qr__error { color: var(--b24-color-danger); }

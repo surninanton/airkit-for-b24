@@ -35,6 +35,9 @@ export {
   type RadioCardOption, type CheckGroupOption, type TreeProps, type TreeItem, type RatingProps,
 } from './Controls';
 export { Credit } from './Credit';
+export { Receipt, Qr, SortableList, type ReceiptProps, type QrProps, type SortableListProps, type SortableListItem } from './Receipt';
+export type { ReceiptLine, SortableItem } from '../js/index';
+export { qrSvg, qrMatrix } from '../js/qr';
 export { Vendor, type VendorOptions } from './Vendor';
 export { B24Provider, App, PageHeader, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, type PageHeaderProps, type PageHeaderCreateProps, type PageHeaderCounterProps, type ToolbarProps, type ShellProps, type NavItemProps } from './Layout';
 

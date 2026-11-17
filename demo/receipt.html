@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Конструктор чеков — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1400px">
+    <div id="header"></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap:16px; align-items:start">
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Блоки чека</h2><span class="b24-card__subtitle">&nbsp;createSortable</span></div>
+        <div class="b24-card__body"><div id="blocks"></div>
+          <p class="b24-text-sm b24-text-secondary" style="margin:10px 0 0">Тяните за ручку (на телефоне — долгое касание по строке). С клавиатуры: Tab к ручке, Alt+↑ / Alt+↓. Esc во время перетаскивания — отмена.</p>
+        </div>
+      </div>
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Предпросмотр</h2><span class="b24-card__subtitle">&nbsp;createReceipt · QR</span></div>
+        <div class="b24-card__body" id="receipt"></div>
+      </div>
+    </div>
+    <div class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Зоны печати по разделам каталога</h2><span class="b24-card__subtitle">&nbsp;createTree: значения узлов с наследованием</span></div>
+      <div class="b24-card__body"><div id="zones" style="max-width:760px"></div>
+        <p class="b24-text-sm b24-text-secondary" style="margin:10px 0 0">Серое — «как у родителя». Клик по значению — выбор зон; ↺ — сбросить к родителю.</p>
+      </div>
+    </div>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  B24UI.createPageHeader(document.getElementById('header'), {
+    menu: [{ label: 'Зоны печати', href: '#', active: true }, { label: 'Шаблоны чеков', href: '#' }, { label: 'Правила', href: '#' }],
+    title: 'Конструктор чеков',
+  });
+
+  // чек: данные блоков и их настройки
+  const settings = { logo: { text: 'ПИЦЦА РОЛЛ' }, order: { text: 'Заказ № 4821' }, items: {}, total: {}, qr: { link: 'https://example.com/o/4821' }, note: { text: 'Спасибо, что выбрали нас!' } };
+  let blocks = [
+    { id: 'logo', title: 'Логотип', subtitle: 'Название заведения', icon: 'home', enabled: true },
+    { id: 'order', title: 'Номер заказа', subtitle: 'Крупно, по центру', icon: 'ticket', enabled: true },
+    { id: 'items', title: 'Состав заказа', subtitle: 'Название и сумма', icon: 'list', enabled: true },
+    { id: 'total', title: 'Итого', subtitle: 'Жирным, двойная высота', icon: 'checkCircle', enabled: true },
+    { id: 'qr', title: 'QR для оценки', subtitle: 'Ссылка на отзыв', icon: 'link', enabled: false },
+    { id: 'note', title: 'Подпись', subtitle: 'Благодарность гостю', icon: 'heart', enabled: true },
+  ];
+  const lineFor = {
+    logo: () => [{ text: settings.logo.text, bold: true, dh: true, dw: true, align: 'center' }, { sep: '=' }],
+    order: () => [{ text: settings.order.text, bold: true, align: 'center' }, { text: '17.11.2026 19:42', align: 'center' }, { blank: true }],
+    items: () => [{ cols: ['Маргарита 30 см', '2 × 450 ₽'] }, { cols: ['Ролл Филадельфия, увеличенная порция с лососем', '1 × 520 ₽'] }, { cols: ['Лимонад «Тархун»', '1 × 120 ₽'] }, { sep: '-' }],
+    total: () => [{ cols: ['ИТОГО', '1540 ₽'], bold: true, dh: true }, { text: 'ОПЛАЧЕНО КАРТОЙ', invert: true, align: 'center' }, { blank: true }],
+    qr: () => [{ qr: settings.qr.link, label: 'Оцените заказ' }, { blank: true }],
+    note: () => [{ text: settings.note.text, align: 'center' }],
+  };
+  const receipt = B24UI.createReceipt(document.getElementById('receipt'), { paper: 80, switcher: true });
+  const paint = () => receipt.setLines(blocks.filter((b) => b.enabled !== false).flatMap((b) => lineFor[b.id]()));
+  paint();
+
+  const sortable = B24UI.createSortable(document.getElementById('blocks'), {
+    items: blocks, toggle: true, label: 'Блоки чека',
+    renderBody: (item, body) => {
+      const key = { logo: 'text', order: 'text', note: 'text', qr: 'link' }[item.id];
+      if (!key) { body.append(B24UI.html('<p class="b24-text-sm b24-text-secondary" style="margin:0">Состав берётся из заказа, настроек нет.</p>')); return; }
+      const input = B24UI.html(`<label class="b24-field"><span class="b24-field__label">${key === 'link' ? 'Ссылка' : 'Текст'}</span><input class="b24-input" value=""></label>`).firstElementChild;
+      const field = input.querySelector('input');
+      field.value = settings[item.id][key];
+      field.addEventListener('input', () => { settings[item.id][key] = field.value; paint(); });
+      body.append(input);
+    },
+    onReorder: (ids) => { blocks = ids.map((id) => blocks.find((b) => b.id === id)); paint(); },
+    onToggle: (id, on) => { blocks.find((b) => b.id === id).enabled = on; paint(); },
+  });
+  window.__sortable = sortable;
+
+  // зоны печати: значения узлов — наборы зон
+  const zones = [{ value: 'kitchen', label: 'Кухня', color: '#e2793a' }, { value: 'pack', label: 'Упаковка', color: '#1bce7b' }, { value: 'desk', label: 'Ресепшн', color: '#2fc6f6' }];
+  B24UI.createTree(document.getElementById('zones'), {
+    ariaLabel: 'Разделы каталога',
+    items: [
+      { id: 'all', label: 'Весь каталог', children: [
+        { id: 'pizza', label: 'Пицца', count: 18, children: [{ id: 'pizza-hot', label: 'Острая', badges: ['хит'] }, { id: 'pizza-veg', label: 'Вегетарианская' }] },
+        { id: 'rolls', label: 'Роллы', count: 24, children: [{ id: 'rolls-hot', label: 'Горячие' }] },
+        { id: 'drinks', label: 'Напитки', count: 9 },
+      ] },
+    ],
+    expanded: ['all', 'pizza', 'rolls'],
+    select: false,
+    valueOptions: zones,
+    values: { all: ['desk'], pizza: ['kitchen', 'pack'], drinks: ['pack'] },
+    onValueChange: (id, value) => B24UI.toast(`${id}: ${value ? value.join(', ') || 'нет зон' : 'как у родителя'}`),
+  });
+</script>
+<script type="module" src="./demo-nav.ts"></script>
+</body>
+</html>
