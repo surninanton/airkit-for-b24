@@ -35,10 +35,12 @@ export {
   type RadioCardOption, type CheckGroupOption, type TreeProps, type TreeItem, type RatingProps,
 } from './Controls';
 export { Credit } from './Credit';
-export { Dialpad, CallCard, LineStatus, MicMeter, type DialpadProps, type CallCardProps, type LineStatusProps, type MicMeterProps } from './Phone';
+export { Dialpad, CallCard, CallLog, LineStatus, MicMeter, type CallLogProps, type DialpadProps, type CallCardProps, type LineStatusProps, type MicMeterProps } from './Phone';
 export { normalizePhone, formatPhone, type CallState, type LineStatus as LineStatusValue, type CallCardAction } from '../js/phone';
 export { Receipt, Qr, SortableList, type ReceiptProps, type QrProps, type SortableListProps, type SortableListItem } from './Receipt';
 export type { ReceiptLine, SortableItem } from '../js/index';
+export type { CallLogItem } from '../js/call-log';
+export { isEmbed, setEmbed, setShellActive, watchShellActive, setNavCounter } from '../js/shell';
 export { qrSvg, qrMatrix } from '../js/qr';
 export { Vendor, type VendorOptions } from './Vendor';
 export { B24Provider, App, PageHeader, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, type PageHeaderProps, type PageHeaderCreateProps, type PageHeaderCounterProps, type ToolbarProps, type ShellProps, type NavItemProps } from './Layout';

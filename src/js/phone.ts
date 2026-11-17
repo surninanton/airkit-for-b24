@@ -235,6 +235,15 @@ export interface CallCardOptions {
   startedAt?: number | Date;
   /** кнопки активного звонка; по умолчанию «Без звука», «Удержание», «Клавиши», «Перевести» */
   actions?: CallCardAction[];
+  /**
+   * «Не модальный» режим: карточка плавает поверх страницы без затемнения и блокировки; страница остаётся живой.
+   * true — справа вверху под шапкой, или { position: 'top-right' | 'top-left' | 'bottom-right' }. Карточка вставляется в host
+   * (по умолчанию document.body). Кнопка «Свернуть» превращает её в полоску внизу экрана: имя, таймер, «Развернуть», «Завершить».
+   */
+  floating?: boolean | { position?: 'top-right' | 'top-left' | 'bottom-right' };
+  /** свёрнута сразу (для floating) */
+  minimized?: boolean;
+  onMinimize?: (minimized: boolean) => void;
   onAnswer?: () => void;
   onDecline?: () => void;
   onHangup?: () => void;
@@ -243,8 +252,12 @@ export interface CallCardOptions {
 }
 export interface CallCardHandle {
   element: HTMLElement;
-  /** контейнеры: extra — место под кнопками (клавиатура, индикатор микрофона) */
-  slots: { extra: HTMLElement };
+  /** контейнеры: customer — карточка клиента под именем (заказы, «Новый заказ»); extra — под кнопками (клавиатура, индикатор микрофона) */
+  slots: { customer: HTMLElement; extra: HTMLElement };
+  /** свернуть в полоску внизу экрана / развернуть (floating) */
+  minimize(): void;
+  restore(): void;
+  isMinimized(): boolean;
   setState(state: CallState): void;
   getState(): CallState;
   setInfo(patch: { name?: string; number?: string; avatar?: string; meta?: string }): void;
@@ -269,20 +282,34 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   let actions = (options.actions ?? DEFAULT_ACTIONS()).map((a) => ({ ...a }));
   let startedAt: number | null = options.startedAt != null ? +new Date(options.startedAt) : null;
   let timer = 0;
+  const floating = !!options.floating;
+  const pos = typeof options.floating === 'object' ? options.floating.position ?? 'top-right' : 'top-right';
   const root = h('div', { class: 'b24-callcard', role: 'group' });
   const who = h('div', { class: 'b24-callcard__who' });
   const status = h('div', { class: 'b24-callcard__status', 'aria-live': 'off' });
+  const customer = h('div', { class: 'b24-callcard__customer' });
   const buttons = h('div', { class: 'b24-callcard__actions' });
   const foot = h('div', { class: 'b24-callcard__foot' });
   const extra = h('div', { class: 'b24-callcard__extra' });
-  root.append(who, status, buttons, foot, extra);
-  host.append(root);
+  // полоска внизу экрана: имя, таймер, «Развернуть», «Завершить»
+  const miniName = h('span', { class: 'b24-callcard__mini-name' });
+  const miniTime = h('span', { class: 'b24-callcard__mini-time' });
+  const miniRestore = h('button', { type: 'button', class: 'b24-callcard__mini-btn', 'aria-label': t('Развернуть'), title: t('Развернуть') }, html(icon('chevronUp', { size: 18 })));
+  const miniEnd = h('button', { type: 'button', class: 'b24-callcard__mini-btn b24-callcard__mini-end', 'aria-label': t('Завершить'), title: t('Завершить') }, html(icon('phone', { size: 16 })));
+  const mini = h('div', { class: 'b24-callcard__mini' }, miniName, miniTime, miniRestore, miniEnd);
+  const minBtn = h('button', { type: 'button', class: 'b24-callcard__min', 'aria-label': t('Свернуть'), title: t('Свернуть') }, html(icon('minus', { size: 16 })));
+  root.append(minBtn, who, status, customer, buttons, foot, extra, mini);
+  if (floating) { root.classList.add('b24-callcard--floating', `is-${pos}`); root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'false'); }
+  else minBtn.hidden = true;
+  (floating && host === document.body ? document.body : host).append(root);
+  let minimized = false;
 
   const duration = () => (startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 1000)) : 0);
   const paintStatus = () => {
     const text = { incoming: t('Входящий звонок…'), dialing: t('Соединение…'), held: t('На удержании'), ended: t('Звонок завершён'), active: formatCallTime(duration()) }[state];
     status.textContent = state === 'held' && startedAt ? `${text} · ${formatCallTime(duration())}` : state === 'ended' && startedAt ? `${text} · ${formatCallTime(duration())}` : text;
     status.classList.toggle('is-timer', state === 'active');
+    miniTime.textContent = state === 'active' || state === 'held' ? formatCallTime(duration()) : status.textContent;
   };
   const paintWho = () => {
     who.replaceChildren(
@@ -293,6 +320,7 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
         info.meta ? h('div', { class: 'b24-callcard__meta' }, info.meta) : ''),
     );
     root.setAttribute('aria-label', `${info.name || info.number}`);
+    miniName.textContent = info.name || formatPhone(info.number);
   };
   const paintButtons = () => {
     buttons.hidden = state === 'incoming' || state === 'ended';
@@ -321,20 +349,36 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   };
   const tick = () => { if (state === 'active' || state === 'held') paintStatus(); };
   const sync = () => {
-    root.className = `b24-callcard is-${state}`;
+    root.className = `b24-callcard${floating ? ` b24-callcard--floating is-${pos}` : ''}${minimized ? ' is-minimized' : ''} is-${state}`;
+    minBtn.hidden = !floating || state === 'incoming' || state === 'ended';
     paintStatus();
     paintButtons();
     clearInterval(timer);
     if (state === 'active' || state === 'held') timer = window.setInterval(tick, 1000);
   };
 
+  const setMinimized = (min: boolean) => {
+    if (!floating || min === minimized) return;
+    minimized = min;
+    root.classList.toggle('is-minimized', min);
+    options.onMinimize?.(min);
+  };
+  minBtn.addEventListener('click', () => setMinimized(true));
+  miniRestore.addEventListener('click', () => setMinimized(false));
+  mini.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('button')) setMinimized(false); });
+  miniEnd.addEventListener('click', () => options.onHangup?.());
+
   paintWho();
   if ((state === 'active' || state === 'held') && !startedAt) startedAt = Date.now();
   sync();
+  if (options.minimized) setMinimized(true);
 
   const handle: CallCardHandle = {
     element: root,
-    slots: { extra },
+    slots: { customer, extra },
+    minimize: () => setMinimized(true),
+    restore: () => setMinimized(false),
+    isMinimized: () => minimized,
     setState(next) {
       if (next === state) return;
       if (next === 'active' && !startedAt) startedAt = Date.now();

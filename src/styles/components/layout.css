@@ -187,3 +187,11 @@ button.b24-topnav__item { appearance: none; margin: 0; border: 0; background: tr
   .b24-only-mobile { display: inline-flex !important; }
   .b24-hide-mobile { display: none !important; }
 }
+
+/* режим embed: страница без оболочки (во фрейме, во время звонка): html.b24-embed или <AppShell embed> */
+html.b24-embed .b24-shell__sidebar, html.b24-embed .b24-shell__header, .b24-shell.is-embed > .b24-shell__sidebar, .b24-shell.is-embed > .b24-shell__header,
+html.b24-embed .b24-credit-footer { display: none; }
+html.b24-embed .b24-shell, .b24-shell.is-embed { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+html.b24-embed .b24-shell__main, .b24-shell.is-embed > .b24-shell__main { padding: var(--b24-space-sm); }
+html.b24-embed .b24-shell__main { min-height: 100vh; }
+html.b24-embed .b24-im-bar { display: none; }

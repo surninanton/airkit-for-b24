@@ -154,3 +154,91 @@ test('панель мессенджера: кнопка звонка — зел�
   await expect(btn).toHaveClass(/is-pulse/);
   await expect(btn).toHaveClass(/b24-im-bar__action--success/);            // оформление не слетело после перерисовки
 });
+
+test('не модальная карточка: без затемнения, справа вверху, слот клиента, свернуть в полоску и развернуть', async ({ page }) => {
+  await open(page, '/phone.html');
+  await page.locator('#float-open').click();
+  const card = page.locator('.b24-callcard--floating');
+  await expect(card).toBeVisible();
+  await expect(page.locator('.b24-overlay')).toHaveCount(0);                      // страницы не блокирует
+  await page.locator('#dial-log').scrollIntoViewIfNeeded();
+  await expect(page.locator('#dtmf')).toBeEnabled();
+  await card.getByRole('button', { name: 'Ответить' }).click();
+  await expect(card.locator('.b24-callcard__customer')).toContainText('Постоянный клиент');
+  const box = (await card.boundingBox())!;
+  const vw = page.viewportSize()!.width;
+  expect(box.x + box.width).toBeGreaterThan(vw - 80);                             // справа
+  expect(box.y).toBeLessThan(120);                                                // вверху
+  await card.getByRole('button', { name: 'Свернуть' }).click();
+  await expect(card).toHaveClass(/is-minimized/);
+  await expect(card.locator('.b24-callcard__customer')).toBeHidden();
+  const mini = (await card.boundingBox())!;
+  expect(mini.y + mini.height).toBeGreaterThan(page.viewportSize()!.height - 2);  // внизу экрана
+  await expect(card.locator('.b24-callcard__mini-name')).toHaveText('Мария Образцова');
+  await expect(card.locator('.b24-callcard__mini-time')).toHaveText(/^\d+:\d\d$/);
+  await card.getByRole('button', { name: 'Развернуть' }).click();
+  await expect(card).not.toHaveClass(/is-minimized/);
+  await card.getByRole('button', { name: 'Свернуть' }).click();
+  await card.locator('.b24-callcard__mini-end').click();                          // «Завершить» из полоски
+  await expect(card).toHaveClass(/is-ended/);
+});
+
+test('журнал звонков: дни, направление, пропущенный красным, длительность, счётчик', async ({ page }) => {
+  await open(page, '/phone.html');
+  const log = page.locator('#calllog .b24-calllog');
+  await expect(log.locator('.b24-calllog__day').first()).toHaveText('Сегодня');
+  await expect(log.locator('.b24-calllog__day')).toHaveCount(3);
+  const miss = log.locator('.b24-calllog__item').first();
+  await expect(miss).toHaveClass(/is-missed/);
+  await expect(miss.locator('.b24-calllog__title')).toHaveCSS('color', 'rgb(255, 87, 82)');
+  await expect(miss.locator('.b24-calllog__duration')).toHaveCount(0);
+  await expect(log.locator('.b24-calllog__item').nth(1).locator('.b24-calllog__duration')).toHaveText('2:05');
+  await expect(log.locator('.b24-calllog__item').nth(1)).toHaveClass(/is-out/);
+  await expect(page.locator('#missed-info')).toHaveText('Непросмотренных пропущенных: 2');
+  await expect(page.locator('#demo-topnav .b24-topnav__item', { hasText: 'Пропущенные' }).locator('.b24-counter')).toHaveText('2');
+  // клавиатура
+  await log.locator('.b24-calllog__item').first().focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(log.locator('.b24-calllog__item').nth(1)).toBeFocused();
+  // открыли «Пропущенные» — просмотрены, счётчик ушёл
+  await page.locator('#demo-topnav .b24-topnav__item', { hasText: 'Пропущенные' }).click();
+  await expect(page.locator('#missed-info')).toHaveText('Непросмотренных пропущенных: 0');
+  await expect(page.locator('#demo-topnav .b24-topnav__item', { hasText: 'Пропущенные' }).locator('.b24-counter')).toHaveCount(0);
+});
+
+test('меню без перезагрузки: setShellActive по адресу, setTopNav, embed', async ({ page }) => {
+  await open(page, '/phone.html');
+  const r = await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    const shell = document.createElement('div');
+    shell.className = 'b24-shell';
+    shell.innerHTML = '<aside class="b24-shell__sidebar"><nav class="b24-sidebar"><div class="b24-sidebar__group"><a class="b24-sidebar__item" href="/crm/">CRM</a><a class="b24-sidebar__item" href="/phone/">Телефон</a><a class="b24-sidebar__item" href="/phone/log/">Журнал</a></div></nav></aside><header class="b24-shell__header"></header><main class="b24-shell__main"></main>';
+    document.body.append(shell);
+    const a = B.setShellActive('/phone/missed/?x=1', { root: shell });
+    const b = shell.querySelector('.b24-sidebar__item[aria-current]')!.textContent;
+    B.setShellActive('/phone/log/', { root: shell });
+    const c = shell.querySelector('.b24-sidebar__item[aria-current]')!.textContent;
+    const none = B.setShellActive('/unknown/', { root: shell });
+    const keep = shell.querySelector('.b24-sidebar__item[aria-current]')!.textContent;
+    B.setSidebar(shell.querySelector('.b24-sidebar') as HTMLElement, [{ title: 'Телефон', items: [{ label: 'Набор', href: '/phone/', counter: 2 }, { label: 'Журнал', href: '/phone/log/', active: true }] }]);
+    const items = Array.from(shell.querySelectorAll('.b24-sidebar__item')).map((e) => e.textContent!.replace(/\s+/g, ''));
+    B.setEmbed(true);
+    const hidden = getComputedStyle(shell.querySelector('.b24-shell__sidebar')!).display;
+    const cols = getComputedStyle(shell).gridTemplateColumns.split(' ').length;
+    B.setEmbed(false);
+    shell.remove();
+    return { a: !!a.sidebar, b, c, none: none.sidebar, keep, items, hidden, cols, embedOff: !document.documentElement.classList.contains('b24-embed') };
+  });
+  expect(r).toEqual({ a: true, b: 'Телефон', c: 'Журнал', none: null, keep: 'Журнал', items: ['Набор2', 'Журнал'], hidden: 'none', cols: 1, embedOff: true });
+  // верхнее меню: пункты заменяются, «Ещё» не дублируется
+  await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    B.setTopNav(document.getElementById('demo-topnav')!, [{ label: 'Один', href: '#/1' }, { label: 'Два', href: '#/2', active: true }]);
+  });
+  await expect(page.locator('#demo-topnav .b24-topnav__item:not(.b24-topnav__more)')).toHaveText(['Один', 'Два']);
+  await expect(page.locator('#demo-topnav .b24-topnav__item[aria-current="page"]')).toHaveText('Два');
+  await expect(page.locator('#demo-topnav .b24-topnav__more')).toHaveCount(1);
+  // ?embed=1 включает режим сам
+  await page.goto('/phone.html?embed=1');
+  await expect(page.locator('html')).toHaveClass(/b24-embed/);
+});

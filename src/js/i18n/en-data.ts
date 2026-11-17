@@ -271,4 +271,9 @@ export const enData: Record<string, string> = {
   'Не на линии': 'Offline',
   'Нет связи': 'Disconnected',
   'Уровень микрофона': 'Microphone level',
+  'Журнал звонков': 'Call log',
+  'Звонков пока нет': 'No calls yet',
+  'пропущенный': 'missed',
+  'исходящий': 'outgoing',
+  'входящий': 'incoming',
 };

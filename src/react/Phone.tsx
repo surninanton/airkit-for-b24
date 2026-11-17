@@ -3,6 +3,7 @@ import {
   createCallCard, createDialpad, createLineStatus, createMicMeter,
   type CallCardHandle, type CallCardOptions, type DialpadHandle, type DialpadOptions, type LineStatusHandle, type LineStatusOptions, type MicMeterHandle, type MicMeterOptions,
 } from '../js/phone';
+import { createCallLog, type CallLogHandle, type CallLogItem, type CallLogOptions } from '../js/call-log';
 
 /** Клавиатура-набиратель: <Dialpad onDial={(n) => call(n)} /> ; в звонке mode="dtmf" onKey={sendTone} */
 export interface DialpadProps extends Omit<DialpadOptions, 'value'> { value?: string; handleRef?: MutableRefObject<DialpadHandle | null> }
@@ -28,14 +29,15 @@ export function Dialpad({ value, mode, onDial, onKey, onChange, captureKeyboard,
 
 /** Карточка звонка: состояние и данные — пропсами, действия — колбэками. Место под кнопками — через handleRef.current.slots.extra */
 export interface CallCardProps extends CallCardOptions { handleRef?: MutableRefObject<CallCardHandle | null> }
-export function CallCard({ state, name, number, avatar, meta, startedAt, actions, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
+export function CallCard({ state, name, number, avatar, meta, startedAt, actions, floating, minimized, onMinimize, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<CallCardHandle | null>(null);
-  const cbs = useRef({ onAnswer, onDecline, onHangup, onAction });
-  cbs.current = { onAnswer, onDecline, onHangup, onAction };
+  const cbs = useRef({ onAnswer, onDecline, onHangup, onAction, onMinimize });
+  cbs.current = { onAnswer, onDecline, onHangup, onAction, onMinimize };
   useEffect(() => {
     h.current = createCallCard(host.current!, {
-      state, name, number, avatar, meta, startedAt, actions,
+      state, name, number, avatar, meta, startedAt, actions, floating, minimized,
+      onMinimize: (m) => cbs.current.onMinimize?.(m),
       onAnswer: () => cbs.current.onAnswer?.(), onDecline: () => cbs.current.onDecline?.(), onHangup: () => cbs.current.onHangup?.(),
       onAction: (id, p) => cbs.current.onAction?.(id, p),
     });
@@ -45,7 +47,8 @@ export function CallCard({ state, name, number, avatar, meta, startedAt, actions
   }, []);
   useEffect(() => { if (state) h.current?.setState(state); }, [state]);
   useEffect(() => { h.current?.setInfo({ name, number, avatar, meta }); }, [name, number, avatar, meta]);
-  return <div ref={host} style={{ display: 'contents' }} />;
+  useEffect(() => { if (minimized != null) { if (minimized) h.current?.minimize(); else h.current?.restore(); } }, [minimized]);
+  return <div ref={host} style={floating ? undefined : { display: 'contents' }} />;
 }
 
 /** Статус линии; с onChange — выбор «На линии / Перерыв» */
@@ -78,4 +81,22 @@ export function MicMeter({ level, bars, label, muted, stream }: MicMeterProps) {
   useEffect(() => { h.current?.setMuted(!!muted); }, [muted]);
   useEffect(() => { if (stream) h.current?.connect(stream); else h.current?.disconnect(); }, [stream]);
   return <span ref={host} style={{ display: 'contents' }} />;
+}
+
+/** Журнал звонков: строки с иконкой направления, временем и длительностью, группы по дням, «пропущенный» красным */
+export interface CallLogProps extends Omit<CallLogOptions, 'items'> { items: CallLogItem[]; className?: string }
+export function CallLog({ items, onSelect, groupByDay, emptyText, onMissedChange, label }: CallLogProps) {
+  const host = useRef<HTMLDivElement>(null);
+  const h = useRef<CallLogHandle | null>(null);
+  const cbs = useRef({ onSelect, onMissedChange });
+  cbs.current = { onSelect, onMissedChange };
+  useEffect(() => {
+    h.current = createCallLog(host.current!, { items, groupByDay, emptyText, label, onSelect: onSelect ? (id, it) => cbs.current.onSelect?.(id, it) : undefined, onMissedChange: (n) => cbs.current.onMissedChange?.(n) });
+    return () => h.current?.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const first = useRef(true);
+  const key = JSON.stringify(items);
+  useEffect(() => { if (first.current) { first.current = false; return; } h.current?.setItems(items); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div ref={host} style={{ display: 'contents' }} />;
 }

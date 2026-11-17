@@ -626,6 +626,8 @@ B24UI.createTree(el3, { items, select: false, valueOptions: zones, values: { all
 
 - **Клавиатура** `createDialpad(host, { onDial, onKey, mode })` / `<Dialpad>`: поле номера и кнопки 1–9 * 0 # с буквами (ABC, DEF…, у 0 — «+»; удержание «0» вводит «+»). Ввод с клавиатуры компьютера (буквы игнорируются), Enter — позвонить; вставка нормализуется: «8 (999) 123-45-67» → «+7 (999) 123-45-67» (российские 8…/7…/9… — в +7, остальное как есть, `*100#` не трогается). `onDial(number, formatted)`; `mode: 'dtmf'` / `setMode('dtmf')` — во время звонка: каждое нажатие уходит в `onKey(key)`, номер не набирается. `captureKeyboard: true` — слушать клавиатуру на всём документе (для popover). `normalizePhone(text)`, `formatPhone(number)`.
 - **Карточка звонка** `createCallCard(host, { state, name, number, onAnswer, onDecline, onHangup, onAction })` / `<CallCard>`: `incoming` — «Ответить / Отклонить»; `dialing`, `active` (таймер mm:ss), `held`, `ended` — кнопки «Без звука / Удержание / Клавиши / Перевести» (`actions` — свои; `toggle` — переключатель с `aria-pressed`) и красная «Завершить». `onAction(id, pressed)`; «Удержание» само переводит в `held`. `setState`, `setInfo`, `setPressed`, `getDuration`; `slots.extra` — место под кнопками (клавиатура DTMF, индикатор микрофона).
+- **Не модальная карточка**: `createCallCard(document.body, { floating: true, state: 'incoming', … })` — плавает справа вверху под шапкой без затемнения и блокировки страницы (`{ position: 'top-left' | 'bottom-right' }`); «Свернуть» превращает её в полоску внизу экрана: имя, таймер, «Развернуть», «Завершить» (`minimize()`, `restore()`, `onMinimize`). `slots.customer` — место под карточку клиента (заказы, «Новый заказ», «Открыть заказ»). На телефоне — на всю ширину.
+- **Журнал звонков** `createCallLog(host, { items, onSelect, onMissedChange })` / `<CallLog>`: иконка направления (входящий / исходящий / пропущенный), две строки текста, время и длительность справа, заголовки дней («СЕГОДНЯ», «ВЧЕРА», «14 НОЯБРЯ»), пропущенный красным. `markSeen(ids?)` — просмотрены; `onMissedChange(n)` — для счётчика на пункте меню: `setNavCounter('/phone/missed/', n)`.
 - **Статус линии** `createLineStatus(host, { status, onChange })` / `<LineStatus>`: точка `online` / `away` / `offline` / `disconnected` и подпись («На линии», «Перерыв», «Не на линии», «Нет связи»; `label` и `labels` — свои). С `onChange` — выбор «На линии / Перерыв».
 - **Уровень микрофона** `createMicMeter(host, { bars })` / `<MicMeter>`: деления, `setLevel(0–1)`, `setMuted`; `connect(stream)` — уровень считается сам из потока `getUserMedia`.
 - **Popover со своим контентом**: `popover(anchor, { content: node, width, className })` — клавиатура или карточка звонка над кнопкой; Esc и клик мимо закрывают.
@@ -637,6 +639,12 @@ const pad = B24UI.createDialpad(el, { onDial: (number) => softphone.call(number)
 const card = B24UI.createCallCard(el2, { state: 'incoming', name: 'Мария', number: '89991234567', onAnswer: () => softphone.answer(), onHangup: () => softphone.hangup(), onAction: (id, on) => id === 'mute' && softphone.mute(on) });
 bar.setActions([{ id: 'phone', icon: 'phone', label: 'Телефон', variant: 'success', status: 'online', pulse: inCall, onClick: (btn) => popover(btn, { content: pad.element, width: 300, placement: 'left' }) }]);
 ```
+
+## Оболочка без перезагрузки: embed и меню на лету
+
+- **Режим embed** — страница без оболочки (во фрейме, во время звонка): `setEmbed(true)` или `?embed=1` (также `window.name = 'b24-embed'`, `<html data-b24-embed>`; `init()` включает сам, `isEmbed()`). Скрываются сайдбар и шапка оболочки, подвал и панель мессенджера, контент на всю страницу (`html.b24-embed`). В React — `<AppShell embed>`.
+- **Подсветка по адресу**: `setShellActive(url)` ставит `aria-current="page"` на пункт сайдбара и меню раздела, который ведёт на url (точное совпадение, затем самый длинный общий путь; нет подходящего — подсветка не меняется). `watchShellActive()` делает это сам при `popstate`, `hashchange`, `history.pushState / replaceState`.
+- **Меню на лету**: `setSidebar(nav, [{ title, items: [{ label, href, icon, counter, active }] }])`, `setTopNav(nav, items)` (пункты меню раздела пересобираются, «Ещё ▾» пересчитывается сама), `setNavCounter(url | подпись, n)` — счётчик на пункте («Пропущенные 3»).
 
 ## Планировщик: сотрудники и время
 

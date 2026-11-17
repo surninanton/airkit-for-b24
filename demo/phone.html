@@ -40,6 +40,18 @@
           <button type="button" class="b24-btn b24-btn--secondary b24-btn--sm" id="mic-real">Включить микрофон</button>
         </div>
       </div>
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Журнал звонков</h2><span class="b24-card__subtitle">&nbsp;createCallLog</span></div>
+        <div class="b24-card__body"><div id="calllog"></div><div class="b24-text-sm b24-text-secondary" id="missed-info" style="margin-top:8px"></div></div>
+      </div>
+      <div class="b24-card">
+        <div class="b24-card__header"><h2 class="b24-card__title">Не модальная карточка и меню</h2><span class="b24-card__subtitle">&nbsp;floating · setTopNav</span></div>
+        <div class="b24-card__body" style="display:flex; flex-direction:column; gap:12px; align-items:flex-start">
+          <button type="button" class="b24-btn b24-btn--success" id="float-open">Звонок поверх страницы</button>
+          <nav class="b24-topnav" id="demo-topnav" style="background:var(--b24-air-bg-color,#1f4ea8); border-radius:8px; padding:4px 6px"></nav>
+          <div class="b24-text-sm b24-text-secondary" id="nav-info">Адрес: …</div>
+        </div>
+      </div>
     </div>
   </div>
   <footer class="b24-credit-footer" id="demo-credit"></footer>
@@ -52,6 +64,34 @@
     title: 'Софтфон',
   });
   const log = document.getElementById('dial-log');
+  const d = (days, h, m) => { const x = new Date(); x.setDate(x.getDate() - days); x.setHours(h, m, 0, 0); return x; };
+  // меню раздела и подсветка по адресу без перезагрузки
+  const tn = document.getElementById('demo-topnav');
+  B24UI.setTopNav(tn, [
+    { label: 'Набор', href: '#/dial' }, { label: 'Журнал', href: '#/log' }, { label: 'Пропущенные', href: '#/missed' }, { label: 'Контакты', href: '#/contacts' },
+  ]);
+  const info = document.getElementById('nav-info');
+  B24UI.watchShellActive({ root: tn });
+  window.addEventListener('hashchange', () => { info.textContent = `Адрес: ${location.hash}`; if (location.hash === '#/missed') calllog.markSeen(); });
+  tn.addEventListener('click', (e) => { const a = e.target.closest('a'); if (a) { e.preventDefault(); history.pushState(null, '', a.getAttribute('href')); window.dispatchEvent(new HashChangeEvent('hashchange')); } });
+  const calllog = B24UI.createCallLog(document.getElementById('calllog'), {
+    items: [
+      { id: 'c1', direction: 'in', missed: true, title: 'Мария Образцова', subtitle: '+7 (999) 123-45-67 · Доставка', time: d(0, 12, 41) },
+      { id: 'c2', direction: 'out', title: 'Иван Примеров', subtitle: '+7 (912) 345-67-89 · Заказ № 4821', time: d(0, 11, 5), duration: 125 },
+      { id: 'c3', direction: 'in', title: 'Пётр Тестов', subtitle: 'Линия: Доставка', time: d(1, 19, 20), duration: 48 },
+      { id: 'c4', direction: 'in', missed: true, title: '+7 (903) 555-01-02', subtitle: 'Неизвестный номер', time: d(3, 9, 12) },
+    ],
+    onSelect: (id, it) => B24UI.toast(`Позвонить: ${it.title}`),
+    onMissedChange: (n) => { document.getElementById('missed-info').textContent = `Непросмотренных пропущенных: ${n}`; B24UI.setNavCounter('Пропущенные', n, document.getElementById('demo-topnav')); },
+  });
+
+  document.getElementById('float-open').addEventListener('click', () => {
+    const fc = B24UI.createCallCard(document.body, {
+      floating: true, state: 'incoming', name: 'Мария Образцова', number: '89991234567', meta: 'Линия: Доставка',
+      onAnswer: () => fc.setState('active'), onDecline: () => fc.destroy(), onHangup: () => { fc.setState('ended'); setTimeout(() => fc.destroy(), 1200); },
+    });
+    fc.slots.customer.innerHTML = '<div style="font-weight:600">Постоянный клиент</div><div class="b24-text-sm b24-text-secondary">Заказов: 12 · последний вчера</div><div style="margin-top:8px"><button type="button" class="b24-btn b24-btn--primary b24-btn--sm">Новый заказ</button></div>';
+  });
 
   const dialpad = B24UI.createDialpad(document.getElementById('dialpad'), {
     onDial: (n, f) => { log.textContent = `Звоним: ${f} (${n})`; setCall(); },

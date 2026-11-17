@@ -188,8 +188,10 @@ export interface ShellProps {
   onCollapsedChange?: (v: boolean) => void;
   /** блок разработчика — всегда последним справа в шапке (правило кита) */
   vendor?: VendorOptions;
+  /** страница без оболочки: сайдбар и шапка скрыты, контент на всю ширину (во фрейме, во время звонка) */
+  embed?: boolean;
 }
-export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange, vendor }: ShellProps) {
+export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange, vendor, embed }: ShellProps) {
   const [inner, setInner] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const collapsed = collapsedProp ?? inner;
@@ -199,7 +201,7 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
     else setInner(!collapsed);
   };
   return (
-    <div className={cx('b24-shell b24-root', collapsed && 'is-collapsed', menuOpen && 'is-menu-open')}>
+    <div className={cx('b24-shell b24-root', collapsed && 'is-collapsed', menuOpen && 'is-menu-open', embed && 'is-embed')}>
       <aside className="b24-shell__sidebar" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMenuOpen(false); }}>
         <ShellToggleContext.Provider value={toggle}>{sidebar}</ShellToggleContext.Provider>
       </aside>

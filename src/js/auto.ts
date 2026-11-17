@@ -17,6 +17,7 @@ import { initGrid, type GridOptions } from './grid';
 import { createChart, sparkline, type ChartOptions } from './chart';
 import { initSettings, initWizard } from './screens';
 import { initRepeater } from './repeater';
+import { initEmbed } from './shell';
 import { initCheckGroup, initColors, initRange, initSecret } from './controls';
 import { copyText } from './logs';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
@@ -84,6 +85,7 @@ import { initChatLayout } from './chat';
  * Повторный вызов безопасен.
  */
 export function init(root: ParentNode = document): void {
+  if (root === document) initEmbed();     // ?embed=1, window.name='b24-embed' или <html data-b24-embed>: страница без оболочки
   root.querySelectorAll<HTMLElement>('[data-b24-dropdown]').forEach((trigger) => {
     if (trigger.dataset.b24Ready) return;
     const popup = document.querySelector<HTMLElement>(trigger.dataset.b24Dropdown!);
