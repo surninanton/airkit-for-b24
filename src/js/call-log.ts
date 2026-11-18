@@ -25,8 +25,15 @@ export interface CallLogItem {
   seen?: boolean;
   /** своя иконка вместо направления */
   icon?: IconName;
+  /** метка под названием или рядом со временем: «Ответил коллега», «Перезвонили» */
+  badge?: string | { text: string; tone?: 'default' | 'success' | 'warning' | 'danger' };
+  /** строка выбрана (открыта справа): подсветка и aria-selected */
+  selected?: boolean;
+  /** кнопки справа в строке («Перезвонить»); клик — onAction, не onSelect */
+  actions?: CallLogAction[];
   data?: unknown;
 }
+export interface CallLogAction { id: string; label: string; icon?: IconName; /** основная: зелёная круглая кнопка */ primary?: boolean; disabled?: boolean }
 export interface CallLogOptions {
   items: CallLogItem[];
   /** клик (или Enter) по строке; без обработчика строки не кнопки */
@@ -34,6 +41,8 @@ export interface CallLogOptions {
   /** группировать по дням с заголовками (по умолчанию да) */
   groupByDay?: boolean;
   emptyText?: string;
+  /** нажата кнопка-действие в строке (item.actions) */
+  onAction?: (actionId: string, item: CallLogItem) => void;
   /** число непросмотренных пропущенных изменилось */
   onMissedChange?: (count: number) => void;
   label?: string;
@@ -44,6 +53,8 @@ export interface CallLogHandle {
   update(id: string, patch: Partial<CallLogItem>): void;
   /** непросмотренные пропущенные */
   getMissedCount(): number;
+  /** выбранная строка (null — снять выбор) */
+  setSelected(id: string | null): void;
   /** отметить пропущенные просмотренными (все или указанные) */
   markSeen(ids?: string[]): void;
   destroy(): void;
@@ -73,15 +84,28 @@ export function createCallLog(host: HTMLElement, options: CallLogOptions): CallL
 
   const fill = (row: HTMLElement, it: CallLogItem) => {
     const ico: IconName = it.icon ?? (it.missed ? 'phoneMissed' : it.direction === 'out' ? 'phoneOutgoing' : 'phoneIncoming');
-    row.className = `b24-calllog__item is-${it.direction}${it.missed ? ' is-missed' : ''}${it.missed && !it.seen ? ' is-unseen' : ''}`;
+    row.className = `b24-calllog__item is-${it.direction}${it.missed ? ' is-missed' : ''}${it.missed && !it.seen ? ' is-unseen' : ''}${it.selected ? ' is-selected' : ''}`;
+    if (interactive) row.setAttribute('aria-selected', String(!!it.selected));
+    const badge = typeof it.badge === 'string' ? { text: it.badge, tone: 'default' as const } : it.badge;
     const dur = it.missed ? '' : formatCallDuration(it.duration);
     row.replaceChildren(
       h('span', { class: 'b24-calllog__icon', 'aria-hidden': 'true' }, html(icon(ico, { size: 18 }))),
-      h('span', { class: 'b24-calllog__body' }, h('span', { class: 'b24-calllog__title' }, it.title), it.subtitle ? h('span', { class: 'b24-calllog__subtitle' }, it.subtitle) : ''),
+      h('span', { class: 'b24-calllog__body' }, h('span', { class: 'b24-calllog__title' }, it.title), it.subtitle ? h('span', { class: 'b24-calllog__subtitle' }, it.subtitle) : '',
+        badge ? h('span', { class: `b24-calllog__badge is-${badge.tone ?? 'default'}` }, badge.text) : ''),
       h('span', { class: 'b24-calllog__meta' }, h('time', { class: 'b24-calllog__time', datetime: toDate(it.time).toISOString() }, fmtTime(it.time)), dur ? h('span', { class: 'b24-calllog__duration' }, dur) : ''),
     );
     const dir = it.missed ? t('пропущенный') : it.direction === 'out' ? t('исходящий') : t('входящий');
-    row.setAttribute('aria-label', `${it.title}, ${dir}, ${fmtTime(it.time)}${dur ? `, ${dur}` : ''}`);
+    row.setAttribute('aria-label', `${it.title}, ${dir}, ${fmtTime(it.time)}${dur ? `, ${dur}` : ''}${badge ? `, ${badge.text}` : ''}`);
+  };
+
+  const actionButtons = (it: CallLogItem) => {
+    const box = h('span', { class: 'b24-calllog__actions' });
+    for (const a of it.actions ?? []) {
+      const b = h('button', { type: 'button', class: `b24-calllog__action${a.primary ? ' is-primary' : ''}`, 'aria-label': `${a.label}: ${it.title}`, title: a.label, disabled: a.disabled || undefined }, a.icon ? html(icon(a.icon, { size: 18 })) : a.label);
+      b.addEventListener('click', (e) => { e.stopPropagation(); options.onAction?.(a.id, it); });
+      box.append(b);
+    }
+    return box;
   };
 
   const render = () => {
@@ -97,7 +121,11 @@ export function createCallLog(host: HTMLElement, options: CallLogOptions): CallL
       const row = interactive ? h('button', { type: 'button', role: 'option', 'data-id': it.id, tabindex: '-1' }) : h('div', { role: 'listitem', 'data-id': it.id });
       fill(row, it);
       rows.set(it.id, row);
-      out.push(row);
+      const acts = it.actions?.length ? actionButtons(it) : null;
+      // кнопка внутри кнопки недопустима: у кликабельной строки действия — соседи в обёртке
+      if (!acts) out.push(row);
+      else if (!interactive) { row.append(acts); out.push(row); }
+      else out.push(h('div', { class: 'b24-calllog__rowwrap', role: 'presentation' }, row, acts));
     }
     root.replaceChildren(...out);
     if (interactive) { const first = rows.values().next().value as HTMLElement | undefined; if (first) first.tabIndex = 0; }
@@ -132,10 +160,11 @@ export function createCallLog(host: HTMLElement, options: CallLogOptions): CallL
       if (i < 0) return;
       items = items.map((x, j) => (j === i ? { ...x, ...patch } : x));
       const row = rows.get(id);
-      if (row) fill(row, items[i]);
+      if (row) { if ('actions' in patch) render(); else fill(row, items[i]); }
       notify();
     },
     getMissedCount: missedCount,
+    setSelected(id) { items = items.map((x) => ({ ...x, selected: x.id === id })); items.forEach((it) => { const row = rows.get(it.id); if (row) fill(row, it); }); },
     markSeen(ids) {
       items = items.map((x) => (x.missed && !x.seen && (!ids || ids.includes(x.id)) ? { ...x, seen: true } : x));
       items.forEach((it) => { const row = rows.get(it.id); if (row) fill(row, it); });

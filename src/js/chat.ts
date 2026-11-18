@@ -867,6 +867,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
 
 /* ── Вертикальная навигация слева от списка ──────────────── */
 
+export type ChatRailStatus = 'online' | 'away' | 'busy' | 'offline' | 'disconnected' | 'ringing';
 export interface ChatRailItem {
   id: string;
   label: string;
@@ -875,9 +876,16 @@ export interface ChatRailItem {
   href?: string;
   /** число на значке (непрочитанные, пропущенные) */
   counter?: number;
+  /** точка состояния на значке: online — зелёная, away — оранжевая, busy / disconnected — красная, offline — серая, ringing — зелёная с пульсом («звонит») */
+  status?: ChatRailStatus;
   /** подсказка; по умолчанию — подпись */
   title?: string;
   disabled?: boolean;
+  /** панель, которую показывает пункт (см. ChatRailOptions.panes): значение data-b24-chat-pane */
+  pane?: string;
+  /** свои атрибуты и класс на кнопке: переживают любые перерисовки рейла */
+  attrs?: Record<string, string>;
+  className?: string;
 }
 export interface ChatRailOptions {
   items: ChatRailItem[];
@@ -885,18 +893,31 @@ export interface ChatRailOptions {
   value?: string | null;
   onSelect?: (id: string, item: ChatRailItem, event: MouseEvent) => void;
   label?: string;
+  /**
+   * Общий рейл с несколькими панелями внутри одного .b24-chat: у каждого пункта — pane, в разметке — несколько
+   * `.b24-chat__pane[data-b24-chat-pane="lines"]` (каждая со своей раскладкой список | переписка | карточка).
+   * Выбор пункта показывает его панель и скрывает остальные; `onPaneChange` сообщает о смене.
+   */
+  panes?: boolean;
+  onPaneChange?: (pane: string, element: HTMLElement) => void;
 }
 export interface ChatRailHandle {
   element: HTMLElement;
   setItems(items: ChatRailItem[]): void;
   update(id: string, patch: Partial<ChatRailItem>): void;
   setActive(id: string | null): void;
+  /** панель по id (для panes) */
+  setPane(pane: string): void;
+  getActive(): string | null;
+  /** кнопка пункта: для popover, фокуса и т. п. */
+  buttonOf(id: string): HTMLElement | null;
   destroy(): void;
 }
 
 /**
  * Узкий рейл «Чаты / Линии / CRM / Телефон» — слот слева от .b24-chat__list внутри .b24-chat (как в десктопном Битрикс24).
  * Пункт — значок и подпись под ним, кнопка или ссылка; активный — с подложкой и цветом акцента (aria-current).
+ * Кнопки не пересоздаются: setActive, update и setItems меняют только изменившееся, внешние атрибуты сохраняются.
  * На ≤768px — горизонтальная панель над списком; когда открыта переписка (.is-dialog-open) — скрыта.
  * host — сам .b24-chat (рейл встанет первым) или любой контейнер.
  */
@@ -905,35 +926,85 @@ export function createChatRail(host: HTMLElement, options: ChatRailOptions): Cha
   let active = options.value ?? null;
   const root = h('nav', { class: 'b24-chat__rail', 'aria-label': options.label ?? t('Разделы чата') });
   if (host.classList.contains('b24-chat')) host.prepend(root); else host.append(root);
+  const chatEl = (host.classList.contains('b24-chat') ? host : root.closest<HTMLElement>('.b24-chat')) ?? host;
+  const els = new Map<string, HTMLElement>();
+  const sig = new Map<string, string>();
+  const ownAttrs = new Map<string, Set<string>>();
 
-  const build = (it: ChatRailItem): HTMLElement => {
-    const el = it.href ? h('a', { href: it.disabled ? undefined : it.href }) : h('button', { type: 'button' });
-    el.className = `b24-chat-rail__item${it.id === active ? ' is-active' : ''}`;
-    el.dataset.id = it.id;
-    el.title = it.title ?? it.label;
-    if (it.id === active) el.setAttribute('aria-current', it.href ? 'page' : 'true');
-    if (it.disabled) { el.setAttribute('aria-disabled', 'true'); if (el instanceof HTMLButtonElement) el.disabled = true; }
-    const ico = h('span', { class: 'b24-chat-rail__icon' }, html(icon(it.icon, { size: 24 })));
-    if (it.counter) ico.append(h('span', { class: 'b24-counter b24-chat-rail__counter' }, it.counter > 99 ? '99+' : String(it.counter)));
-    el.append(ico, h('span', { class: 'b24-chat-rail__label' }, it.label));
-    if (it.counter) el.setAttribute('aria-label', `${it.label}, ${t('непрочитанных: {n}', { n: it.counter })}`);
-    return el;
+  const paintPanes = () => {
+    if (!options.panes) return;
+    const cur = items.find((x) => x.id === active)?.pane;
+    chatEl.querySelectorAll<HTMLElement>(':scope > [data-b24-chat-pane]').forEach((p) => { p.hidden = !!cur && p.dataset.b24ChatPane !== cur; });
   };
-  const render = () => root.replaceChildren(...items.map(build));
+
+  /** Обновляет кнопку на месте. Содержимое (значок, подпись, счётчик, точка) пересобирается, только если оно изменилось. */
+  const paint = (el: HTMLElement, it: ChatRailItem) => {
+    const on = it.id === active;
+    el.classList.toggle('is-active', on);
+    for (const cls of (el.dataset.railClass ?? '').split(' ').filter(Boolean)) el.classList.remove(cls);
+    if (it.className) { it.className.split(/\s+/).filter(Boolean).forEach((c) => el.classList.add(c)); el.dataset.railClass = it.className; } else delete el.dataset.railClass;
+    el.classList.toggle('is-ringing', it.status === 'ringing');
+    if (on) el.setAttribute('aria-current', it.href ? 'page' : 'true'); else el.removeAttribute('aria-current');
+    el.title = it.title ?? it.label;
+    if (it.disabled) { el.setAttribute('aria-disabled', 'true'); if (el instanceof HTMLButtonElement) el.disabled = true; } else { el.removeAttribute('aria-disabled'); if (el instanceof HTMLButtonElement) el.disabled = false; }
+    if (el instanceof HTMLAnchorElement) { if (it.href && !it.disabled) el.href = it.href; else el.removeAttribute('href'); }
+    // свои атрибуты: ставим заданные, снимаем только прежние собственные
+    const prev = ownAttrs.get(it.id) ?? new Set<string>();
+    const next = new Set(Object.keys(it.attrs ?? {}));
+    prev.forEach((k) => { if (!next.has(k)) el.removeAttribute(k); });
+    for (const [k, v] of Object.entries(it.attrs ?? {})) el.setAttribute(k, v);
+    ownAttrs.set(it.id, next);
+    const s = `${it.icon}|${it.label}|${it.counter ?? ''}|${it.status ?? ''}`;
+    if (sig.get(it.id) !== s) {
+      sig.set(it.id, s);
+      const ico = h('span', { class: 'b24-chat-rail__icon' }, html(icon(it.icon, { size: 24 })));
+      if (it.counter) ico.append(h('span', { class: 'b24-counter b24-chat-rail__counter' }, it.counter > 99 ? '99+' : String(it.counter)));
+      if (it.status) ico.append(h('span', { class: `b24-chat-rail__dot is-${it.status}`, 'aria-hidden': 'true' }));
+      el.replaceChildren(ico, h('span', { class: 'b24-chat-rail__label' }, it.label));
+    }
+    const parts = [it.counter ? t('непрочитанных: {n}', { n: it.counter }) : '', it.status ? ({ online: t('на линии'), away: t('перерыв'), busy: t('занят'), offline: t('не на линии'), disconnected: t('нет связи'), ringing: t('звонит') } as const)[it.status] : ''].filter(Boolean);
+    if (parts.length) el.setAttribute('aria-label', `${it.label}, ${parts.join(', ')}`); else el.removeAttribute('aria-label');
+  };
+
+  const render = () => {
+    const ids = new Set(items.map((x) => x.id));
+    for (const [id, el] of els) if (!ids.has(id)) { el.remove(); els.delete(id); sig.delete(id); ownAttrs.delete(id); }
+    items.forEach((it, i) => {
+      let el = els.get(it.id);
+      // тип элемента (ссылка / кнопка) поменялся — пересоздаём, иначе обновляем на месте
+      if (el && (el instanceof HTMLAnchorElement) !== !!it.href) { el.remove(); els.delete(it.id); sig.delete(it.id); el = undefined; }
+      if (!el) {
+        el = it.href ? h('a', {}) : h('button', { type: 'button' });
+        el.className = 'b24-chat-rail__item';
+        el.dataset.id = it.id;
+        els.set(it.id, el);
+      }
+      paint(el, it);
+      if (root.children[i] !== el) root.insertBefore(el, root.children[i] ?? null);
+    });
+    paintPanes();
+  };
   root.addEventListener('click', (e) => {
     const el = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-rail__item');
     if (!el || el.getAttribute('aria-disabled') === 'true') { if (el) e.preventDefault(); return; }
     const it = items.find((x) => x.id === el.dataset.id);
     if (!it) return;
     handle.setActive(it.id);
+    if (options.panes && it.pane) {
+      const pane = chatEl.querySelector<HTMLElement>(`:scope > [data-b24-chat-pane="${CSS.escape(it.pane)}"]`);
+      if (pane) options.onPaneChange?.(it.pane, pane);
+    }
     options.onSelect?.(it.id, it, e);
   });
   render();
   const handle: ChatRailHandle = {
     element: root,
     setItems(next) { items = next; render(); },
-    update(id, patch) { items = items.map((x) => (x.id === id ? { ...x, ...patch } : x)); render(); },
-    setActive(id) { active = id; render(); },
+    update(id, patch) { items = items.map((x) => (x.id === id ? { ...x, ...patch } : x)); const it = items.find((x) => x.id === id); const el = els.get(id); if (it && el) paint(el, it); },
+    setActive(id) { active = id; items.forEach((it) => { const el = els.get(it.id); if (el) paint(el, it); }); paintPanes(); },
+    setPane(pane) { const it = items.find((x) => x.pane === pane); if (it) handle.setActive(it.id); },
+    getActive: () => active,
+    buttonOf: (id) => els.get(id) ?? null,
     destroy() { root.remove(); },
   };
   return handle;
@@ -958,6 +1029,7 @@ export function initChatLayout(el: HTMLElement): ChatLayoutHandle {
   const onClick = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('[data-b24-chat-back]')) handle.back();
+    else if (target.closest('[data-b24-chat-open]')) handle.openDialog();
     else if (target.closest('[data-b24-chat-aside]')) handle.toggleAside();
     else {
       if (el.classList.contains('is-aside-open') && !target.closest('.b24-chat__aside')) handle.toggleAside(false);

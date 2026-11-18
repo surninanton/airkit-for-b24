@@ -310,3 +310,120 @@ test('плеер записи: компактный — одна строка, �
   expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await noHorizontalScroll(page);
 });
+
+const mob = (page: Page) => (page.viewportSize()?.width ?? 1280) <= 768;
+
+test('рейл: точка состояния и «звонит», кнопки не пересоздаются, внешние атрибуты переживают перерисовки', async ({ page }) => {
+  await open(page, '/phone.html');
+  const r = await page.evaluate(() => {
+    const rail = (window as unknown as { __railSoft: { buttonOf(id: string): HTMLElement; setActive(id: string): void; update(id: string, p: object): void; setItems(i: object[]): void; getActive(): string } }).__railSoft;
+    const btn = rail.buttonOf('phone');
+    btn.setAttribute('data-ext', 'mine');
+    btn.classList.add('ext-class');
+    const dot1 = btn.querySelector('.b24-chat-rail__dot')?.className;
+    rail.setActive('lines'); rail.setActive('phone');
+    rail.update('phone', { status: 'ringing' });
+    const ringing = btn.classList.contains('is-ringing') && !!btn.querySelector('.b24-chat-rail__dot.is-ringing');
+    rail.setItems([
+      { id: 'lines', label: 'Линии', icon: 'headset', pane: 'lines', counter: 3 },
+      { id: 'phone', label: 'Телефон', icon: 'phone', pane: 'phone', status: 'away', attrs: { 'data-demo-rail': 'phone' } },
+    ]);
+    const same = rail.buttonOf('phone') === btn;
+    return { dot1, ringing, same, ext: btn.getAttribute('data-ext'), cls: btn.classList.contains('ext-class'), own: btn.getAttribute('data-demo-rail'), dot2: btn.querySelector('.b24-chat-rail__dot')?.className, counter: rail.buttonOf('lines').querySelector('.b24-counter')?.textContent, aria: btn.getAttribute('aria-label') };
+  });
+  expect(r.dot1).toContain('is-online');
+  expect(r).toMatchObject({ ringing: true, same: true, ext: 'mine', cls: true, own: 'phone', counter: '3' });
+  expect(r.dot2).toContain('is-away');
+  expect(r.aria).toContain('перерыв');
+});
+
+test('общий рейл с панелями: пункт показывает свою панель; «Телефон»: журнал | набор, «Набор» и «назад» на телефоне', async ({ page }) => {
+  await open(page, '/phone.html');
+  const soft = page.locator('#softchat');
+  await soft.scrollIntoViewIfNeeded();
+  await expect(page.locator('#pane-lines')).toBeVisible();
+  await expect(page.locator('#pane-phone')).toBeHidden();
+  await soft.locator('.b24-chat-rail__item', { hasText: 'Телефон' }).click();
+  await expect(page.locator('#pane-phone')).toBeVisible();
+  await expect(page.locator('#pane-lines')).toBeHidden();
+  await expect(soft.locator('.b24-chat-rail__item[aria-current]')).toContainText('Телефон');
+  await expect(soft.locator('.b24-chat-rail__item[aria-current]').first()).toHaveAttribute('data-demo-rail', 'phone');
+  const log = page.locator('#phone-log .b24-calllog');
+  await expect(log.locator('.b24-calllog__action')).toHaveCount(2);
+  await expect(log.locator('.b24-calllog__badge')).toHaveText('Ответил коллега');
+  if (!mob(page)) {
+    await expect(page.locator('#phone-pad .b24-dialpad')).toBeVisible();      // обе колонки сразу
+    const l = (await page.locator('#pane-phone .b24-chat__list').boundingBox())!;
+    const m = (await page.locator('#pane-phone .b24-chat__main').boundingBox())!;
+    expect(m.x).toBeGreaterThanOrEqual(l.x + l.width - 1);
+  } else {
+    await expect(page.locator('#phone-pad .b24-dialpad')).toBeHidden();
+    await expect(soft.locator('> .b24-chat__rail')).toBeVisible();
+    await page.locator('#phone-open').click();                                   // «Набор»
+    await expect(page.locator('#phone-pad .b24-dialpad')).toBeVisible();
+    await expect(soft.locator('> .b24-chat__rail')).toBeHidden();
+    await page.locator('#phone-back').click();
+    await expect(page.locator('#phone-log .b24-calllog')).toBeVisible();
+  }
+  // «Перезвонить» не вызывает onSelect, выбранная строка подсвечивается
+  const first = page.locator('#phone-log .b24-calllog__item').first();
+  await page.locator('#phone-log .b24-calllog__action').first().click();
+  await expect(first).not.toHaveClass(/is-selected/);
+  if (mob(page)) await page.locator('#phone-back').click();      // «Перезвонить» открыл набор — возвращаемся к журналу
+  await page.locator('#phone-log .b24-calllog__item').nth(1).click();
+  await expect(page.locator('#phone-log .b24-calllog__item').nth(1)).toHaveClass(/is-selected/);
+  await expect(page.locator('#phone-log .b24-calllog__item').nth(1)).toHaveAttribute('aria-selected', 'true');
+});
+
+test('карточка звонка: свернуть входящий, свой текст итога и «Закрыть», startedAt после создания', async ({ page }) => {
+  await open(page, '/phone.html');
+  const r = await page.evaluate(async () => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    const log: string[] = [];
+    const card = B.createCallCard(document.body, { floating: true, state: 'incoming', name: 'Мария', number: '89991234567', onAnswer: () => log.push('answer'), onDecline: () => log.push('decline'), onClose: () => log.push('close') });
+    const el = card.element;
+    const minBtn = el.querySelector<HTMLElement>('.b24-callcard__min')!;
+    const canMin = !minBtn.hidden;
+    card.minimize();
+    const miniVisible = getComputedStyle(el.querySelector('.b24-callcard__mini')!).display !== 'none';
+    const answerShown = !el.querySelector<HTMLElement>('.b24-callcard__mini-answer')!.hidden;
+    (el.querySelector('.b24-callcard__mini-answer') as HTMLElement).click();
+    (el.querySelector('.b24-callcard__mini-end') as HTMLElement).click();           // в полоске у входящего — «Отклонить»
+    card.restore();
+    // ringing → talking: таймер от момента ответа на стороне сервера
+    card.setState('active', { startedAt: Date.now() - 65000 });
+    const timer = el.querySelector('.b24-callcard__status')!.textContent;
+    card.setStartedAt(Date.now() - 125000);
+    const timer2 = el.querySelector('.b24-callcard__status')!.textContent;
+    card.setState('ended', { text: 'Ответил коллега' });
+    const ended = el.querySelector('.b24-callcard__status')!.textContent;
+    const closeBtn = el.querySelector<HTMLElement>('.b24-callcard__close');
+    closeBtn?.click();
+    card.minimize();
+    const miniText = el.querySelector('.b24-callcard__mini-time')!.textContent;
+    const miniClose = el.querySelector<HTMLElement>('.b24-callcard__mini-end')!.getAttribute('aria-label');
+    (el.querySelector('.b24-callcard__mini-end') as HTMLElement).click();
+    card.destroy();
+    return { canMin, miniVisible, answerShown, log, timer, timer2, ended, hasClose: !!closeBtn, miniText, miniClose };
+  });
+  expect(r).toEqual({ canMin: true, miniVisible: true, answerShown: true, log: ['answer', 'decline', 'close', 'close'], timer: '1:05', timer2: '2:05', ended: 'Ответил коллега', hasClose: true, miniText: 'Ответил коллега', miniClose: 'Закрыть' });
+});
+
+test('клавиатура: internalMaxLength не трогает внутренние номера; поле не перебивается стилями input', async ({ page }) => {
+  await open(page, '/phone.html');
+  await page.addStyleTag({ content: 'input, input[type=tel] { border: 4px solid red !important; box-shadow: 0 0 0 3px blue !important; background: yellow !important; }' });
+  const pad = page.locator('#phone-pad .b24-dialpad');
+  await page.locator('#softchat').scrollIntoViewIfNeeded();
+  await page.locator('#softchat .b24-chat-rail__item', { hasText: 'Телефон' }).click();
+  if (mob(page)) await page.locator('#phone-open').click();
+  const input = pad.locator('.b24-dialpad__input');
+  await expect(input).toHaveCSS('border-top-width', '0px');
+  await expect(input).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  for (const k of ['7', '5', '0']) await pad.locator(`[data-key="${k}"]`).click();
+  await expect(input).toHaveValue('750');
+  const r = await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    return { a: B.normalizePhone('750', { internalMaxLength: 4 }), b: B.normalizePhone('89991234567', { internalMaxLength: 4 }), c: B.normalizePhone('1001', { internalMaxLength: 4 }), d: B.normalizePhone('750') };
+  });
+  expect(r).toEqual({ a: '750', b: '+79991234567', c: '1001', d: '+750' });
+});

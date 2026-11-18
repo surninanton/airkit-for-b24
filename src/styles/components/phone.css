@@ -143,3 +143,38 @@ button.b24-calllog__item:focus-visible { outline: 2px solid var(--b24-focus-colo
 .b24-calllog__item.is-missed .b24-calllog__time { color: var(--b24-color-danger, #ff5752); }
 .b24-calllog__duration { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
 .b24-calllog__empty { padding: 24px 12px; text-align: center; color: var(--b24-text-subtle); }
+
+/* карточка: полоска для входящего и завершённого, «Закрыть» */
+.b24-callcard__mini-answer { color: #fff; background: var(--b24-color-success, #1bce7b); }
+.b24-callcard__mini-answer:hover { background: var(--b24-color-success, #1bce7b); filter: brightness(1.08); }
+.b24-callcard__mini-answer[hidden], .b24-callcard__mini-end[hidden] { display: none; }
+.b24-callcard__mini-end.is-close { color: var(--b24-text-secondary); background: none; }
+.b24-callcard__mini-end.is-close:hover { background: var(--b24-bg-hover); filter: none; }
+.b24-callcard__mini-end.is-close svg { transform: none; }
+.b24-callcard__close { width: 100%; justify-content: center; }
+
+/* журнал: метка, выбранная строка, кнопки справа */
+.b24-calllog__rowwrap { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.b24-calllog__rowwrap > .b24-calllog__item { flex: 1 1 auto; width: auto; min-width: 0; }
+.b24-calllog__item.is-selected, .b24-calllog__rowwrap:has(> .is-selected) { background: var(--b24-color-soft-blue-3, #e5f4ff); border-radius: var(--b24-radius-sm); }
+.b24-calllog__item.is-selected { box-shadow: inset 3px 0 0 var(--b24-color-primary); }
+.b24-calllog__badge { align-self: flex-start; margin-top: 2px; padding: 1px 8px; font-size: var(--b24-font-size-xs); line-height: 1.5; color: var(--b24-text-secondary); background: var(--b24-bg-surface-2, #eef1f4); border-radius: 10px; }
+.b24-calllog__badge.is-success { color: #137a4a; background: color-mix(in srgb, var(--b24-color-success, #1bce7b) 16%, transparent); }
+.b24-calllog__badge.is-warning { color: #8a6500; background: #fff3c4; }
+.b24-calllog__badge.is-danger { color: var(--b24-color-danger, #ff5752); background: color-mix(in srgb, var(--b24-color-danger, #ff5752) 12%, transparent); }
+.b24-calllog__actions { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; padding-right: 6px; }
+.b24-calllog__item:not(button) > .b24-calllog__actions { margin-left: 4px; padding-right: 0; }
+.b24-calllog__action { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; margin: 0; font: inherit; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); background: none; border: 0; border-radius: 17px; cursor: pointer; }
+.b24-calllog__action:hover:not(:disabled) { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-calllog__action.is-primary { color: #fff; background: var(--b24-color-success, #1bce7b); width: 34px; padding: 0; border-radius: 50%; }
+.b24-calllog__action.is-primary:hover:not(:disabled) { color: #fff; background: var(--b24-color-success, #1bce7b); filter: brightness(1.08); }
+.b24-calllog__action:focus-visible { outline: 2px solid var(--b24-focus-color); }
+.b24-calllog__action:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* поле номера не перебивается общими стилями input шаблона */
+.b24-dialpad .b24-dialpad__input.b24-dialpad__input {
+  -webkit-appearance: none; appearance: none; box-sizing: border-box; flex: 1 1 auto; min-width: 0; width: auto; height: 44px; margin: 0; padding: 0;
+  font: inherit; font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; color: var(--b24-text-primary); background: transparent !important;
+  border: 0 !important; border-radius: 0; outline: 0 !important; box-shadow: none !important;
+}
+.b24-dialpad .b24-dialpad__input.b24-dialpad__input::placeholder { font-size: var(--b24-font-size-md); letter-spacing: 0; color: var(--b24-text-subtle); opacity: 1; }

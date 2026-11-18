@@ -6,7 +6,7 @@
  *   createCallCard(host, { state, name, number, … })  — «Ответить / Отклонить» или таймер, «Без звука / Удержание / Клавиши / Перевести», «Завершить»
  *   createLineStatus(host, { status, onChange })      — точка online / away / offline / disconnected, подпись, выбор «На линии / Перерыв»
  *   createMicMeter(host, { level })                   — уровень микрофона; connect(stream) считает его сам
- *   normalizePhone(text), formatPhone(number)
+ *   normalizePhone(text, { internalMaxLength }), formatPhone(number)
  * Карточку и клавиатуру удобно показывать над кнопкой: popover(anchor, { content: card.element }).
  */
 import { icon, type IconName } from '../icons';
@@ -21,13 +21,18 @@ import { showFloat, type FloatHandle } from './float';
  * Привести номер к виду для набора: оставляет цифры, «+», «*», «#»; российские «8…» и «7…» (до 11 цифр) и «9…» (10 цифр) — в «+7…».
  * «8 (999) 123-45-67» → «+79991234567». Короткие номера и номера других стран не меняются.
  */
-export function normalizePhone(text: string): string {
+export interface NormalizePhoneOptions {
+  /** номера из не более чем N цифр (без «+») — внутренние (7xx, 8xx, 1001): остаются как есть, не превращаются в «+7…» */
+  internalMaxLength?: number;
+}
+export function normalizePhone(text: string, options: NormalizePhoneOptions = {}): string {
   const raw = String(text ?? '').replace(/[^\d+*#]/g, '');
   if (!raw) return '';
   if (/[*#]/.test(raw)) return raw;                                   // сервисные коды: *100#
   const plus = raw.startsWith('+');
   const digits = raw.replace(/\D/g, '');
   // «8…» и «7…» без плюса — российский номер: заменяем на «+7» уже по ходу набора (до 11 цифр)
+  if (!plus && options.internalMaxLength && digits.length <= options.internalMaxLength) return digits;
   if (!plus && digits.length >= 2 && digits.length <= 11 && (digits[0] === '8' || digits[0] === '7')) return `+7${digits.slice(1)}`;
   if (!plus && digits.length === 10 && digits[0] === '9') return `+7${digits}`;
   if (plus && digits.startsWith('8') && digits.length === 11) return `+7${digits.slice(1)}`;
@@ -35,8 +40,8 @@ export function normalizePhone(text: string): string {
 }
 
 /** «+79991234567» → «+7 (999) 123-45-67»; остальное — как есть. */
-export function formatPhone(number: string): string {
-  const n = normalizePhone(number);
+export function formatPhone(number: string, options: NormalizePhoneOptions = {}): string {
+  const n = normalizePhone(number, options);
   const m = /^\+7(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})$/.exec(n);
   if (!m || n.length < 3) return n;
   const [, a, b, c, d] = m;
@@ -61,6 +66,8 @@ export interface DialpadOptions {
   captureKeyboard?: boolean;
   /** нормализовать вставленный и введённый номер (по умолчанию да) */
   normalize?: boolean;
+  /** внутренние номера из не более чем N цифр (7xx, 8xx, 1001) не превращать в «+7…»: internalMaxLength: 4 */
+  internalMaxLength?: number;
   /** подпись кнопки вызова */
   dialLabel?: string;
   disabled?: boolean;
@@ -80,6 +87,7 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
   let mode: 'dial' | 'dtmf' = options.mode ?? 'dial';
   let value = '';
   const norm = options.normalize !== false;
+  const np: NormalizePhoneOptions = { internalMaxLength: options.internalMaxLength };
   const root = h('div', { class: 'b24-dialpad', role: 'group', 'aria-label': t('Набор номера') });
   const input = h('input', { type: 'tel', class: 'b24-dialpad__input', inputmode: 'tel', autocomplete: 'off', placeholder: t('Номер телефона'), 'aria-label': t('Номер телефона'), spellcheck: 'false' }) as HTMLInputElement;
   const back = h('button', { type: 'button', class: 'b24-dialpad__back', 'aria-label': t('Стереть'), title: t('Стереть') }, html(icon('arrowLeft', { size: 18 })));
@@ -97,7 +105,7 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
   host.append(root);
 
   const paintValue = () => {
-    input.value = norm ? formatPhone(value) : value;
+    input.value = norm ? formatPhone(value, np) : value;
     back.hidden = mode === 'dtmf' || !value;
     call.disabled = !value || !!options.disabled;
     input.readOnly = mode === 'dtmf';
@@ -111,7 +119,7 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
     if (m === 'dtmf') { tones.textContent = ''; input.placeholder = ''; } else input.placeholder = t('Номер телефона');
     paintValue();
   };
-  const emitChange = () => options.onChange?.(norm ? normalizePhone(value) : value);
+  const emitChange = () => options.onChange?.(norm ? normalizePhone(value, np) : value);
   const flash = (k: string) => {
     const b = keyEls.get(k);
     if (!b) return;
@@ -123,14 +131,14 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
     flash(k);
     if (mode === 'dtmf') { tones.textContent += k; return; }
     value += k;
-    value = norm ? normalizePhone(value) || value : value;
+    value = norm ? normalizePhone(value, np) || value : value;
     paintValue();
     emitChange();
   };
   const dial = () => {
     if (mode !== 'dial' || !value || options.disabled) return;
-    const number = norm ? normalizePhone(value) : value;
-    options.onDial?.(number, formatPhone(number));
+    const number = norm ? normalizePhone(value, np) : value;
+    options.onDial?.(number, formatPhone(number, np));
   };
 
   // кнопки: 0 с удержанием — «+»
@@ -159,7 +167,7 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
   // ввод в поле: оставляем допустимые символы, нормализуем на лету
   input.addEventListener('input', () => {
     value = input.value.replace(/[^\d+*#]/g, '');
-    value = norm ? normalizePhone(value) : value;
+    value = norm ? normalizePhone(value, np) : value;
     paintValue();
     input.setSelectionRange(input.value.length, input.value.length);
     emitChange();
@@ -168,7 +176,7 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
     const text = e.clipboardData?.getData('text') ?? '';
     if (!text) return;
     e.preventDefault();
-    value = norm ? normalizePhone(text) : text.replace(/[^\d+*#]/g, '');
+    value = norm ? normalizePhone(text, np) : text.replace(/[^\d+*#]/g, '');
     paintValue();
     emitChange();
   });
@@ -198,13 +206,13 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
   keyTarget.addEventListener('keydown', onKeydown as EventListener);
 
   setMode(mode);
-  if (options.value) { value = norm ? normalizePhone(options.value) : options.value; paintValue(); }
+  if (options.value) { value = norm ? normalizePhone(options.value, np) : options.value; paintValue(); }
   if (options.disabled) root.classList.add('is-disabled');
 
   const handle: DialpadHandle = {
     element: root,
-    getValue: () => (norm ? normalizePhone(value) : value),
-    setValue(n) { value = norm ? normalizePhone(n) : n; paintValue(); emitChange(); },
+    getValue: () => (norm ? normalizePhone(value, np) : value),
+    setValue(n) { value = norm ? normalizePhone(n, np) : n; paintValue(); emitChange(); },
     clear() { value = ''; tones.textContent = ''; paintValue(); emitChange(); },
     setMode,
     setDisabled(d) {
@@ -244,6 +252,9 @@ export interface CallCardOptions {
   /** свёрнута сразу (для floating) */
   minimized?: boolean;
   onMinimize?: (minimized: boolean) => void;
+  /** «Закрыть» после завершения звонка (в состоянии ended и в полоске); без обработчика кнопки нет */
+  onClose?: () => void;
+  closeLabel?: string;
   onAnswer?: () => void;
   onDecline?: () => void;
   onHangup?: () => void;
@@ -258,8 +269,13 @@ export interface CallCardHandle {
   minimize(): void;
   restore(): void;
   isMinimized(): boolean;
-  setState(state: CallState): void;
+  /** extra.text — свой текст итога вместо стандартного («Ответил коллега», «Звонок прервался»); extra.startedAt — начало разговора */
+  setState(state: CallState, extra?: { text?: string; startedAt?: number | Date }): void;
   getState(): CallState;
+  /** свой текст под именем (null — вернуть стандартный) */
+  setStatusText(text: string | null): void;
+  /** когда начался разговор: таймер перейдёт на это время (при ringing → talking) */
+  setStartedAt(startedAt: number | Date | null): void;
   setInfo(patch: { name?: string; number?: string; avatar?: string; meta?: string }): void;
   setPressed(id: string, pressed: boolean): void;
   setActions(actions: CallCardAction[]): void;
@@ -295,8 +311,10 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   const miniName = h('span', { class: 'b24-callcard__mini-name' });
   const miniTime = h('span', { class: 'b24-callcard__mini-time' });
   const miniRestore = h('button', { type: 'button', class: 'b24-callcard__mini-btn', 'aria-label': t('Развернуть'), title: t('Развернуть') }, html(icon('chevronUp', { size: 18 })));
+  const miniAnswer = h('button', { type: 'button', class: 'b24-callcard__mini-btn b24-callcard__mini-answer', 'aria-label': t('Ответить'), title: t('Ответить'), hidden: '' }, html(icon('phone', { size: 16 })));
   const miniEnd = h('button', { type: 'button', class: 'b24-callcard__mini-btn b24-callcard__mini-end', 'aria-label': t('Завершить'), title: t('Завершить') }, html(icon('phone', { size: 16 })));
-  const mini = h('div', { class: 'b24-callcard__mini' }, miniName, miniTime, miniRestore, miniEnd);
+  const mini = h('div', { class: 'b24-callcard__mini' }, miniName, miniTime, miniRestore, miniAnswer, miniEnd);
+  let customText: string | null = null;
   const minBtn = h('button', { type: 'button', class: 'b24-callcard__min', 'aria-label': t('Свернуть'), title: t('Свернуть') }, html(icon('minus', { size: 16 })));
   root.append(minBtn, who, status, customer, buttons, foot, extra, mini);
   if (floating) { root.classList.add('b24-callcard--floating', `is-${pos}`); root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'false'); }
@@ -306,6 +324,12 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
 
   const duration = () => (startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 1000)) : 0);
   const paintStatus = () => {
+    if (customText != null) {
+      status.textContent = customText;
+      status.classList.remove('is-timer');
+      miniTime.textContent = customText;
+      return;
+    }
     const text = { incoming: t('Входящий звонок…'), dialing: t('Соединение…'), held: t('На удержании'), ended: t('Звонок завершён'), active: formatCallTime(duration()) }[state];
     status.textContent = state === 'held' && startedAt ? `${text} · ${formatCallTime(duration())}` : state === 'ended' && startedAt ? `${text} · ${formatCallTime(duration())}` : text;
     status.classList.toggle('is-timer', state === 'active');
@@ -341,7 +365,13 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
       ans.addEventListener('click', () => options.onAnswer?.());
       dec.addEventListener('click', () => options.onDecline?.());
       foot.append(ans, dec);
-    } else if (state !== 'ended') {
+    } else if (state === 'ended') {
+      if (options.onClose) {
+        const close = h('button', { type: 'button', class: 'b24-btn b24-btn--secondary b24-callcard__close' }, options.closeLabel ?? t('Закрыть'));
+        close.addEventListener('click', () => options.onClose?.());
+        foot.append(close);
+      }
+    } else {
       const end = h('button', { type: 'button', class: 'b24-btn b24-btn--danger b24-callcard__hangup' }, html(icon('phone', { size: 18 })), h('span', {}, t('Завершить')));
       end.addEventListener('click', () => options.onHangup?.());
       foot.append(end);
@@ -350,7 +380,15 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   const tick = () => { if (state === 'active' || state === 'held') paintStatus(); };
   const sync = () => {
     root.className = `b24-callcard${floating ? ` b24-callcard--floating is-${pos}` : ''}${minimized ? ' is-minimized' : ''} is-${state}`;
-    minBtn.hidden = !floating || state === 'incoming' || state === 'ended';
+    minBtn.hidden = !floating || state === 'ended';
+    // в полоске: входящий — «Ответить» и «Отклонить», завершён — «Закрыть», иначе «Завершить»
+    miniAnswer.hidden = state !== 'incoming';
+    const endLabel = state === 'incoming' ? t('Отклонить') : state === 'ended' ? options.closeLabel ?? t('Закрыть') : t('Завершить');
+    miniEnd.setAttribute('aria-label', endLabel);
+    miniEnd.title = endLabel;
+    miniEnd.hidden = state === 'ended' && !options.onClose;
+    miniEnd.classList.toggle('is-close', state === 'ended');
+    miniEnd.innerHTML = icon(state === 'ended' ? 'close' : 'phone', { size: 16 });
     paintStatus();
     paintButtons();
     clearInterval(timer);
@@ -366,7 +404,8 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   minBtn.addEventListener('click', () => setMinimized(true));
   miniRestore.addEventListener('click', () => setMinimized(false));
   mini.addEventListener('click', (e) => { if (!(e.target as HTMLElement).closest('button')) setMinimized(false); });
-  miniEnd.addEventListener('click', () => options.onHangup?.());
+  miniEnd.addEventListener('click', () => { if (state === 'incoming') options.onDecline?.(); else if (state === 'ended') options.onClose?.(); else options.onHangup?.(); });
+  miniAnswer.addEventListener('click', () => options.onAnswer?.());
 
   paintWho();
   if ((state === 'active' || state === 'held') && !startedAt) startedAt = Date.now();
@@ -379,12 +418,16 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
     minimize: () => setMinimized(true),
     restore: () => setMinimized(false),
     isMinimized: () => minimized,
-    setState(next) {
-      if (next === state) return;
+    setState(next, extra) {
+      if (extra?.startedAt != null) startedAt = +new Date(extra.startedAt);
+      if (next === state && extra?.text === undefined && extra?.startedAt == null) return;
       if (next === 'active' && !startedAt) startedAt = Date.now();
+      customText = extra?.text ?? null;                  // свой текст живёт до следующей смены состояния
       state = next;
       sync();
     },
+    setStatusText(text) { customText = text; paintStatus(); },
+    setStartedAt(v) { startedAt = v == null ? null : +new Date(v); paintStatus(); },
     getState: () => state,
     setInfo(patch) { Object.assign(info, patch); paintWho(); },
     setPressed(id, pressed) {

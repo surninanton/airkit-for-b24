@@ -261,6 +261,47 @@
   .b24-chat:has(> .b24-chat__rail), .b24-chat:has(> .b24-chat__rail):not(:has(> .b24-chat__aside)) { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .b24-chat__rail { grid-area: 1 / 1; flex-direction: row; gap: 4px; padding: 6px 8px; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--b24-divider); }
   .b24-chat__rail > .b24-chat-rail__item { flex: 1 0 auto; min-width: 64px; padding: 6px 8px; }
-  .b24-chat:has(> .b24-chat__rail) .b24-chat__list, .b24-chat:has(> .b24-chat__rail) .b24-chat__main { grid-area: 2 / 1; }
+  .b24-chat:has(> .b24-chat__rail) > .b24-chat__list, .b24-chat:has(> .b24-chat__rail) > .b24-chat__main, .b24-chat:has(> .b24-chat__rail) > .b24-chat__pane { grid-area: 2 / 1; }
   .b24-chat.is-dialog-open > .b24-chat__rail { display: none; }
 }
+
+/* точка состояния на значке рейла: .b24-chat-rail__dot.is-online|away|busy|offline|disconnected|ringing */
+.b24-chat-rail__dot { position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px; box-sizing: border-box; border-radius: 50%; background: #9aa3ad; box-shadow: 0 0 0 2px var(--b24-bg-surface); }
+.b24-chat-rail__item.is-active .b24-chat-rail__dot { box-shadow: 0 0 0 2px var(--b24-color-soft-blue-3, #e5f4ff); }
+.b24-chat-rail__dot.is-online, .b24-chat-rail__dot.is-ringing { background: #1bce7b; }
+.b24-chat-rail__dot.is-away { background: #faa72c; }
+.b24-chat-rail__dot.is-busy, .b24-chat-rail__dot.is-disconnected { background: #ff5752; }
+.b24-chat-rail__dot.is-offline { background: #9aa3ad; }
+.b24-chat-rail__dot.is-ringing { animation: b24-rail-ring 1.2s ease-out infinite; }
+@keyframes b24-rail-ring { 0% { box-shadow: 0 0 0 2px var(--b24-bg-surface), 0 0 0 2px rgba(27, 206, 123, 0.7); } 100% { box-shadow: 0 0 0 2px var(--b24-bg-surface), 0 0 0 9px rgba(27, 206, 123, 0); } }
+.b24-chat-rail__item.is-ringing .b24-chat-rail__icon svg { animation: b24-rail-shake 0.9s ease-in-out infinite; transform-origin: 50% 50%; }
+@keyframes b24-rail-shake { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-14deg); } 30% { transform: rotate(12deg); } 45% { transform: rotate(-8deg); } 60% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .b24-chat-rail__dot.is-ringing, .b24-chat-rail__item.is-ringing .b24-chat-rail__icon svg { animation: none; } }
+
+/* несколько панелей под одним рейлом: .b24-chat > .b24-chat__rail + .b24-chat__pane[data-b24-chat-pane] (каждая — список | переписка | карточка) */
+.b24-chat.b24-chat:has(> .b24-chat__pane) { grid-template-columns: var(--b24-chat-rail-width) minmax(0, 1fr); }
+.b24-chat.b24-chat:has(> .b24-chat__pane):not(:has(> .b24-chat__rail)) { grid-template-columns: minmax(0, 1fr); }
+.b24-chat__pane { display: grid; grid-template-columns: var(--b24-chat-list-width) minmax(0, 1fr) var(--b24-chat-aside-width); min-width: 0; min-height: 0; position: relative; overflow: hidden; }
+.b24-chat__pane[hidden] { display: none; }
+.b24-chat__pane:not(:has(> .b24-chat__aside)) { grid-template-columns: var(--b24-chat-list-width) minmax(0, 1fr); }
+.b24-chat__pane > .b24-chat__list { grid-column: 1; }
+@media (max-width: 1100px) {
+  .b24-chat__pane, .b24-chat__pane:not(:has(> .b24-chat__aside)) { grid-template-columns: var(--b24-chat-list-width) minmax(0, 1fr); }
+  .b24-chat.b24-chat:has(> .b24-chat__pane) { grid-template-columns: var(--b24-chat-rail-width) minmax(0, 1fr); }
+}
+@media (max-width: 768px) {
+  .b24-chat.b24-chat:has(> .b24-chat__pane) { grid-template-columns: minmax(0, 1fr); }
+  .b24-chat__pane, .b24-chat__pane:not(:has(> .b24-chat__aside)) { grid-template-columns: minmax(0, 1fr); }
+  .b24-chat__pane > .b24-chat__list, .b24-chat__pane > .b24-chat__main { grid-area: 1 / 1; }
+  .b24-chat__pane > .b24-chat__list { border-right: 0; }
+  .b24-chat__pane > .b24-chat__main { visibility: hidden; }
+  .b24-chat.is-dialog-open .b24-chat__pane > .b24-chat__main { visibility: visible; }
+  .b24-chat.is-dialog-open .b24-chat__pane > .b24-chat__list { visibility: hidden; }
+}
+
+/* раздел «Телефон»: журнал | набор. [data-b24-chat-open] — «Набор» на телефоне, [data-b24-chat-back] — «назад» */
+.b24-chat__open { display: none; position: absolute; z-index: 3; right: 16px; bottom: 16px; width: 52px; height: 52px; padding: 0; margin: 0; place-items: center; color: #fff; background: var(--b24-color-success, #1bce7b); border: 0; border-radius: 50%; box-shadow: var(--b24-shadow-3xl); cursor: pointer; }
+.b24-chat__open:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; }
+.b24-chat__list { position: relative; }
+.b24-chat__center { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; overflow-y: auto; }
+@media (max-width: 768px) { .b24-chat__open { display: grid; } .b24-chat.is-dialog-open .b24-chat__open { display: none; } }

@@ -29,15 +29,19 @@ export function Dialpad({ value, mode, onDial, onKey, onChange, captureKeyboard,
 }
 
 /** Карточка звонка: состояние и данные — пропсами, действия — колбэками. Место под кнопками — через handleRef.current.slots.extra */
-export interface CallCardProps extends CallCardOptions { handleRef?: MutableRefObject<CallCardHandle | null> }
-export function CallCard({ state, name, number, avatar, meta, startedAt, actions, floating, minimized, onMinimize, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
+export interface CallCardProps extends CallCardOptions {
+  /** свой текст итога под именем («Ответил коллега»); сбрасывается при смене состояния */
+  statusText?: string | null;
+  handleRef?: MutableRefObject<CallCardHandle | null> }
+export function CallCard({ state, name, number, avatar, meta, startedAt, actions, floating, minimized, onMinimize, onClose, closeLabel, statusText, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<CallCardHandle | null>(null);
-  const cbs = useRef({ onAnswer, onDecline, onHangup, onAction, onMinimize });
-  cbs.current = { onAnswer, onDecline, onHangup, onAction, onMinimize };
+  const cbs = useRef({ onAnswer, onDecline, onHangup, onAction, onMinimize, onClose });
+  cbs.current = { onAnswer, onDecline, onHangup, onAction, onMinimize, onClose };
   useEffect(() => {
     h.current = createCallCard(host.current!, {
-      state, name, number, avatar, meta, startedAt, actions, floating, minimized,
+      state, name, number, avatar, meta, startedAt, actions, floating, minimized, closeLabel,
+      onClose: onClose ? () => cbs.current.onClose?.() : undefined,
       onMinimize: (m) => cbs.current.onMinimize?.(m),
       onAnswer: () => cbs.current.onAnswer?.(), onDecline: () => cbs.current.onDecline?.(), onHangup: () => cbs.current.onHangup?.(),
       onAction: (id, p) => cbs.current.onAction?.(id, p),
@@ -46,7 +50,8 @@ export function CallCard({ state, name, number, avatar, meta, startedAt, actions
     return () => { if (handleRef) handleRef.current = null; h.current?.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { if (state) h.current?.setState(state); }, [state]);
+  useEffect(() => { if (state) h.current?.setState(state, statusText != null ? { text: statusText } : undefined); }, [state, statusText]);
+  useEffect(() => { if (startedAt != null) h.current?.setStartedAt(startedAt); }, [startedAt]);
   useEffect(() => { h.current?.setInfo({ name, number, avatar, meta }); }, [name, number, avatar, meta]);
   useEffect(() => { if (minimized != null) { if (minimized) h.current?.minimize(); else h.current?.restore(); } }, [minimized]);
   return <div ref={host} style={floating ? undefined : { display: 'contents' }} />;
@@ -86,13 +91,13 @@ export function MicMeter({ level, bars, label, muted, stream }: MicMeterProps) {
 
 /** Журнал звонков: строки с иконкой направления, временем и длительностью, группы по дням, «пропущенный» красным */
 export interface CallLogProps extends Omit<CallLogOptions, 'items'> { items: CallLogItem[]; className?: string }
-export function CallLog({ items, onSelect, groupByDay, emptyText, onMissedChange, label }: CallLogProps) {
+export function CallLog({ items, onSelect, onAction, groupByDay, emptyText, onMissedChange, label }: CallLogProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<CallLogHandle | null>(null);
-  const cbs = useRef({ onSelect, onMissedChange });
-  cbs.current = { onSelect, onMissedChange };
+  const cbs = useRef({ onSelect, onMissedChange, onAction });
+  cbs.current = { onSelect, onMissedChange, onAction };
   useEffect(() => {
-    h.current = createCallLog(host.current!, { items, groupByDay, emptyText, label, onSelect: onSelect ? (id, it) => cbs.current.onSelect?.(id, it) : undefined, onMissedChange: (n) => cbs.current.onMissedChange?.(n) });
+    h.current = createCallLog(host.current!, { items, groupByDay, emptyText, label, onSelect: onSelect ? (id, it) => cbs.current.onSelect?.(id, it) : undefined, onMissedChange: (n) => cbs.current.onMissedChange?.(n), onAction: onAction ? (a, it) => cbs.current.onAction?.(a, it) : undefined });
     return () => h.current?.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

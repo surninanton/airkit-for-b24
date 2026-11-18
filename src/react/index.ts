@@ -57,4 +57,4 @@ export { notifySound, desktopNotify, requestNotifyPermission, claimNotify } from
 export { openEmojiPicker, searchEmoji, getRecentEmoji, type EmojiPickerOptions } from '../js/emoji';
 export { pickUser, matchMember, type Member, type PickUserOptions } from '../js/members';
 export type { MessengerBarItem, MessengerBarAction } from '../js/messenger';
-export type { ChatMessage, ChatListItem, ChatAttachment, ChatChannel, ChatRailItem, ChatReaction, ChatMessageAction, ComposerAttachment, ChatComposerMode, ChatSendContext } from '../js/chat';
+export type { ChatMessage, ChatListItem, ChatAttachment, ChatChannel, ChatRailItem, ChatRailStatus, ChatReaction, ChatMessageAction, ComposerAttachment, ChatComposerMode, ChatSendContext } from '../js/chat';

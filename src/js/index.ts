@@ -24,7 +24,7 @@ export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } fro
 export { initTopnavMore } from './topnav-more';
 export {
   createChatList, createChatRail, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
-  type ChatRailItem, type ChatRailOptions, type ChatRailHandle, type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
+  type ChatRailItem, type ChatRailStatus, type ChatRailOptions, type ChatRailHandle, type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
   type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle,
   type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
 } from './chat';
@@ -34,9 +34,9 @@ export {
 } from './messenger';
 export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';
-export { createDialpad, createCallCard, createLineStatus, createMicMeter, normalizePhone, formatPhone, formatCallTime, type DialpadOptions, type DialpadHandle, type CallState, type CallCardAction, type CallCardOptions, type CallCardHandle, type LineStatus, type LineStatusOptions, type LineStatusHandle, type MicMeterOptions, type MicMeterHandle } from './phone';
+export { createDialpad, createCallCard, createLineStatus, createMicMeter, normalizePhone, formatPhone, type NormalizePhoneOptions, formatCallTime, type DialpadOptions, type DialpadHandle, type CallState, type CallCardAction, type CallCardOptions, type CallCardHandle, type LineStatus, type LineStatusOptions, type LineStatusHandle, type MicMeterOptions, type MicMeterHandle } from './phone';
 export { createAudioPlayer, formatAudioTime, type AudioPlayerOptions, type AudioPlayerHandle } from './audio-player';
-export { createCallLog, formatCallDuration, type CallLogItem, type CallLogOptions, type CallLogHandle } from './call-log';
+export { createCallLog, formatCallDuration, type CallLogItem, type CallLogAction, type CallLogOptions, type CallLogHandle } from './call-log';
 export { isEmbed, setEmbed, initEmbed, setShellActive, watchShellActive, setSidebar, setTopNav, setNavCounter, type ShellNavItem, type ShellNavGroup, type ShellActiveOptions } from './shell';
 export { createSortable, type SortableItem, type SortableOptions, type SortableHandle } from './sortable';
 export { createReceipt, layoutReceipt, wrapReceiptText, type ReceiptLine, type ReceiptTextLine, type ReceiptColsLine, type ReceiptSepLine, type ReceiptQrLine, type ReceiptBarcodeLine, type ReceiptBlankLine, type ReceiptOptions, type ReceiptHandle } from './receipt';

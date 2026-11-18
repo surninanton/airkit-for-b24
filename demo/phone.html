@@ -62,6 +62,30 @@
         </div>
       </div>
     </div>
+    <div class="b24-card" style="margin-top:16px">
+      <div class="b24-card__header"><h2 class="b24-card__title">Раздел «Телефон» в чате</h2><span class="b24-card__subtitle">&nbsp;общий рейл · панели · журнал | набор</span></div>
+      <div class="b24-card__body" style="padding:0">
+        <div class="b24-chat" id="softchat" style="--b24-chat-height: 520px; box-shadow:none; border-radius:0">
+          <section class="b24-chat__pane" data-b24-chat-pane="lines" id="pane-lines">
+            <div class="b24-chat__list"><div id="lines-list" style="display:contents"></div></div>
+            <div class="b24-chat__main"><div class="b24-chat__empty">Выберите диалог линии</div></div>
+          </section>
+          <section class="b24-chat__pane" data-b24-chat-pane="phone" id="pane-phone" hidden>
+            <div class="b24-chat__list">
+              <div id="phone-log" style="display:contents"></div>
+              <button type="button" class="b24-chat__open" data-b24-chat-open aria-label="Набор" id="phone-open"></button>
+            </div>
+            <div class="b24-chat__main">
+              <div class="b24-chat__head">
+                <button type="button" class="b24-btn b24-btn--plain b24-btn--icon" data-b24-chat-back aria-label="Назад" id="phone-back"></button>
+                <div class="b24-chat__head-title"><span class="b24-chat__head-name">Набор номера</span></div>
+              </div>
+              <div class="b24-chat__center" id="phone-pad"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
   </div>
   <footer class="b24-credit-footer" id="demo-credit"></footer>
 </div>
@@ -82,6 +106,34 @@
     for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.sin(i / rate * 2 * Math.PI * (220 + 40 * Math.sin(i / rate * 3))) * 2500 * (0.5 + 0.5 * Math.sin(i / rate * 2)), true);
     return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
   })();
+  // общий рейл с панелями и раздел «Телефон»: журнал | набор
+  const soft = document.getElementById('softchat');
+  document.getElementById('phone-open').innerHTML = B24UI.icon('phone');
+  document.getElementById('phone-back').innerHTML = B24UI.icon('arrowLeft');
+  B24UI.initChatLayout(soft);
+  B24UI.createChatList(document.getElementById('lines-list'), { items: [
+    { id: 'l1', name: 'Мария Образцова', preview: 'А доставка до Кутлинки?', time: new Date(), unread: 1, channel: 'Telegram' },
+    { id: 'l2', name: 'Иван Примеров', preview: 'Спасибо, всё получили!', time: new Date(Date.now() - 3600000), channel: 'VK' },
+  ] });
+  const railSoft = B24UI.createChatRail(soft, {
+    value: 'lines', panes: true,
+    items: [
+      { id: 'lines', label: 'Линии', icon: 'headset', pane: 'lines', counter: 1 },
+      { id: 'phone', label: 'Телефон', icon: 'phone', pane: 'phone', status: 'online', attrs: { 'data-demo-rail': 'phone' } },
+    ],
+  });
+  window.__railSoft = railSoft;
+  const dd = (days, h, m) => { const x = new Date(); x.setDate(x.getDate() - days); x.setHours(h, m, 0, 0); return x; };
+  const phoneLog = B24UI.createCallLog(document.getElementById('phone-log'), {
+    items: [
+      { id: 'p1', direction: 'in', missed: true, title: 'Мария Образцова', subtitle: '+7 (999) 123-45-67', time: dd(0, 12, 41), actions: [{ id: 'callback', label: 'Перезвонить', icon: 'phone', primary: true }] },
+      { id: 'p2', direction: 'in', missed: true, title: '+7 (903) 555-01-02', subtitle: 'Линия: Доставка', time: dd(0, 10, 3), badge: { text: 'Ответил коллега', tone: 'success' } },
+      { id: 'p3', direction: 'out', title: 'Иван Примеров', subtitle: 'Заказ № 4821', time: dd(1, 18, 2), duration: 64, actions: [{ id: 'callback', label: 'Перезвонить', icon: 'phone' }] },
+    ],
+    onSelect: (id) => phoneLog.setSelected(id),
+    onAction: (a, it) => { B24UI.toast(`Перезвонить: ${it.title}`); softPad.setValue(it.subtitle.startsWith('+') ? it.subtitle : '89991234567'); soft.classList.add('is-dialog-open'); },
+  });
+  const softPad = B24UI.createDialpad(document.getElementById('phone-pad'), { internalMaxLength: 4, onDial: (n) => { B24UI.toast(`Звоним: ${n}`); railSoft.update('phone', { status: 'ringing' }); } });
   const recLog = document.getElementById('rec-log');
   const say = (m) => { recLog.textContent = m; };
   B24UI.createAudioPlayer(document.getElementById('rec-card'), { src: wav, duration: 12, download: 'zapis-razgovora.wav', onPlay: () => say('Играет'), onEnd: () => say('Запись закончилась'), onError: (e) => say(`Ошибка: ${e.message}`) });

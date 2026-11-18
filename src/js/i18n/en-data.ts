@@ -286,4 +286,10 @@ export const enData: Record<string, string> = {
   'Не удалось загрузить запись': 'Could not load the recording',
   'Не удалось воспроизвести запись: файл повреждён': 'Could not play the recording: the file is damaged',
   'Не удалось загрузить запись: формат не поддерживается или файл недоступен': 'Could not load the recording: unsupported format or the file is unavailable',
+  'на линии': 'online',
+  'перерыв': 'on a break',
+  'занят': 'busy',
+  'не на линии': 'offline',
+  'нет связи': 'disconnected',
+  'звонит': 'ringing',
 };

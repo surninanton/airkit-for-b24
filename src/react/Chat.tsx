@@ -93,11 +93,12 @@ export function ChatRail({ items, value, onSelect, label }: ChatRailProps) {
       {items.map((it) => {
         const on = it.id === value;
         const props = {
-          className: cx('b24-chat-rail__item', on && 'is-active'),
+          className: cx('b24-chat-rail__item', on && 'is-active', it.status === 'ringing' && 'is-ringing', it.className),
           title: it.title ?? it.label,
           'aria-current': on ? (it.href ? ('page' as const) : ('true' as const)) : undefined,
           'aria-disabled': it.disabled || undefined,
           'aria-label': it.counter ? `${it.label}, ${t('непрочитанных: {n}', { n: it.counter })}` : undefined,
+          ...(it.attrs ?? {}),
           onClick: (e: MouseEvent<HTMLElement>) => { if (it.disabled) { e.preventDefault(); return; } onSelect?.(it.id, it, e); },
         };
         const inner = (
@@ -105,6 +106,7 @@ export function ChatRail({ items, value, onSelect, label }: ChatRailProps) {
             <span className="b24-chat-rail__icon">
               <Icon name={it.icon} size={24} />
               {!!it.counter && <span className="b24-counter b24-chat-rail__counter">{it.counter > 99 ? '99+' : it.counter}</span>}
+              {it.status && <span className={`b24-chat-rail__dot is-${it.status}`} aria-hidden="true" />}
             </span>
             <span className="b24-chat-rail__label">{it.label}</span>
           </>
