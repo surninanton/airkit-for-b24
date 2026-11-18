@@ -70,6 +70,8 @@ export interface DialpadOptions {
   internalMaxLength?: number;
   /** подпись кнопки вызова */
   dialLabel?: string;
+  /** кнопка вызова: round — круглая зелёная трубка по центру под клавиатурой (по умолчанию), wide — широкая с подписью */
+  callButton?: 'round' | 'wide';
   disabled?: boolean;
 }
 export interface DialpadHandle {
@@ -93,7 +95,11 @@ export function createDialpad(host: HTMLElement, options: DialpadOptions = {}): 
   const back = h('button', { type: 'button', class: 'b24-dialpad__back', 'aria-label': t('Стереть'), title: t('Стереть') }, html(icon('arrowLeft', { size: 18 })));
   const display = h('div', { class: 'b24-dialpad__display' }, input, back);
   const grid = h('div', { class: 'b24-dialpad__grid' });
-  const call = h('button', { type: 'button', class: 'b24-btn b24-btn--success b24-dialpad__call' }, html(icon('phone', { size: 18 })), h('span', {}, options.dialLabel ?? t('Позвонить')));
+  const wide = options.callButton === 'wide';
+  const dialText = options.dialLabel ?? t('Позвонить');
+  const call = wide
+    ? h('button', { type: 'button', class: 'b24-btn b24-btn--success b24-dialpad__call is-wide' }, html(icon('phone', { size: 18 })), h('span', {}, dialText))
+    : h('button', { type: 'button', class: 'b24-dialpad__call is-round', 'aria-label': dialText, title: dialText }, html(icon('phone', { size: 26 })));
   const tones = h('div', { class: 'b24-dialpad__tones', 'aria-live': 'polite' });
   const keyEls = new Map<string, HTMLButtonElement>();
   for (const [k, letters] of KEYS) {
@@ -290,6 +296,13 @@ const DEFAULT_ACTIONS = (): CallCardAction[] => [
   { id: 'keys', label: t('Клавиши'), icon: 'grid', toggle: true },
   { id: 'transfer', label: t('Перевести'), icon: 'phoneForward' },
 ];
+/** Круглая кнопка действия звонка (зелёная «Ответить», красные «Отклонить» и «Завершить») с подписью под ней. */
+function roundCta(cls: string, ico: IconName, label: string, onClick: () => void): HTMLElement {
+  const green = cls.includes('answer');
+  const b = h('button', { type: 'button', class: `b24-callcard__round ${green ? 'is-answer' : 'is-end'} ${cls}`, 'aria-label': label, title: label }, html(icon(ico, { size: 24 })));
+  b.addEventListener('click', onClick);
+  return h('span', { class: 'b24-callcard__cta' }, b, h('span', { class: 'b24-callcard__cta-label' }, label));
+}
 export const formatCallTime = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 
 export function createCallCard(host: HTMLElement, options: CallCardOptions = {}): CallCardHandle {
@@ -360,11 +373,10 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
     }));
     foot.replaceChildren();
     if (state === 'incoming') {
-      const ans = h('button', { type: 'button', class: 'b24-btn b24-btn--success b24-callcard__answer' }, html(icon('phone', { size: 18 })), h('span', {}, t('Ответить')));
-      const dec = h('button', { type: 'button', class: 'b24-btn b24-btn--danger b24-callcard__decline' }, html(icon('phoneMissed', { size: 18 })), h('span', {}, t('Отклонить')));
-      ans.addEventListener('click', () => options.onAnswer?.());
-      dec.addEventListener('click', () => options.onDecline?.());
-      foot.append(ans, dec);
+      foot.append(
+        roundCta('b24-callcard__answer', 'phone', t('Ответить'), () => options.onAnswer?.()),
+        roundCta('b24-callcard__decline', 'phone', t('Отклонить'), () => options.onDecline?.()),
+      );
     } else if (state === 'ended') {
       if (options.onClose) {
         const close = h('button', { type: 'button', class: 'b24-btn b24-btn--secondary b24-callcard__close' }, options.closeLabel ?? t('Закрыть'));
@@ -372,9 +384,7 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
         foot.append(close);
       }
     } else {
-      const end = h('button', { type: 'button', class: 'b24-btn b24-btn--danger b24-callcard__hangup' }, html(icon('phone', { size: 18 })), h('span', {}, t('Завершить')));
-      end.addEventListener('click', () => options.onHangup?.());
-      foot.append(end);
+      foot.append(roundCta('b24-callcard__hangup', 'phone', t('Завершить'), () => options.onHangup?.()));
     }
   };
   const tick = () => { if (state === 'active' || state === 'held') paintStatus(); };

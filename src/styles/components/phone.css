@@ -178,3 +178,26 @@ button.b24-calllog__item:focus-visible { outline: 2px solid var(--b24-focus-colo
   border: 0 !important; border-radius: 0; outline: 0 !important; box-shadow: none !important;
 }
 .b24-dialpad .b24-dialpad__input.b24-dialpad__input::placeholder { font-size: var(--b24-font-size-md); letter-spacing: 0; color: var(--b24-text-subtle); opacity: 1; }
+
+/* круглые кнопки вызова, как в Битрикс24 */
+.b24-dialpad__call.is-round {
+  align-self: center; display: grid; place-items: center; width: 56px; height: 56px; padding: 0; margin: 4px auto 0; color: #fff; background: var(--b24-color-success, #1bce7b);
+  border: 0; border-radius: 50%; cursor: pointer; transition: filter var(--b24-duration-fast), transform 80ms;
+}
+.b24-dialpad__call.is-round:hover:not(:disabled) { filter: brightness(1.08); }
+.b24-dialpad__call.is-round:active:not(:disabled) { transform: scale(0.95); }
+.b24-dialpad__call.is-round:disabled { opacity: 0.45; cursor: not-allowed; }
+.b24-dialpad__call.is-round:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 3px; }
+.b24-dialpad__call.is-round svg { stroke-width: 1.8; }
+.b24-callcard__foot { justify-content: center; gap: 28px; }
+.b24-callcard__cta { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 64px; }
+.b24-callcard__cta-label { font-size: var(--b24-font-size-xs); color: var(--b24-text-secondary); }
+.b24-callcard__round { display: grid; place-items: center; width: 56px; height: 56px; padding: 0; margin: 0; color: #fff; border: 0; border-radius: 50%; cursor: pointer; transition: filter var(--b24-duration-fast), transform 80ms; }
+.b24-callcard__round.is-answer { background: var(--b24-color-success, #1bce7b); }
+.b24-callcard__round.is-end { background: var(--b24-color-danger, #ff5752); }
+.b24-callcard__round:hover { filter: brightness(1.08); }
+.b24-callcard__round:active { transform: scale(0.95); }
+.b24-callcard__round:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 3px; }
+.b24-callcard__round.is-end svg { transform: rotate(135deg); }
+.b24-callcard__foot .b24-btn.b24-callcard__close { flex: 1 1 auto; max-width: 240px; }
+.b24-calllog__action.is-round, .b24-calllog__action.is-round:hover:not(:disabled) { color: #fff; background: var(--b24-color-success, #1bce7b); width: 36px; min-width: 36px; height: 36px; padding: 0; border-radius: 50%; }

@@ -80,7 +80,7 @@ test('карточка звонка: входящий, ответ, таймер,
   await expect(card.locator('.b24-callcard__name')).toHaveText('Мария Образцова');
   await expect(card.locator('.b24-callcard__number')).toHaveText('+7 (999) 123-45-67');
   await expect(card.locator('.b24-callcard__actions')).toBeHidden();
-  await expect(card.locator('.b24-callcard__foot .b24-btn')).toHaveText(['Ответить', 'Отклонить']);
+  await expect(card.locator('.b24-callcard__cta-label')).toHaveText(['Ответить', 'Отклонить']);
   await card.getByRole('button', { name: 'Ответить' }).click();
   await expect(card).toHaveClass(/is-active/);
   await expect(card.locator('.b24-callcard__action')).toHaveText(['Без звука', 'Удержание', 'Клавиши', 'Перевести']);
@@ -426,4 +426,71 @@ test('клавиатура: internalMaxLength не трогает внутрен
     return { a: B.normalizePhone('750', { internalMaxLength: 4 }), b: B.normalizePhone('89991234567', { internalMaxLength: 4 }), c: B.normalizePhone('1001', { internalMaxLength: 4 }), d: B.normalizePhone('750') };
   });
   expect(r).toEqual({ a: '750', b: '+79991234567', c: '1001', d: '+750' });
+});
+
+test('круглые кнопки вызова: «Позвонить», «Перезвонить», «Ответить», «Завершить» — круглые зелёные / красные значки с подписью в title', async ({ page }) => {
+  await open(page, '/phone.html');
+  const round = async (loc: import('@playwright/test').Locator) => {
+    const b = (await loc.boundingBox())!;
+    expect(Math.abs(b.width - b.height)).toBeLessThan(1.5);
+    await expect(loc).toHaveCSS('border-radius', /50%|^\d+(\.\d+)?px$/);
+    return b;
+  };
+  // клавиатура: круглая трубка по центру под кнопками
+  const pad = page.locator('#dialpad .b24-dialpad');
+  const call = pad.locator('.b24-dialpad__call');
+  await expect(call).toHaveClass(/is-round/);
+  await expect(call).toHaveAttribute('aria-label', 'Позвонить');
+  await expect(call).toHaveAttribute('title', 'Позвонить');
+  await expect(call).toHaveText('');
+  await expect(call).toHaveCSS('background-color', 'rgb(27, 206, 123)');
+  const cb = await round(call);
+  const pb = (await pad.boundingBox())!;
+  expect(Math.abs(cb.x + cb.width / 2 - (pb.x + pb.width / 2))).toBeLessThan(2);
+  // широкая — по опции
+  const wide = await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    const host = document.createElement('div');
+    document.body.append(host);
+    B.createDialpad(host, { callButton: 'wide' });
+    const el = host.querySelector('.b24-dialpad__call')!;
+    const r = { wide: el.classList.contains('is-wide'), text: el.textContent };
+    host.remove();
+    return r;
+  });
+  expect(wide).toEqual({ wide: true, text: 'Позвонить' });
+  // журнал: icon 'phone' — круглая зелёная; без иконки-трубки — обычная
+  const act = page.locator('#phone-log .b24-calllog__action').first();
+  await page.locator('#softchat').scrollIntoViewIfNeeded();
+  await page.locator('#softchat .b24-chat-rail__item', { hasText: 'Телефон' }).click();
+  await expect(act).toHaveClass(/is-round/);
+  await expect(act).toHaveAttribute('title', 'Перезвонить');
+  await expect(act).toHaveCSS('background-color', 'rgb(27, 206, 123)');
+  await round(act);
+  const plain = await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    const host = document.createElement('div');
+    document.body.append(host);
+    B.createCallLog(host, { items: [{ id: '1', direction: 'out', title: 'А', time: new Date(), actions: [{ id: 'a', label: 'Заметка', icon: 'comment' }, { id: 'b', label: 'Круглая', icon: 'star', round: true }] }] });
+    const r = Array.from(host.querySelectorAll('.b24-calllog__action')).map((e) => e.classList.contains('is-round'));
+    host.remove();
+    return r;
+  });
+  expect(plain).toEqual([false, true]);
+  // карточка: «Ответить» зелёная, «Отклонить» и «Завершить» красные, все круглые
+  const r = await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    const host = document.createElement('div');
+    document.body.append(host);
+    const c = B.createCallCard(host, { state: 'incoming', name: 'Мария', number: '89991234567' });
+    const inc = Array.from(host.querySelectorAll<HTMLElement>('.b24-callcard__round')).map((e) => [e.className.includes('is-answer'), e.getAttribute('title'), e.offsetWidth === e.offsetHeight]);
+    c.setState('active');
+    const end = host.querySelector<HTMLElement>('.b24-callcard__hangup')!;
+    const res = { inc, end: [end.classList.contains('is-end'), end.getAttribute('aria-label'), end.offsetWidth === end.offsetHeight, getComputedStyle(end).borderRadius] };
+    host.remove();
+    return res;
+  });
+  expect(r.inc).toEqual([[true, 'Ответить', true], [false, 'Отклонить', true]]);
+  expect(r.end.slice(0, 3)).toEqual([true, 'Завершить', true]);
+  expect(r.end[3]).toMatch(/50%|^\d/);
 });

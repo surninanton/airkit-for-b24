@@ -33,7 +33,16 @@ export interface CallLogItem {
   actions?: CallLogAction[];
   data?: unknown;
 }
-export interface CallLogAction { id: string; label: string; icon?: IconName; /** основная: зелёная круглая кнопка */ primary?: boolean; disabled?: boolean }
+export interface CallLogAction {
+  id: string;
+  label: string;
+  icon?: IconName;
+  /** круглая зелёная кнопка-значок, как кнопка вызова в Битрикс24 (по умолчанию — когда icon: 'phone'); подпись уходит в title и aria-label */
+  round?: boolean;
+  /** то же, что round (совместимость) */
+  primary?: boolean;
+  disabled?: boolean;
+}
 export interface CallLogOptions {
   items: CallLogItem[];
   /** клик (или Enter) по строке; без обработчика строки не кнопки */
@@ -101,7 +110,8 @@ export function createCallLog(host: HTMLElement, options: CallLogOptions): CallL
   const actionButtons = (it: CallLogItem) => {
     const box = h('span', { class: 'b24-calllog__actions' });
     for (const a of it.actions ?? []) {
-      const b = h('button', { type: 'button', class: `b24-calllog__action${a.primary ? ' is-primary' : ''}`, 'aria-label': `${a.label}: ${it.title}`, title: a.label, disabled: a.disabled || undefined }, a.icon ? html(icon(a.icon, { size: 18 })) : a.label);
+      const round = (a.round ?? a.primary ?? a.icon === 'phone') && !!a.icon;
+      const b = h('button', { type: 'button', class: `b24-calllog__action${round ? ' is-primary is-round' : ''}`, 'aria-label': `${a.label}: ${it.title}`, title: a.label, disabled: a.disabled || undefined }, a.icon ? html(icon(a.icon, { size: round ? 20 : 18 })) : a.label);
       b.addEventListener('click', (e) => { e.stopPropagation(); options.onAction?.(a.id, it); });
       box.append(b);
     }
