@@ -1,0 +1,63 @@
+/* ── Плеер записи ─────────────────────────────────────────
+ * .b24-audio (.is-compact .is-playing .is-loading .is-error) > __play · (__main > __bar > __range + __row > __times (__cur, __total) + __tools (__speed, __download)) · __error
+ * compact: ▶ 0:12 ━━○━━ 2:05 1× ⬇ — одна строка
+ */
+.b24-audio {
+  display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%; box-sizing: border-box; padding: 10px 12px;
+  background: var(--b24-bg-surface-2, #f1f4f7); border-radius: var(--b24-radius-md); color: var(--b24-text-primary);
+}
+.b24-audio.is-compact { gap: 8px; padding: 4px 8px 4px 4px; background: transparent; border-radius: 20px; }
+.b24-audio__play {
+  flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; margin: 0; color: #fff; background: var(--b24-color-primary);
+  border: 0; border-radius: 50%; cursor: pointer; transition: background-color var(--b24-duration-fast), filter var(--b24-duration-fast);
+}
+.b24-audio__play svg { fill: currentColor; stroke-linejoin: round; }
+.b24-audio__play:hover:not(:disabled) { filter: brightness(1.08); }
+.b24-audio__play:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; }
+.b24-audio__play:disabled { opacity: 0.45; cursor: not-allowed; }
+.b24-audio.is-compact .b24-audio__play { width: 30px; height: 30px; }
+.b24-audio.is-loading .b24-audio__play { position: relative; }
+.b24-audio.is-loading .b24-audio__play::after { content: ""; position: absolute; inset: -3px; border: 2px solid transparent; border-top-color: var(--b24-color-primary); border-radius: 50%; animation: b24-audio-spin 0.8s linear infinite; }
+@keyframes b24-audio-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .b24-audio.is-loading .b24-audio__play::after { animation: none; border-color: var(--b24-color-primary); opacity: 0.4; } }
+.b24-audio__main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.b24-audio__bar { display: flex; align-items: center; flex: 1 1 auto; min-width: 48px; height: 24px; }
+.b24-audio__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.b24-audio__times { display: flex; align-items: center; gap: 4px; font-size: var(--b24-font-size-xs); font-variant-numeric: tabular-nums; color: var(--b24-text-secondary); }
+.b24-audio__times .b24-audio__total::before { content: "/ "; }
+.b24-audio__cur, .b24-audio__total { font-size: var(--b24-font-size-xs); font-variant-numeric: tabular-nums; color: var(--b24-text-secondary); white-space: nowrap; }
+.b24-audio.is-compact .b24-audio__cur, .b24-audio.is-compact .b24-audio__total { flex: 0 0 auto; }
+.b24-audio__tools { display: flex; align-items: center; gap: 4px; }
+.b24-audio__speed, .b24-audio__download {
+  display: inline-grid; place-items: center; min-width: 32px; height: 26px; padding: 0 6px; margin: 0; font: inherit; font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-medium); text-decoration: none;
+  color: var(--b24-text-secondary); background: none; border: 1px solid var(--b24-divider); border-radius: 13px; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.b24-audio__download { border-color: transparent; width: 28px; padding: 0; }
+.b24-audio__speed:hover, .b24-audio__download:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-audio__speed:focus-visible, .b24-audio__download:focus-visible { outline: 2px solid var(--b24-focus-color); }
+.b24-audio__speed[hidden] { display: none; }
+
+/* полоса: input[type=range] — клавиатура и касание из коробки, заливка по --_p */
+.b24-audio__range { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; margin: 0; padding: 0; background: transparent; cursor: pointer; touch-action: pan-y; }
+.b24-audio__range:disabled { cursor: default; opacity: 0.6; }
+.b24-audio__range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--b24-color-primary) var(--_p, 0%), var(--b24-divider) var(--_p, 0%)); }
+.b24-audio__range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--b24-divider); }
+.b24-audio__range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--b24-color-primary); }
+.b24-audio__range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border: 0; border-radius: 50%; background: var(--b24-color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--b24-color-primary) 18%, transparent); }
+.b24-audio__range::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--b24-color-primary); }
+.b24-audio__range:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; border-radius: 4px; }
+
+/* ошибка: текст и «Повторить» вместо пустого плеера */
+.b24-audio__error { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: var(--b24-font-size-sm); color: var(--b24-color-danger, #ff5752); }
+.b24-audio__error[hidden] { display: none; }
+.b24-audio.is-error { flex-wrap: wrap; }
+.b24-audio.is-error .b24-audio__main, .b24-audio.is-error .b24-audio__bar, .b24-audio.is-error .b24-audio__cur, .b24-audio.is-error .b24-audio__total, .b24-audio.is-error .b24-audio__speed { display: none; }
+.b24-audio.is-error .b24-audio__error { flex: 1 1 0; min-width: 0; }
+.b24-audio__retry { padding: 0; margin: 0; font: inherit; color: var(--b24-color-link, var(--b24-color-primary)); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+.b24-audio__retry:focus-visible { outline: 2px solid var(--b24-focus-color); }
+
+/* узко: в одной строке остаются кнопка, время и полоса */
+@media (max-width: 480px) {
+  .b24-audio.is-compact .b24-audio__total, .b24-audio.is-compact .b24-audio__download { display: none; }
+  .b24-audio.is-compact .b24-audio__bar { min-width: 40px; }
+}

@@ -35,6 +35,7 @@ export {
 export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';
 export { createDialpad, createCallCard, createLineStatus, createMicMeter, normalizePhone, formatPhone, formatCallTime, type DialpadOptions, type DialpadHandle, type CallState, type CallCardAction, type CallCardOptions, type CallCardHandle, type LineStatus, type LineStatusOptions, type LineStatusHandle, type MicMeterOptions, type MicMeterHandle } from './phone';
+export { createAudioPlayer, formatAudioTime, type AudioPlayerOptions, type AudioPlayerHandle } from './audio-player';
 export { createCallLog, formatCallDuration, type CallLogItem, type CallLogOptions, type CallLogHandle } from './call-log';
 export { isEmbed, setEmbed, initEmbed, setShellActive, watchShellActive, setSidebar, setTopNav, setNavCounter, type ShellNavItem, type ShellNavGroup, type ShellActiveOptions } from './shell';
 export { createSortable, type SortableItem, type SortableOptions, type SortableHandle } from './sortable';

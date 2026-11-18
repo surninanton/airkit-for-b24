@@ -3,6 +3,7 @@ import {
   createCallCard, createDialpad, createLineStatus, createMicMeter,
   type CallCardHandle, type CallCardOptions, type DialpadHandle, type DialpadOptions, type LineStatusHandle, type LineStatusOptions, type MicMeterHandle, type MicMeterOptions,
 } from '../js/phone';
+import { createAudioPlayer, type AudioPlayerHandle, type AudioPlayerOptions } from '../js/audio-player';
 import { createCallLog, type CallLogHandle, type CallLogItem, type CallLogOptions } from '../js/call-log';
 
 /** Клавиатура-набиратель: <Dialpad onDial={(n) => call(n)} /> ; в звонке mode="dtmf" onKey={sendTone} */
@@ -99,4 +100,27 @@ export function CallLog({ items, onSelect, groupByDay, emptyText, onMissedChange
   const key = JSON.stringify(items);
   useEffect(() => { if (first.current) { first.current = false; return; } h.current?.setItems(items); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div ref={host} style={{ display: 'contents' }} />;
+}
+
+/** Плеер записи разговора: <AudioPlayer src={url} duration={125} compact download onError={…} /> */
+export interface AudioPlayerProps extends Omit<AudioPlayerOptions, 'src'> { src: string; className?: string; handleRef?: MutableRefObject<AudioPlayerHandle | null> }
+export function AudioPlayer({ src, duration, compact, speeds, speed, download, label, preload, autoplay, exclusive, errorText, onPlay, onPause, onEnd, onError, onTime, handleRef, className }: AudioPlayerProps) {
+  const host = useRef<HTMLDivElement>(null);
+  const h = useRef<AudioPlayerHandle | null>(null);
+  const cbs = useRef({ onPlay, onPause, onEnd, onError, onTime });
+  cbs.current = { onPlay, onPause, onEnd, onError, onTime };
+  const optKey = JSON.stringify([compact, speeds, speed, download, label, preload, exclusive, errorText]);
+  useEffect(() => {
+    h.current = createAudioPlayer(host.current!, {
+      src, duration, compact, speeds, speed, download, label, preload, autoplay, exclusive, errorText,
+      onPlay: () => cbs.current.onPlay?.(), onPause: () => cbs.current.onPause?.(), onEnd: () => cbs.current.onEnd?.(),
+      onError: (e) => cbs.current.onError?.(e), onTime: (c, d) => cbs.current.onTime?.(c, d),
+    });
+    if (handleRef) handleRef.current = h.current;
+    return () => { if (handleRef) handleRef.current = null; h.current?.destroy(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optKey]);
+  const first = useRef(true);
+  useEffect(() => { if (first.current) { first.current = false; return; } h.current?.setSrc(src, duration); }, [src, duration]);
+  return <div ref={host} className={className} style={{ display: 'contents' }} />;
 }

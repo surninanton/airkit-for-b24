@@ -242,3 +242,71 @@ test('меню без перезагрузки: setShellActive по адресу
   await page.goto('/phone.html?embed=1');
   await expect(page.locator('html')).toHaveClass(/b24-embed/);
 });
+
+test('плеер записи: время, перемотка, скорость, «—:—» до метаданных, ошибка с текстом и повтором', async ({ page }) => {
+  await open(page, '/phone.html');
+  const card = page.locator('#rec-card .b24-audio');
+  await expect(card.locator('.b24-audio__total')).toHaveText('0:12');              // длительность известна заранее
+  await expect(card.locator('.b24-audio__cur')).toHaveText('0:00');
+  await expect(card.locator('.b24-audio__download')).toHaveAttribute('download', 'zapis-razgovora.wav');
+  await card.getByRole('button', { name: 'Воспроизвести' }).click();
+  await expect(card).toHaveClass(/is-playing/);
+  await expect(page.locator('#rec-log')).toHaveText('Играет');
+  await expect(card.locator('.b24-audio__cur')).not.toHaveText('0:00', { timeout: 5000 });
+  await card.getByRole('button', { name: 'Пауза' }).click();
+  await expect(card).not.toHaveClass(/is-playing/);
+  // перемотка по полосе (с клавиатуры) и скорость
+  await card.locator('.b24-audio__range').focus();
+  const t0 = await card.locator('.b24-audio__range').evaluate((el: HTMLInputElement) => { el.value = '9'; el.dispatchEvent(new Event('input', { bubbles: true })); return el.value; });
+  expect(t0).toBe('9');
+  await expect(card.locator('.b24-audio__cur')).toHaveText('0:09');
+  const sp = card.locator('.b24-audio__speed');
+  await expect(sp).toHaveText('1×');
+  await sp.click();
+  await expect(sp).toHaveText('1,5×');
+  await sp.click();
+  await expect(sp).toHaveText('2×');
+  expect(await card.locator('audio').evaluate((a: HTMLAudioElement) => a.playbackRate)).toBe(2);
+  await sp.click();
+  await expect(sp).toHaveText('1×');
+  // только один плеер играет
+  const comp = page.locator('#rec-compact .b24-audio');
+  await card.getByRole('button', { name: 'Воспроизвести' }).click();
+  await expect(card).toHaveClass(/is-playing/);
+  await comp.getByRole('button', { name: 'Воспроизвести' }).click();
+  await expect(comp).toHaveClass(/is-playing/);
+  await expect(card).not.toHaveClass(/is-playing/);
+  await comp.getByRole('button', { name: 'Пауза' }).click();
+  // длительность неизвестна (метаданные не загружены, preload none): «—:—», перемотка недоступна
+  const lazy = await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    const host = document.createElement('div');
+    document.body.append(host);
+    B.createAudioPlayer(host, { src: '/never-loaded.wav', preload: 'none', compact: true });
+    const el = host.querySelector('.b24-audio')!;
+    const r = { total: el.querySelector('.b24-audio__total')!.textContent, disabled: (el.querySelector('.b24-audio__range') as HTMLInputElement).disabled, fmt: [B.formatAudioTime(null), B.formatAudioTime(125), B.formatAudioTime(3725), B.formatAudioTime(Infinity)] };
+    host.remove();
+    return r;
+  });
+  expect(lazy).toEqual({ total: '—:—', disabled: true, fmt: ['—:—', '2:05', '1:02:05', '—:—'] });
+  // ошибка: текст, а не пустой плеер; «Повторить»
+  const bad = page.locator('#rec-error .b24-audio');
+  await expect(bad).toHaveClass(/is-error/, { timeout: 5000 });
+  await expect(bad.locator('.b24-audio__error-text')).toContainText('Не удалось загрузить запись');
+  await expect(bad.locator('.b24-audio__retry')).toBeVisible();
+  await expect(bad.locator('.b24-audio__range')).toBeHidden();
+  await noHorizontalScroll(page);
+});
+
+test('плеер записи: компактный — одна строка, помещается на 390 px', async ({ page }) => {
+  await open(page, '/phone.html');
+  const comp = page.locator('#rec-compact .b24-audio');
+  const box = (await comp.boundingBox())!;
+  expect(box.height).toBeLessThan(48);                                               // одна строка
+  const play = (await comp.locator('.b24-audio__play').boundingBox())!;
+  const bar = (await comp.locator('.b24-audio__bar').boundingBox())!;
+  expect(Math.abs((play.y + play.height / 2) - (bar.y + bar.height / 2))).toBeLessThan(4);
+  expect(bar.width).toBeGreaterThan(40);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await noHorizontalScroll(page);
+});
