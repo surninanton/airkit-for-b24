@@ -190,9 +190,26 @@ export interface ShellProps {
   vendor?: VendorOptions;
   /** страница без оболочки: сайдбар и шапка скрыты, контент на всю ширину (во фрейме, во время звонка) */
   embed?: boolean;
+  /** заголовок в шапке: после бургера, до меню; одна строка с многоточием */
+  title?: ReactNode;
+  /** поле поиска в шапке (обычно <Filter glass /> или <Input glass />), рядом с заголовком */
+  search?: ReactNode;
+  /** поиск сворачивается в лупу и раскрывается поверх шапки: true — всегда, 'mobile' — только на узком экране */
+  searchCollapsible?: boolean | 'mobile';
 }
-export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange, vendor, embed }: ShellProps) {
+export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange, vendor, embed, title, search, searchCollapsible }: ShellProps) {
   const [inner, setInner] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onDown = (e: Event) => { const el = e.target as HTMLElement; if (!searchRef.current?.contains(el) && !el.closest('.b24-popup, .b24-datepicker-popup, .b24-overlay')) setSearchOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSearchOpen(false); };
+    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('keydown', onKey);
+    searchRef.current?.querySelector<HTMLElement>('input, textarea')?.focus();
+    return () => { document.removeEventListener('pointerdown', onDown, true); document.removeEventListener('keydown', onKey); };
+  }, [searchOpen]);
   const [menuOpen, setMenuOpen] = useState(false);
   const collapsed = collapsedProp ?? inner;
   const toggle = () => {
@@ -209,6 +226,17 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
         <button type="button" className="b24-btn b24-btn--plain b24-btn--icon b24-shell__toggle" style={{ color: '#fff' }} aria-label={t('Меню')} onClick={toggle}>
           <Icon name="menu" />
         </button>
+        {title != null && <h1 className="b24-shell__title">{title}</h1>}
+        {search != null && (
+          <div ref={searchRef} className={cx('b24-shell__search', searchCollapsible === true && 'b24-shell__search--collapsible', searchCollapsible === 'mobile' && 'b24-shell__search--collapsible-mobile', searchOpen && 'is-open')}>
+            {!!searchCollapsible && (
+              <button type="button" className="b24-btn b24-btn--glass b24-btn--icon b24-shell__search-toggle" aria-label={t('Поиск')} aria-expanded={searchOpen} onClick={() => setSearchOpen((v) => !v)}>
+                <Icon name="search" />
+              </button>
+            )}
+            <div className="b24-shell__search-field">{search}</div>
+          </div>
+        )}
         {header}
         {vendor && <Vendor {...vendor} />}
       </header>

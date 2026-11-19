@@ -65,3 +65,8 @@
   .b24-page-header__filter { order: 6; flex-basis: 100%; max-width: none; }
   .b24-page-header__views { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 }
+
+/* пустая шапка раздела не занимает места: ни одного элемента внутри, и пустые строки тоже скрыты */
+.b24-page-header:not(:has(*)) { display: none; }
+.b24-page-header__nav:not(:has(*)), .b24-page-header__main:not(:has(*)), .b24-page-header__sub:not(:has(*)) { display: none; }
+.b24-page-header:not(:has(.b24-page-header__nav > *, .b24-page-header__main > *, .b24-page-header__sub > *)) { display: none; }

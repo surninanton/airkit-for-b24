@@ -45,9 +45,11 @@ export function Field({ label, hint, error, required, inline, className, childre
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   size?: Size;
+  /** для тёмного фона (Air-подложка, тёмная шапка) */
+  glass?: boolean;
 }
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ size = 'md', className, ...rest }, ref) {
-  return <input ref={ref} className={cx('b24-input', size !== 'md' && `b24-input--${size}`, className)} {...rest} />;
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ size = 'md', glass, className, ...rest }, ref) {
+  return <input ref={ref} className={cx('b24-input', size !== 'md' && `b24-input--${size}`, glass && 'b24-input--glass', className)} {...rest} />;
 });
 
 export interface InputGroupProps extends Omit<InputProps, 'prefix'> {

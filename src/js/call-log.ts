@@ -6,6 +6,7 @@
  *   items: [{ id, direction: 'in' | 'out', missed: true, title: 'Мария Образцова', subtitle: '+7 (999) 123-45-67 · Доставка', time, duration: 125 }]
  */
 import { icon, type IconName } from '../icons';
+import { avatarHtml } from './avatar';
 import { h, html } from './dom';
 import { t } from './i18n';
 import { formatChatDay, type ChatDate } from './chat';
@@ -25,6 +26,10 @@ export interface CallLogItem {
   seen?: boolean;
   /** своя иконка вместо направления */
   icon?: IconName;
+  /** аватар абонента вместо значка направления: URL картинки или true — инициалы по title (направление остаётся маленьким значком на углу) */
+  avatar?: string | boolean;
+  /** бренд / линия: «Пицца Ролл · Доставка» с логотипом или значком, цвет бренда */
+  brand?: CallLogBrand;
   /** метка под названием или рядом со временем: «Ответил коллега», «Перезвонили» */
   badge?: string | { text: string; tone?: 'default' | 'success' | 'warning' | 'danger' };
   /** строка выбрана (открыта справа): подсветка и aria-selected */
@@ -33,6 +38,8 @@ export interface CallLogItem {
   actions?: CallLogAction[];
   data?: unknown;
 }
+/** Метка бренда / линии у звонка: значок или картинка и подпись цветом бренда. */
+export interface CallLogBrand { label?: string; icon?: IconName; /** URL логотипа */ src?: string; color?: string; title?: string }
 export interface CallLogAction {
   id: string;
   label: string;
@@ -97,10 +104,21 @@ export function createCallLog(host: HTMLElement, options: CallLogOptions): CallL
     if (interactive) row.setAttribute('aria-selected', String(!!it.selected));
     const badge = typeof it.badge === 'string' ? { text: it.badge, tone: 'default' as const } : it.badge;
     const dur = it.missed ? '' : formatCallDuration(it.duration);
+    const lead = it.avatar
+      ? h('span', { class: 'b24-calllog__avatar', 'aria-hidden': 'true' }, html(avatarHtml(it.title, typeof it.avatar === 'string' ? it.avatar : undefined, 'md')), h('span', { class: 'b24-calllog__dir' }, html(icon(ico, { size: 12 }))))
+      : h('span', { class: 'b24-calllog__icon', 'aria-hidden': 'true' }, html(icon(ico, { size: 18 })));
+    let brand: HTMLElement | string = '';
+    if (it.brand) {
+      brand = h('span', { class: 'b24-calllog__brand', title: it.brand.title ?? it.brand.label });
+      if (it.brand.color) (brand as HTMLElement).style.setProperty('--_brand', it.brand.color);
+      if (it.brand.src) (brand as HTMLElement).append(h('img', { src: it.brand.src, alt: '', class: 'b24-calllog__brand-logo' }));
+      else if (it.brand.icon) (brand as HTMLElement).append(html(icon(it.brand.icon, { size: 14 })));
+      if (it.brand.label) (brand as HTMLElement).append(h('span', {}, it.brand.label));
+    }
     row.replaceChildren(
-      h('span', { class: 'b24-calllog__icon', 'aria-hidden': 'true' }, html(icon(ico, { size: 18 }))),
+      lead,
       h('span', { class: 'b24-calllog__body' }, h('span', { class: 'b24-calllog__title' }, it.title), it.subtitle ? h('span', { class: 'b24-calllog__subtitle' }, it.subtitle) : '',
-        badge ? h('span', { class: `b24-calllog__badge is-${badge.tone ?? 'default'}` }, badge.text) : ''),
+        brand, badge ? h('span', { class: `b24-calllog__badge is-${badge.tone ?? 'default'}` }, badge.text) : ''),
       h('span', { class: 'b24-calllog__meta' }, h('time', { class: 'b24-calllog__time', datetime: toDate(it.time).toISOString() }, fmtTime(it.time)), dur ? h('span', { class: 'b24-calllog__duration' }, dur) : ''),
     );
     const dir = it.missed ? t('пропущенный') : it.direction === 'out' ? t('исходящий') : t('входящий');

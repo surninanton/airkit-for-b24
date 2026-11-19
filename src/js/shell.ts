@@ -9,8 +9,54 @@
  *   setTopNav(nav, items)           — пересобрать меню раздела (.b24-topnav); «Ещё ▾» пересчитывается само
  */
 import { icon, type IconName } from '../icons';
-import { h, html } from './dom';
+import { h, html, pushLayer } from './dom';
+import { t } from './i18n';
 import { initTopnavMore } from './topnav-more';
+
+/* ── Поиск в шапке: сворачивается в лупу ──────────────────── */
+
+export interface ShellSearchHandle { open(): void; close(): void; isOpen(): boolean; destroy(): void }
+/**
+ * Поле поиска в шапке оболочки: `.b24-shell__search.b24-shell__search--collapsible` (или `--collapsible-mobile` — только на узком экране)
+ * > `button.b24-shell__search-toggle` (лупа) + `.b24-shell__search-field` (само поле). Лупа раскрывает поле поверх шапки и ставит в него курсор;
+ * Esc, клик мимо и повторный клик по лупе сворачивают. init() подключает такие блоки сам.
+ */
+export function initShellSearch(el: HTMLElement): ShellSearchHandle {
+  const prev = (el as HTMLElement & { _b24Search?: ShellSearchHandle })._b24Search;
+  if (prev) return prev;
+  let toggle = el.querySelector<HTMLButtonElement>(':scope > .b24-shell__search-toggle');
+  if (!toggle) {
+    toggle = h('button', { type: 'button', class: 'b24-btn b24-btn--glass b24-btn--icon b24-shell__search-toggle', 'aria-label': t('Поиск') }, html(icon('search'))) as HTMLButtonElement;
+    el.prepend(toggle);
+  }
+  toggle.setAttribute('aria-expanded', 'false');
+  const field = el.querySelector<HTMLElement>(':scope > .b24-shell__search-field');
+  const release = { fn: () => {} };
+  const open = () => {
+    if (el.classList.contains('is-open')) return;
+    el.classList.add('is-open');
+    toggle!.setAttribute('aria-expanded', 'true');
+    field?.querySelector<HTMLElement>('input, textarea')?.focus();
+    document.addEventListener('pointerdown', onDown, true);
+    release.fn = pushLayer(() => { close(); toggle!.focus(); });
+  };
+  const close = () => {
+    if (!el.classList.contains('is-open')) return;
+    el.classList.remove('is-open');
+    toggle!.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('pointerdown', onDown, true);
+    release.fn();
+  };
+  // курсор в фильтре открывает его попап вне шапки: клики в попапах и календарях — «внутри»
+  const onDown = (e: Event) => { const t = e.target as HTMLElement; if (!el.contains(t) && !t.closest('.b24-popup, .b24-datepicker-popup, .b24-overlay')) close(); };
+  toggle.addEventListener('click', () => (el.classList.contains('is-open') ? close() : open()));
+  const handle: ShellSearchHandle = {
+    open, close, isOpen: () => el.classList.contains('is-open'),
+    destroy() { close(); delete (el as HTMLElement & { _b24Search?: ShellSearchHandle })._b24Search; },
+  };
+  (el as HTMLElement & { _b24Search?: ShellSearchHandle })._b24Search = handle;
+  return handle;
+}
 
 /* ── Режим embed ─────────────────────────────────────────── */
 

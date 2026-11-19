@@ -17,7 +17,7 @@ import { initGrid, type GridOptions } from './grid';
 import { createChart, sparkline, type ChartOptions } from './chart';
 import { initSettings, initWizard } from './screens';
 import { initRepeater } from './repeater';
-import { initEmbed } from './shell';
+import { initEmbed, initShellSearch } from './shell';
 import { initCheckGroup, initColors, initRange, initSecret } from './controls';
 import { copyText } from './logs';
 import { initAnchorNav, initCookieNotice, initGallery, initSiteHeader, initThemeSwitch, initToc, initTopnav, initVideo } from './site';
@@ -95,6 +95,7 @@ export function init(root: ParentNode = document): void {
       placement: (trigger.dataset.b24Placement as 'bottom-start') ?? 'bottom-start',
     });
   });
+  root.querySelectorAll<HTMLElement>('.b24-shell__search--collapsible, .b24-shell__search--collapsible-mobile').forEach((el) => initShellSearch(el));
   root.querySelectorAll<HTMLElement>('[data-b24-tabs]').forEach((el) => initTabs(el));
   root.querySelectorAll<HTMLTableElement>('table[data-b24-sortable]').forEach(initSortableTable);
 

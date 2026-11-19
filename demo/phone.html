@@ -152,7 +152,7 @@
   const calllog = B24UI.createCallLog(document.getElementById('calllog'), {
     items: [
       { id: 'c1', direction: 'in', missed: true, title: 'Мария Образцова', subtitle: '+7 (999) 123-45-67 · Доставка', time: d(0, 12, 41) },
-      { id: 'c2', direction: 'out', title: 'Иван Примеров', subtitle: '+7 (912) 345-67-89 · Заказ № 4821', time: d(0, 11, 5), duration: 125 },
+      { id: 'c2', direction: 'out', title: 'Иван Примеров', subtitle: '+7 (912) 345-67-89 · Заказ № 4821', time: d(0, 11, 5), duration: 125, avatar: true, brand: { label: 'Пицца Ролл · Доставка', icon: 'home', color: '#e2793a' } },
       { id: 'c3', direction: 'in', title: 'Пётр Тестов', subtitle: 'Линия: Доставка', time: d(1, 19, 20), duration: 48 },
       { id: 'c4', direction: 'in', missed: true, title: '+7 (903) 555-01-02', subtitle: 'Неизвестный номер', time: d(3, 9, 12) },
     ],
@@ -175,7 +175,7 @@
   document.getElementById('dtmf').addEventListener('change', (e) => dialpad.setMode(e.target.checked ? 'dtmf' : 'dial'));
 
   const card = B24UI.createCallCard(document.getElementById('callcard'), {
-    state: 'incoming', name: 'Мария Образцова', number: '89991234567', meta: 'Линия: Доставка',
+    state: 'incoming', name: 'Мария Образцова', number: '89991234567', meta: 'Линия: Доставка', accent: '#e2793a', brand: { label: 'Пицца Ролл', icon: 'home', color: '#e2793a' },
     onAnswer: () => card.setState('active'),
     onDecline: () => card.setState('ended'),
     onHangup: () => card.setState('ended'),

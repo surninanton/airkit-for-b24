@@ -39,10 +39,11 @@ test('ползунки и выбор цвета', async ({ page }) => {
   expect(await pair.locator('input').nth(0).inputValue()).toBe('18');
   await expect(page.locator('.b24-range-pair + .b24-range-field__value')).toHaveText('18–18:00');
 
-  await page.locator('.b24-colors__custom input[type="color"]').evaluate((i: HTMLInputElement) => { i.value = '#123456'; i.dispatchEvent(new Event('input', { bubbles: true })); });
+  const colors = page.locator('.b24-colors:not(#palette .b24-colors)').first();
+  await colors.locator('.b24-colors__custom input[type="color"]').evaluate((i: HTMLInputElement) => { i.value = '#123456'; i.dispatchEvent(new Event('input', { bubbles: true })); });
   expect(await page.locator('input[name="color"]:checked').evaluate((i: HTMLInputElement) => i.value)).toBe('#123456');
-  await page.locator('.b24-colors__swatch').nth(2).click();
-  await expect(page.locator('.b24-colors__custom')).not.toHaveClass(/is-active/);
+  await colors.locator('.b24-colors__swatch').nth(2).click();
+  await expect(colors.locator('.b24-colors__custom')).not.toHaveClass(/is-active/);
 });
 
 test('секрет, ошибки сервера по полям', async ({ page }) => {

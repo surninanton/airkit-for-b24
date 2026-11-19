@@ -35,9 +35,10 @@ export {
 export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';
 export { createDialpad, createCallCard, createLineStatus, createMicMeter, normalizePhone, formatPhone, type NormalizePhoneOptions, formatCallTime, type DialpadOptions, type DialpadHandle, type CallState, type CallCardAction, type CallCardOptions, type CallCardHandle, type LineStatus, type LineStatusOptions, type LineStatusHandle, type MicMeterOptions, type MicMeterHandle } from './phone';
+export { contextMenu, openContextMenu, type ContextMenuItem, type ContextMenuItems, type ContextMenuOptions, type ContextMenuHandle } from './context-menu';
 export { createAudioPlayer, formatAudioTime, type AudioPlayerOptions, type AudioPlayerHandle } from './audio-player';
-export { createCallLog, formatCallDuration, type CallLogItem, type CallLogAction, type CallLogOptions, type CallLogHandle } from './call-log';
-export { isEmbed, setEmbed, initEmbed, setShellActive, watchShellActive, setSidebar, setTopNav, setNavCounter, type ShellNavItem, type ShellNavGroup, type ShellActiveOptions } from './shell';
+export { createCallLog, formatCallDuration, type CallLogItem, type CallLogAction, type CallLogBrand, type CallLogOptions, type CallLogHandle } from './call-log';
+export { isEmbed, setEmbed, initEmbed, initShellSearch, setShellActive, watchShellActive, setSidebar, setTopNav, setNavCounter, type ShellSearchHandle, type ShellNavItem, type ShellNavGroup, type ShellActiveOptions } from './shell';
 export { createSortable, type SortableItem, type SortableOptions, type SortableHandle } from './sortable';
 export { createReceipt, layoutReceipt, wrapReceiptText, type ReceiptLine, type ReceiptTextLine, type ReceiptColsLine, type ReceiptSepLine, type ReceiptQrLine, type ReceiptBarcodeLine, type ReceiptBlankLine, type ReceiptOptions, type ReceiptHandle } from './receipt';
 export { qrMatrix, qrSvg, createQr, type QrEcc, type QrSvgOptions, type QrOptions, type QrHandle } from './qr';
@@ -55,8 +56,8 @@ export { loadGridState, saveGridState, clearGridState, normalizeGridState, moveC
 export { createChart, sparkline, chartColor, type ChartOptions, type ChartSeries, type ChartType, type ChartHandle } from './chart';
 export { initSettings, initWizard, type SettingsHandle, type WizardHandle } from './screens';
 export {
-  initCheckGroup, initRange, initColors, initSecret, createTree, popover, startTour, plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors,
-  type TreeItem, type TreeBadge, type TreeValueOption, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
+  initCheckGroup, initRange, initColors, createColors, createSegmented, initSecret, createTree, popover, startTour, plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors,
+  type SegmentedItem, type SegmentedOptions, type SegmentedHandle, type ColorsOptions, type ColorsHandle, type TreeItem, type TreeBadge, type TreeValueOption, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
 } from './controls';
 export { createRating, getRating, type RatingOptions, type RatingHandle } from './rating';
 export { createLockScreen, openPinSetup, idleLock, type LockUser, type LockScreenOptions, type LockScreenHandle, type PinSetupOptions, type IdleLockOptions } from './lock-screen';

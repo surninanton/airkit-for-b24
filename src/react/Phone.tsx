@@ -33,14 +33,14 @@ export interface CallCardProps extends CallCardOptions {
   /** свой текст итога под именем («Ответил коллега»); сбрасывается при смене состояния */
   statusText?: string | null;
   handleRef?: MutableRefObject<CallCardHandle | null> }
-export function CallCard({ state, name, number, avatar, meta, startedAt, actions, floating, minimized, onMinimize, onClose, closeLabel, statusText, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
+export function CallCard({ state, name, number, avatar, meta, startedAt, actions, floating, minimized, onMinimize, onClose, closeLabel, statusText, accent, brand, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<CallCardHandle | null>(null);
   const cbs = useRef({ onAnswer, onDecline, onHangup, onAction, onMinimize, onClose });
   cbs.current = { onAnswer, onDecline, onHangup, onAction, onMinimize, onClose };
   useEffect(() => {
     h.current = createCallCard(host.current!, {
-      state, name, number, avatar, meta, startedAt, actions, floating, minimized, closeLabel,
+      state, name, number, avatar, meta, startedAt, actions, floating, minimized, closeLabel, accent, brand,
       onClose: onClose ? () => cbs.current.onClose?.() : undefined,
       onMinimize: (m) => cbs.current.onMinimize?.(m),
       onAnswer: () => cbs.current.onAnswer?.(), onDecline: () => cbs.current.onDecline?.(), onHangup: () => cbs.current.onHangup?.(),
@@ -52,6 +52,9 @@ export function CallCard({ state, name, number, avatar, meta, startedAt, actions
   }, []);
   useEffect(() => { if (state) h.current?.setState(state, statusText != null ? { text: statusText } : undefined); }, [state, statusText]);
   useEffect(() => { if (startedAt != null) h.current?.setStartedAt(startedAt); }, [startedAt]);
+  useEffect(() => { h.current?.setAccent(accent ?? null); }, [accent]);
+  const brandKey = JSON.stringify(brand ?? null);
+  useEffect(() => { h.current?.setBrand(brand ?? null); }, [brandKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { h.current?.setInfo({ name, number, avatar, meta }); }, [name, number, avatar, meta]);
   useEffect(() => { if (minimized != null) { if (minimized) h.current?.minimize(); else h.current?.restore(); } }, [minimized]);
   return <div ref={host} style={floating ? undefined : { display: 'contents' }} />;

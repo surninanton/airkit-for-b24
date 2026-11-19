@@ -245,6 +245,10 @@ export interface CallCardOptions {
   avatar?: string;
   /** подпись под именем, например «Линия: Доставка» */
   meta?: string;
+  /** цвет акцента: полоса сверху карточки и цвет таймера (например, цвет бренда линии) */
+  accent?: string;
+  /** метка бренда / линии в углу карточки: значок или логотип и подпись; своё содержимое — slots.brand */
+  brand?: { label?: string; icon?: IconName; src?: string; color?: string };
   /** когда ответили: таймер считает от этого момента (по умолчанию — от перехода в active) */
   startedAt?: number | Date;
   /** кнопки активного звонка; по умолчанию «Без звука», «Удержание», «Клавиши», «Перевести» */
@@ -270,7 +274,9 @@ export interface CallCardOptions {
 export interface CallCardHandle {
   element: HTMLElement;
   /** контейнеры: customer — карточка клиента под именем (заказы, «Новый заказ»); extra — под кнопками (клавиатура, индикатор микрофона) */
-  slots: { customer: HTMLElement; extra: HTMLElement };
+  slots: { brand: HTMLElement; customer: HTMLElement; extra: HTMLElement };
+  setAccent(color: string | null): void;
+  setBrand(brand: CallCardOptions['brand'] | null): void;
   /** свернуть в полоску внизу экрана / развернуть (floating) */
   minimize(): void;
   restore(): void;
@@ -317,6 +323,7 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   const who = h('div', { class: 'b24-callcard__who' });
   const status = h('div', { class: 'b24-callcard__status', 'aria-live': 'off' });
   const customer = h('div', { class: 'b24-callcard__customer' });
+  const brandSlot = h('div', { class: 'b24-callcard__brand' });
   const buttons = h('div', { class: 'b24-callcard__actions' });
   const foot = h('div', { class: 'b24-callcard__foot' });
   const extra = h('div', { class: 'b24-callcard__extra' });
@@ -329,7 +336,7 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   const mini = h('div', { class: 'b24-callcard__mini' }, miniName, miniTime, miniRestore, miniAnswer, miniEnd);
   let customText: string | null = null;
   const minBtn = h('button', { type: 'button', class: 'b24-callcard__min', 'aria-label': t('Свернуть'), title: t('Свернуть') }, html(icon('minus', { size: 16 })));
-  root.append(minBtn, who, status, customer, buttons, foot, extra, mini);
+  root.append(minBtn, brandSlot, who, status, customer, buttons, foot, extra, mini);
   if (floating) { root.classList.add('b24-callcard--floating', `is-${pos}`); root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'false'); }
   else minBtn.hidden = true;
   (floating && host === document.body ? document.body : host).append(root);
@@ -389,7 +396,7 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   };
   const tick = () => { if (state === 'active' || state === 'held') paintStatus(); };
   const sync = () => {
-    root.className = `b24-callcard${floating ? ` b24-callcard--floating is-${pos}` : ''}${minimized ? ' is-minimized' : ''} is-${state}`;
+    root.className = `b24-callcard${floating ? ` b24-callcard--floating is-${pos}` : ''}${minimized ? ' is-minimized' : ''}${accentOn ? ' has-accent' : ''} is-${state}`;
     minBtn.hidden = !floating || state === 'ended';
     // в полоске: входящий — «Ответить» и «Отклонить», завершён — «Закрыть», иначе «Завершить»
     miniAnswer.hidden = state !== 'incoming';
@@ -405,6 +412,23 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
     if (state === 'active' || state === 'held') timer = window.setInterval(tick, 1000);
   };
 
+  const paintBrand = (b: CallCardOptions['brand'] | null | undefined) => {
+    brandSlot.replaceChildren();
+    if (!b) { brandSlot.hidden = true; return; }
+    brandSlot.hidden = false;
+    if (b.color) brandSlot.style.setProperty('--_brand', b.color); else brandSlot.style.removeProperty('--_brand');
+    if (b.src) brandSlot.append(h('img', { src: b.src, alt: '', class: 'b24-callcard__brand-logo' }));
+    else if (b.icon) brandSlot.append(html(icon(b.icon, { size: 14 })));
+    if (b.label) brandSlot.append(h('span', {}, b.label));
+  };
+  let accentOn = false;
+  const paintAccent = (c: string | null | undefined) => {
+    if (c) root.style.setProperty('--_accent', c); else root.style.removeProperty('--_accent');
+    accentOn = !!c;
+    root.classList.toggle('has-accent', accentOn);
+  };
+  paintBrand(options.brand);
+  paintAccent(options.accent);
   const setMinimized = (min: boolean) => {
     if (!floating || min === minimized) return;
     minimized = min;
@@ -424,7 +448,9 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
 
   const handle: CallCardHandle = {
     element: root,
-    slots: { customer, extra },
+    slots: { brand: brandSlot, customer, extra },
+    setAccent: paintAccent,
+    setBrand: (b) => { brandSlot.style.removeProperty('--_brand'); paintBrand(b); },
     minimize: () => setMinimized(true),
     restore: () => setMinimized(false),
     isMinimized: () => minimized,

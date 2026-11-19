@@ -105,6 +105,10 @@
 .b24-segmented > label > input:checked + span { color: var(--b24-text-primary); background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-sm); }
 .b24-segmented > label > input:focus-visible + span { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
 .b24-segmented > label > input:disabled + span { opacity: 0.5; cursor: not-allowed; }
+/* таблетка с цветом акцента (бренды): у <label> задан --accent, выбранный пункт заливается им */
+.b24-segmented > label[style*="--accent"] > input:checked + span { color: var(--on-accent, #fff); background: var(--accent); box-shadow: none; }
+.b24-segmented > label[style*="--accent"] > span svg { color: var(--accent); }
+.b24-segmented > label[style*="--accent"] > input:checked + span svg { color: currentColor; }
 .b24-segmented--wide { display: flex; }
 .b24-segmented--wide > label { flex: 1 1 0; }
 .b24-segmented--wide > label > span { justify-content: center; width: 100%; }
@@ -155,7 +159,7 @@
 .b24-colors__swatch:has(> input:checked) { box-shadow: 0 0 0 2px var(--b24-bg-surface), 0 0 0 4px var(--c); }
 .b24-colors__swatch:has(> input:checked)::after {
   content: ""; width: 12px; height: 7px; margin-top: -3px;
-  border: solid #fff; border-width: 0 0 2px 2px; transform: rotate(-45deg);
+  border: solid var(--_ck, #fff); border-width: 0 0 2px 2px; transform: rotate(-45deg);
 }
 .b24-colors__swatch:has(> input:focus-visible) { outline: 2px solid var(--b24-focus-color); outline-offset: 4px; }
 .b24-colors__custom { background: conic-gradient(#ff5752, #faa72c, #1bce7b, #2fc6f6, #0075ff, #a77bde, #ff5752); }

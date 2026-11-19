@@ -43,6 +43,8 @@ export { Receipt, Qr, SortableList, type ReceiptProps, type QrProps, type Sortab
 export type { ReceiptLine, SortableItem } from '../js/index';
 export type { CallLogItem } from '../js/call-log';
 export { isEmbed, setEmbed, setShellActive, watchShellActive, setNavCounter } from '../js/shell';
+export { contextMenu, openContextMenu, createColors, createSegmented, initShellSearch } from '../js/index';
+export type { ContextMenuItem, ContextMenuOptions } from '../js/context-menu';
 export { qrSvg, qrMatrix } from '../js/qr';
 export { Vendor, type VendorOptions } from './Vendor';
 export { B24Provider, App, PageHeader, Toolbar, AppShell, Sidebar, SidebarGroup, SidebarItem, TopNav, type PageHeaderProps, type PageHeaderCreateProps, type PageHeaderCounterProps, type ToolbarProps, type ShellProps, type NavItemProps } from './Layout';

@@ -2,6 +2,16 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### Контекстное меню, палитра, шапка оболочки
+- `contextMenu` / `openContextMenu` — правая кнопка, долгое нажатие (без закрытия и клика при отпускании), клавиша меню; danger, разделители, заголовки, клавиатура.
+- `createColors` — палитра из массива; галочка на светлых цветах тёмная (в том числе в `<ColorPicker>` и готовой разметке).
+- Шапка оболочки: слот заголовка (`.b24-shell__title`), поиск (`.b24-shell__search`), сворачивание в лупу (`searchCollapsible`, `initShellSearch`); `<AppShell title search searchCollapsible>`. Пустая `b24-page-header` не занимает места.
+- `.b24-input--glass`, `.b24-textarea--glass`, `.b24-select--glass`; `<Input glass />`.
+- `createSegmented` и `<Segmented>` с цветом акцента у пунктов.
+- Журнал звонков: `avatar` и `brand` у строки; карточка звонка: `accent`, `brand`, `slots.brand`.
+
 ## 0.17.1 — 2026-11-20
 
 ### Поля ввода и фильтр

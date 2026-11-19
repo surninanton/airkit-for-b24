@@ -647,6 +647,17 @@ bar.setActions([{ id: 'phone', icon: 'phone', label: 'Телефон', variant: 
 - **Подсветка по адресу**: `setShellActive(url)` ставит `aria-current="page"` на пункт сайдбара и меню раздела, который ведёт на url (точное совпадение, затем самый длинный общий путь; нет подходящего — подсветка не меняется). `watchShellActive()` делает это сам при `popstate`, `hashchange`, `history.pushState / replaceState`.
 - **Меню на лету**: `setSidebar(nav, [{ title, items: [{ label, href, icon, counter, active }] }])`, `setTopNav(nav, items)` (пункты меню раздела пересобираются, «Ещё ▾» пересчитывается сама), `setNavCounter(url | подпись, n)` — счётчик на пункте («Пропущенные 3»).
 
+## Контекстное меню, палитра, таблетка, шапка оболочки
+
+Пример — `demo/controls.html`, нижний раздел.
+
+- **Контекстное меню** `contextMenu(target, items, options)` / `openContextMenu(x, y, items)`: правая кнопка, долгое нажатие пальцем (≈600 мс, `longPress`), клавиша меню / Shift+F10. Пункты: `{ label, icon, hint, danger, disabled, onClick }`, `{ separator: true }`, `{ title }` (заголовок группы). Одно меню на много строк — `selector` и функция `items(event, target)`. После долгого нажатия отпускание пальца не закрывает меню (`ignoreOutsideMs`, по умолчанию 400) и не кликает по элементу под ним (`suppressClickMs`, 500). Стрелки, Home/End, Esc, клик мимо и прокрутка закрывают; меню не выходит за экран; в полях ввода остаётся меню браузера (`keepNativeOnInputs: false` — убрать). `openContextMenu` — от невидимого якоря в любой точке.
+- **Палитра из массива** `createColors(el, { colors, value, custom, onChange })`: разметку `.b24-colors` собирает кит. Галочка на светлых цветах (жёлтый, белый) тёмная, на тёмных белая — и у готовой разметки, и в React `<ColorPicker>`.
+- **Таблетка с цветом акцента** `createSegmented(el, { items: [{ value, label, icon, color }], value, onChange })` / `<Segmented options={[{ …, color }]} />`: выбранный пункт заливается цветом бренда, текст подбирается по яркости.
+- **Шапка оболочки**: `<AppShell title search searchCollapsible>` или разметкой `.b24-shell__title` (после бургера, до меню; одна строка с многоточием) и `.b24-shell__search`. `searchCollapsible` (`.b24-shell__search--collapsible`, `--collapsible-mobile` — только на узком экране): поиск сворачивается в лупу и раскрывается поверх шапки с курсором в поле; Esc, клик мимо и повторный клик сворачивают (`initShellSearch`, `init()` подключает сам). Пустая `.b24-page-header` (без элементов или со всеми пустыми строками) не занимает места.
+- **Поле для тёмного фона**: `.b24-input--glass`, `.b24-textarea--glass`, `.b24-select--glass`; в React `<Input glass />`.
+- **Звонок**: `CallLogItem.avatar` (`true` — инициалы, или URL; направление остаётся значком на углу), `CallLogItem.brand` (`{ label, icon | src, color }`); `createCallCard({ accent, brand })` — полоса и таймер цвета бренда, метка в углу, `setAccent`, `setBrand`, `slots.brand`.
+
 ## Планировщик: сотрудники и время
 
 `createScheduler(host, options)` — шкала «сотрудники × время» по мотивам Bryntum Scheduler, на токенах кита. Пример — `demo/scheduler.html`.

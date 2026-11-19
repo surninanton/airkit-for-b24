@@ -141,6 +141,23 @@
         <p class="b24-text-sm" id="crm-out"></p>
       </div>
     </section>
+    <section class="b24-card" id="ctx-section">
+      <div class="b24-card__header"><h2 class="b24-card__title">Контекстное меню, палитра, таблетка, шапка оболочки</h2><span class="b24-card__subtitle">&nbsp;contextMenu · createColors · createSegmented · b24-shell__search</span></div>
+      <div class="b24-card__body" style="display:flex; flex-direction:column; gap:16px">
+        <div id="ctx-area" tabindex="0" style="padding:20px; border:1px dashed var(--b24-border-field); border-radius:8px; text-align:center; user-select:none; -webkit-user-select:none">Правая кнопка или долгое нажатие (≈600 мс) — контекстное меню</div>
+        <div class="b24-text-sm" id="ctx-out">—</div>
+        <div id="palette"></div>
+        <div id="brands"></div>
+        <div id="fake-shell" style="background: var(--b24-air-bg-color, #1f4ea8); border-radius:10px; padding:0">
+          <div class="b24-shell__header" style="position:relative; min-height:56px; border-radius:10px">
+            <h1 class="b24-shell__title" id="fake-title">Приложение для доставки пиццы и роллов — очень длинный заголовок страницы</h1>
+            <div class="b24-shell__search b24-shell__search--collapsible" id="fake-search">
+              <div class="b24-shell__search-field"><input class="b24-input b24-input--glass" placeholder="Поиск по заказам" aria-label="Поиск по заказам"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
   <footer class="b24-credit-footer" id="demo-credit"></footer>
 </div>
@@ -148,6 +165,21 @@
   import * as B24UI from '../src/js/global.ts';
   document.getElementById('demo-rating').addEventListener('b24:rating-change', (e) => { document.getElementById('rating-out').textContent = e.detail.value ? `Оценка: ${e.detail.value}` : 'Не оценено'; });
   document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  // контекстное меню
+  const ctxOut = document.getElementById('ctx-out');
+  B24UI.contextMenu(document.getElementById('ctx-area'), [
+    { title: 'Заказ № 4821' },
+    { label: 'Открыть', icon: 'eye', hint: 'Enter', onClick: () => { ctxOut.textContent = 'Открыть'; } },
+    { label: 'Копировать номер', icon: 'copy', onClick: () => { ctxOut.textContent = 'Копировать'; } },
+    { separator: true },
+    { label: 'Отменить заказ', icon: 'trash', danger: true, onClick: () => { ctxOut.textContent = 'Отменить'; } },
+    { label: 'Недоступно', disabled: true },
+  ]);
+  B24UI.createColors(document.getElementById('palette'), { colors: ['#2fc6f6', '#0075ff', '#1bce7b', '#faa72c', '#ffd400', '#ffffff', '#ff5752', '#828b95'], value: '#ffd400', onChange: (c) => { ctxOut.textContent = `Цвет: ${c}`; } });
+  B24UI.createSegmented(document.getElementById('brands'), {
+    items: [{ value: 'tg', label: 'Telegram', icon: 'chat', color: '#2aabee' }, { value: 'vk', label: 'VK', icon: 'chat', color: '#0077ff' }, { value: 'max', label: 'MAX', icon: 'chat', color: '#7b4dff' }, { value: 'yellow', label: 'Сайт', icon: 'home', color: '#ffd400' }],
+    value: 'tg', onChange: (v) => { ctxOut.textContent = `Канал: ${v}`; },
+  });
   document.getElementById('theme-tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-theme]'); if (!b) return;
     B24UI.setTheme(b.dataset.theme);

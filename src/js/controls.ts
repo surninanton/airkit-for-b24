@@ -2,6 +2,7 @@ import { icon, type IconName } from '../icons';
 import { bringToFront, h, html, pushLayer } from './dom';
 import { intlLocale, t as tr } from './i18n';
 import { showFloat } from './float';
+import { readableTextColor } from './kanban';
 
 /* ── Группа чекбоксов ──────────────────────────────────────
  * .b24-check-group[data-b24-check-group]: счётчик .b24-check-group__count («Выбрано 2 из 7»),
@@ -65,7 +66,97 @@ export function initRange(el: HTMLElement): () => void {
  * .b24-colors[data-b24-colors]: свой цвет из .b24-colors__custom > input[type=color] становится
  * отмеченным значением группы (скрытая радиокнопка с тем же name).
  */
+/** Цвет галочки на выбранном цвете: тёмная на светлых (жёлтый, белый), белая на тёмных. */
+const checkColor = (color: string): string => (readableTextColor(color) === '#ffffff' ? '#fff' : '#1f2329');
+const paintChecks = (root: HTMLElement) => root.querySelectorAll<HTMLElement>('.b24-colors__swatch').forEach((el) => {
+  const c = el.style.getPropertyValue('--c') || el.getAttribute('data-color') || '';
+  if (c) el.style.setProperty('--_ck', checkColor(c));
+});
+
+export interface ColorsOptions {
+  /** палитра: массив цветов (#rrggbb) */
+  colors: string[];
+  value?: string;
+  /** добавить «свой цвет» (по умолчанию да) */
+  custom?: boolean;
+  name?: string;
+  ariaLabel?: string;
+  onChange?: (value: string) => void;
+}
+export interface ColorsHandle { element: HTMLElement; getValue(): string; setValue(value: string): void; destroy(): void }
+
+/** Палитра из массива: `createColors(el, { colors: ['#2fc6f6', '#faa72c'], value, onChange })` — разметку .b24-colors собирает кит. */
+export function createColors(host: HTMLElement, options: ColorsOptions): ColorsHandle {
+  const name = options.name ?? `b24-color-${Math.random().toString(36).slice(2, 7)}`;
+  const root = h('div', { class: 'b24-colors', role: 'radiogroup', 'aria-label': options.ariaLabel ?? tr('Цвет') });
+  let value = options.value ?? '';
+  for (const c of options.colors) {
+    const input = h('input', { type: 'radio', name, value: c, 'aria-label': c }) as HTMLInputElement;
+    input.checked = c.toLowerCase() === value.toLowerCase();
+    const sw = h('label', { class: 'b24-colors__swatch', title: c }, input);
+    sw.style.setProperty('--c', c);
+    root.append(sw);
+  }
+  const isCustom = !!value && !options.colors.some((c) => c.toLowerCase() === value.toLowerCase());
+  if (options.custom !== false) {
+    const picker = h('input', { type: 'color', 'aria-label': tr('Свой цвет') }) as HTMLInputElement;
+    picker.value = isCustom ? value : '#0075ff';
+    const cu = h('label', { class: `b24-colors__custom${isCustom ? ' is-active' : ''}`, title: tr('Свой цвет') }, picker);
+    if (isCustom) cu.style.setProperty('--c', value);
+    root.append(cu);
+  }
+  host.append(root);
+  paintChecks(root);
+  const off = initColors(root);
+  const onChange = (e: Event) => {
+    const t = e.target as HTMLInputElement;
+    if (t.type !== 'radio' || !t.checked || !t.value) return;
+    value = t.value;
+    options.onChange?.(value);
+  };
+  root.addEventListener('change', onChange);
+  return {
+    element: root,
+    getValue: () => value,
+    setValue(v) {
+      value = v;
+      const radio = Array.from(root.querySelectorAll<HTMLInputElement>('.b24-colors__swatch input')).find((r) => r.value.toLowerCase() === v.toLowerCase());
+      root.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach((r) => { r.checked = r === radio; });
+      root.querySelector('.b24-colors__custom')?.classList.remove('is-active');
+    },
+    destroy() { off(); root.removeEventListener('change', onChange); root.remove(); },
+  };
+}
+
+export interface SegmentedItem { value: string; label: string; icon?: IconName; disabled?: boolean; /** цвет акцента (бренд): выбранный пункт заливается им */ color?: string }
+export interface SegmentedOptions { items: SegmentedItem[]; value?: string; wide?: boolean; ariaLabel?: string; onChange?: (value: string) => void }
+export interface SegmentedHandle { element: HTMLElement; getValue(): string; setValue(value: string): void; destroy(): void }
+
+/** Переключатель-«таблетка» со значками и цветом акцента: `createSegmented(el, { items: [{ value: 'tg', label: 'Telegram', icon: 'chat', color: '#2aabee' }], onChange })`. */
+export function createSegmented(host: HTMLElement, options: SegmentedOptions): SegmentedHandle {
+  const name = `b24-seg-${Math.random().toString(36).slice(2, 7)}`;
+  const root = h('div', { class: `b24-segmented${options.wide ? ' b24-segmented--wide' : ''}`, role: 'radiogroup', 'aria-label': options.ariaLabel });
+  let value = options.value ?? options.items.find((i) => !i.disabled)?.value ?? '';
+  for (const it of options.items) {
+    const input = h('input', { type: 'radio', name, value: it.value }) as HTMLInputElement;
+    input.checked = it.value === value;
+    input.disabled = !!it.disabled;
+    const label = h('label', {}, input, h('span', {}, it.icon ? html(icon(it.icon)) : '', it.label));
+    if (it.color) { label.style.setProperty('--accent', it.color); label.style.setProperty('--on-accent', readableTextColor(it.color)); }
+    root.append(label);
+  }
+  host.append(root);
+  root.addEventListener('change', (e) => { const t = e.target as HTMLInputElement; if (t.checked) { value = t.value; options.onChange?.(value); } });
+  return {
+    element: root,
+    getValue: () => value,
+    setValue(v) { value = v; root.querySelectorAll<HTMLInputElement>('input').forEach((i) => { i.checked = i.value === v; }); },
+    destroy() { root.remove(); },
+  };
+}
+
 export function initColors(root: HTMLElement): () => void {
+  paintChecks(root);
   const custom = root.querySelector<HTMLElement>('.b24-colors__custom');
   const picker = custom?.querySelector<HTMLInputElement>('input[type="color"]');
   const name = root.querySelector<HTMLInputElement>('.b24-colors__swatch input[type="radio"]')?.name;

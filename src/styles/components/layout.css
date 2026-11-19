@@ -195,3 +195,30 @@ html.b24-embed .b24-shell, .b24-shell.is-embed { grid-template-columns: minmax(0
 html.b24-embed .b24-shell__main, .b24-shell.is-embed > .b24-shell__main { padding: var(--b24-space-sm); }
 html.b24-embed .b24-shell__main { min-height: 100vh; }
 html.b24-embed .b24-im-bar { display: none; }
+
+/* Шапка оболочки: заголовок после бургера, поле поиска, сворачивание поиска в лупу
+ * .b24-shell__header > __toggle · __title · __search (--collapsible) > __search-toggle + __search-field · .b24-topnav · блок разработчика */
+.b24-shell__title { flex: 0 1 auto; min-width: 0; margin: 0 var(--b24-space-xs) 0 0; font-size: var(--b24-font-size-xl, 18px); font-weight: var(--b24-font-weight-medium); line-height: 1.2; color: var(--b24-glass-text, #fff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b24-shell__search { position: static; flex: 1 1 260px; min-width: 0; max-width: 420px; display: flex; align-items: center; }
+.b24-shell__search-field { flex: 1 1 auto; min-width: 0; }
+.b24-shell__search-toggle { display: none; flex: 0 0 auto; }
+/* сворачивается в лупу: поле раскрывается поверх шапки */
+.b24-shell__search--collapsible { flex: 0 0 auto; max-width: none; }
+.b24-shell__search--collapsible > .b24-shell__search-toggle { display: inline-flex; }
+.b24-shell__search--collapsible > .b24-shell__search-field { display: none; }
+.b24-shell__search--collapsible.is-open > .b24-shell__search-field {
+  display: flex; align-items: center; position: absolute; z-index: 5; inset: 0; padding: 0 var(--b24-space-lg) 0 var(--b24-space-xs);
+  background: var(--b24-air-bg-color, #1f4ea8); background-image: var(--b24-air-bg-image); background-attachment: fixed; background-size: cover;
+}
+.b24-shell__search--collapsible.is-open > .b24-shell__search-field > * { flex: 1 1 auto; max-width: 640px; }
+.b24-shell__search--collapsible.is-open > .b24-shell__search-toggle { position: relative; z-index: 6; }
+/* только на узком экране: .b24-shell__search--collapsible-mobile */
+.b24-shell__search--collapsible-mobile > .b24-shell__search-toggle { display: none; }
+@media (max-width: 768px) {
+  .b24-shell__search--collapsible-mobile { flex: 0 0 auto; max-width: none; }
+  .b24-shell__search--collapsible-mobile > .b24-shell__search-toggle { display: inline-flex; }
+  .b24-shell__search--collapsible-mobile > .b24-shell__search-field { display: none; }
+  .b24-shell__search--collapsible-mobile.is-open > .b24-shell__search-field { display: flex; align-items: center; position: absolute; z-index: 5; inset: 0; padding: 0 var(--b24-space-md); background: var(--b24-air-bg-color, #1f4ea8); background-image: var(--b24-air-bg-image); background-attachment: fixed; background-size: cover; }
+  .b24-shell__search--collapsible-mobile.is-open > .b24-shell__search-field > * { flex: 1 1 auto; }
+  .b24-shell__search--collapsible-mobile.is-open > .b24-shell__search-toggle { position: relative; z-index: 6; }
+}

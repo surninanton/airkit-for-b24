@@ -4,6 +4,7 @@ import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
 import { t } from '../js/i18n';
+import { readableTextColor } from '../js/kanban';
 
 /* ── Аккордеон ── */
 export function Accordion({ flush, className, children }: { flush?: boolean; className?: string; children: ReactNode }) {
@@ -83,12 +84,12 @@ export function CheckGroup({ options, value, onChange, height, ariaLabel }: { op
 }
 
 /* ── Сегментированный переключатель ── */
-export function Segmented<V extends string>({ options, value, onChange, wide, ariaLabel }: { options: Array<{ value: V; label: ReactNode; icon?: IconName; disabled?: boolean }>; value: V; onChange: (v: V) => void; wide?: boolean; ariaLabel?: string }) {
+export function Segmented<V extends string>({ options, value, onChange, wide, ariaLabel }: { options: Array<{ value: V; label: ReactNode; icon?: IconName; disabled?: boolean; /** цвет акцента пункта (бренд): выбранный заливается им */ color?: string }>; value: V; onChange: (v: V) => void; wide?: boolean; ariaLabel?: string }) {
   const name = useId();
   return (
     <div className={cx('b24-segmented', wide && 'b24-segmented--wide')} role="radiogroup" aria-label={ariaLabel}>
       {options.map((o) => (
-        <label key={o.value}>
+        <label key={o.value} style={o.color ? ({ '--accent': o.color, '--on-accent': readableTextColor(o.color) } as CSSProperties) : undefined}>
           <input type="radio" name={name} value={o.value} checked={value === o.value} disabled={o.disabled} onChange={() => onChange(o.value)} />
           <span>{o.icon && <Icon name={o.icon} />}{o.label}</span>
         </label>
@@ -121,6 +122,8 @@ export function RangePair({ value, onChange, min = 0, max = 100, step = 1, suffi
 }
 
 /* ── Выбор цвета ── */
+/** цвет галочки на выбранном цвете: тёмная на светлых, белая на тёмных */
+const checkColor = (color: string) => (readableTextColor(color) === '#ffffff' ? '#fff' : '#1f2329');
 export const B24_COLORS = ['#2fc6f6', '#0075ff', '#1bce7b', '#faa72c', '#ff5752', '#a77bde', '#e66f9b', '#828b95'];
 export function ColorPicker({ value, onChange, colors = B24_COLORS, custom = true, ariaLabel = t('Цвет') }: { value: string; onChange: (v: string) => void; colors?: string[]; custom?: boolean; ariaLabel?: string }) {
   const name = useId();
@@ -128,7 +131,7 @@ export function ColorPicker({ value, onChange, colors = B24_COLORS, custom = tru
   return (
     <div className="b24-colors" role="radiogroup" aria-label={ariaLabel}>
       {colors.map((c) => (
-        <label key={c} className="b24-colors__swatch" style={{ ['--c' as string]: c }} title={c}>
+        <label key={c} className="b24-colors__swatch" style={{ ['--c' as string]: c, ['--_ck' as string]: checkColor(c) }} title={c}>
           <input type="radio" name={name} value={c} checked={value === c} aria-label={c} onChange={() => onChange(c)} />
         </label>
       ))}
