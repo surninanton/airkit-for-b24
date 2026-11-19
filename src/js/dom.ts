@@ -140,7 +140,7 @@ export function anchorOverlayInFrame(overlay: HTMLElement, dialog: HTMLElement):
  * поэтому календарь внутри слайдера или модалка из попапа фильтра всегда видны поверх.
  * Тосты и тултипы — выше всех (--b24-z-toast / --b24-z-tooltip).
  */
-let zCounter = 1000;
+let zCounter = 1200;   // выше панелей и окон чата (--b24-z-panel 1100) и правой панели мессенджера (1090): край меню не уходит под них
 /** Пока открыт экран блокировки (createLockScreen), окна, меню и подтверждения встают над ним: иначе из onOtherUser
  * нельзя показать B24UI.confirm. Слой экрана — --b24-z-lock (ниже тостов), окна над ним — от --b24-z-lock + 1. */
 let zLockCounter = 0;

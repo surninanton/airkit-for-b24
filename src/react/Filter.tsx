@@ -168,8 +168,11 @@ export function Filter({
             clearTimeout(timer.current);
             if (searchDebounce > 0) timer.current = setTimeout(() => emit({ ...value, search: s }), searchDebounce);
           }}
+          // параметры открываются сразу, как только курсор встал в строку поиска; фокус остаётся в строке
+          onFocus={() => { if (!open) openPopup(); }}
+          onClick={() => { if (!open) openPopup(); }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer.current); emit({ ...value, search }); }
+            if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer.current); setOpen(false); emit({ ...value, search }); }
             if (e.key === 'Backspace' && !search) {
               const keys = Object.keys(cleanValues(fields, value.values));
               if (!keys.length) return;
@@ -191,7 +194,7 @@ export function Filter({
 
       <Popover
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => { setOpen(false); barRef.current?.dispatchEvent(new CustomEvent('b24:filter-esc', { bubbles: true })); }}
         anchorRef={barRef}
         className="b24-filter-popup"
         ignoreOutside=".b24-datepicker-popup, .b24-overlay"

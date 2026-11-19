@@ -156,6 +156,14 @@
             </div>
           </div>
         </div>
+        <div id="fake-shell2" style="background: var(--b24-air-bg-color, #1f4ea8); border-radius:10px">
+          <div class="b24-shell__header" style="position:relative; min-height:56px; border-radius:10px">
+            <h1 class="b24-shell__title b24-shell__title--lg" id="fake-title2">Заказы</h1>
+            <div class="b24-shell__search b24-shell__search--collapsible-mobile" id="fake-search2">
+              <div class="b24-shell__search-field"><div id="fake-filter" data-no-auto></div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -165,6 +173,7 @@
   import * as B24UI from '../src/js/global.ts';
   document.getElementById('demo-rating').addEventListener('b24:rating-change', (e) => { document.getElementById('rating-out').textContent = e.detail.value ? `Оценка: ${e.detail.value}` : 'Не оценено'; });
   document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  B24UI.createFilter(document.getElementById('fake-filter'), { fields: [{ id: 'status', label: 'Статус', type: 'select', options: [{ value: 'new', label: 'Новый' }, { value: 'done', label: 'Готов' }] }], placeholder: 'Фильтр и поиск', glass: true });
   // контекстное меню
   const ctxOut = document.getElementById('ctx-out');
   B24UI.contextMenu(document.getElementById('ctx-area'), [
@@ -174,10 +183,12 @@
     { separator: true },
     { label: 'Отменить заказ', icon: 'trash', danger: true, onClick: () => { ctxOut.textContent = 'Отменить'; } },
     { label: 'Недоступно', disabled: true },
+    { separator: true },
+    { content: (close) => { const box = document.createElement('div'); B24UI.createColors(box, { colors: [{ value: '#2fc6f6', name: 'Голубой' }, { value: '#faa72c', name: 'Оранжевый' }, { value: '#ff5752', name: 'Красный' }, { value: '#1bce7b', name: 'Зелёный' }], custom: false, onChange: (c) => { ctxOut.textContent = `Цвет: ${c}`; close(); } }); return box; } },
   ]);
   B24UI.createColors(document.getElementById('palette'), { colors: ['#2fc6f6', '#0075ff', '#1bce7b', '#faa72c', '#ffd400', '#ffffff', '#ff5752', '#828b95'], value: '#ffd400', onChange: (c) => { ctxOut.textContent = `Цвет: ${c}`; } });
   B24UI.createSegmented(document.getElementById('brands'), {
-    items: [{ value: 'tg', label: 'Telegram', icon: 'chat', color: '#2aabee' }, { value: 'vk', label: 'VK', icon: 'chat', color: '#0077ff' }, { value: 'max', label: 'MAX', icon: 'chat', color: '#7b4dff' }, { value: 'yellow', label: 'Сайт', icon: 'home', color: '#ffd400' }],
+    items: [{ value: 'tg', label: 'Telegram', icon: 'chat', color: '#2aabee' }, { value: 'vk', label: 'VK', icon: 'chat', color: '#0077ff' }, { value: 'max', label: 'MAX', icon: 'chat', color: '#7b4dff' }, { value: 'yellow', label: 'Сайт', icon: 'home', color: '#ffd400' }, { value: 'logo', label: 'Лого', src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="9" fill="#e2793a"/></svg>'), color: '#e2793a' }],
     value: 'tg', onChange: (v) => { ctxOut.textContent = `Канал: ${v}`; },
   });
   document.getElementById('theme-tabs').addEventListener('click', (e) => {

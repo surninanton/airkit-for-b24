@@ -91,7 +91,7 @@
 /* ── Сегментированный переключатель ──
  * <div class="b24-segmented" role="radiogroup"><label><input type="radio" name="v" checked><span>День</span></label>…</div>
  */
-.b24-segmented { display: inline-flex; gap: 2px; padding: 2px; background: var(--b24-bg-surface-3); border-radius: var(--b24-radius-md); }
+.b24-segmented { display: inline-flex; flex-wrap: wrap; max-width: 100%; gap: 2px; padding: 2px; background: var(--b24-bg-surface-3); border-radius: var(--b24-radius-md); }
 .b24-segmented > label { position: relative; display: inline-flex; }
 .b24-segmented > label > input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .b24-segmented > label > span {
@@ -109,6 +109,7 @@
 .b24-segmented > label[style*="--accent"] > input:checked + span { color: var(--on-accent, #fff); background: var(--accent); box-shadow: none; }
 .b24-segmented > label[style*="--accent"] > span svg { color: var(--accent); }
 .b24-segmented > label[style*="--accent"] > input:checked + span svg { color: currentColor; }
+.b24-segmented__img { width: 20px; height: 20px; flex: 0 0 auto; object-fit: contain; border-radius: 4px; }
 .b24-segmented--wide { display: flex; }
 .b24-segmented--wide > label { flex: 1 1 0; }
 .b24-segmented--wide > label > span { justify-content: center; width: 100%; }

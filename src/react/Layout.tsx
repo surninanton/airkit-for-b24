@@ -192,12 +192,14 @@ export interface ShellProps {
   embed?: boolean;
   /** заголовок в шапке: после бургера, до меню; одна строка с многоточием */
   title?: ReactNode;
+  /** размер заголовка: lg — крупный, как у заголовка раздела (по умолчанию средний) */
+  titleSize?: 'md' | 'lg';
   /** поле поиска в шапке (обычно <Filter glass /> или <Input glass />), рядом с заголовком */
   search?: ReactNode;
   /** поиск сворачивается в лупу и раскрывается поверх шапки: true — всегда, 'mobile' — только на узком экране */
   searchCollapsible?: boolean | 'mobile';
 }
-export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange, vendor, embed, title, search, searchCollapsible }: ShellProps) {
+export function AppShell({ sidebar, header, children, collapsed: collapsedProp, onCollapsedChange, vendor, embed, title, titleSize, search, searchCollapsible }: ShellProps) {
   const [inner, setInner] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -226,12 +228,12 @@ export function AppShell({ sidebar, header, children, collapsed: collapsedProp, 
         <button type="button" className="b24-btn b24-btn--plain b24-btn--icon b24-shell__toggle" style={{ color: '#fff' }} aria-label={t('Меню')} onClick={toggle}>
           <Icon name="menu" />
         </button>
-        {title != null && <h1 className="b24-shell__title">{title}</h1>}
+        {title != null && <h1 className={cx('b24-shell__title', titleSize === 'lg' && 'b24-shell__title--lg')}>{title}</h1>}
         {search != null && (
           <div ref={searchRef} className={cx('b24-shell__search', searchCollapsible === true && 'b24-shell__search--collapsible', searchCollapsible === 'mobile' && 'b24-shell__search--collapsible-mobile', searchOpen && 'is-open')}>
             {!!searchCollapsible && (
               <button type="button" className="b24-btn b24-btn--glass b24-btn--icon b24-shell__search-toggle" aria-label={t('Поиск')} aria-expanded={searchOpen} onClick={() => setSearchOpen((v) => !v)}>
-                <Icon name="search" />
+                <Icon name={searchOpen ? 'close' : 'search'} />
               </button>
             )}
             <div className="b24-shell__search-field">{search}</div>

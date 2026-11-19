@@ -74,8 +74,8 @@ const paintChecks = (root: HTMLElement) => root.querySelectorAll<HTMLElement>('.
 });
 
 export interface ColorsOptions {
-  /** палитра: массив цветов (#rrggbb) */
-  colors: string[];
+  /** палитра: массив цветов (#rrggbb) или { value, name }: name — подпись цвета (подсказка и aria-label вместо hex) */
+  colors: Array<string | { value: string; name?: string }>;
   value?: string;
   /** добавить «свой цвет» (по умолчанию да) */
   custom?: boolean;
@@ -90,14 +90,15 @@ export function createColors(host: HTMLElement, options: ColorsOptions): ColorsH
   const name = options.name ?? `b24-color-${Math.random().toString(36).slice(2, 7)}`;
   const root = h('div', { class: 'b24-colors', role: 'radiogroup', 'aria-label': options.ariaLabel ?? tr('Цвет') });
   let value = options.value ?? '';
-  for (const c of options.colors) {
-    const input = h('input', { type: 'radio', name, value: c, 'aria-label': c }) as HTMLInputElement;
-    input.checked = c.toLowerCase() === value.toLowerCase();
-    const sw = h('label', { class: 'b24-colors__swatch', title: c }, input);
-    sw.style.setProperty('--c', c);
+  const list = options.colors.map((c) => (typeof c === 'string' ? { value: c, name: c } : { value: c.value, name: c.name ?? c.value }));
+  for (const c of list) {
+    const input = h('input', { type: 'radio', name, value: c.value, 'aria-label': c.name }) as HTMLInputElement;
+    input.checked = c.value.toLowerCase() === value.toLowerCase();
+    const sw = h('label', { class: 'b24-colors__swatch', title: c.name }, input);
+    sw.style.setProperty('--c', c.value);
     root.append(sw);
   }
-  const isCustom = !!value && !options.colors.some((c) => c.toLowerCase() === value.toLowerCase());
+  const isCustom = !!value && !list.some((c) => c.value.toLowerCase() === value.toLowerCase());
   if (options.custom !== false) {
     const picker = h('input', { type: 'color', 'aria-label': tr('Свой цвет') }) as HTMLInputElement;
     picker.value = isCustom ? value : '#0075ff';
@@ -128,7 +129,7 @@ export function createColors(host: HTMLElement, options: ColorsOptions): ColorsH
   };
 }
 
-export interface SegmentedItem { value: string; label: string; icon?: IconName; disabled?: boolean; /** цвет акцента (бренд): выбранный пункт заливается им */ color?: string }
+export interface SegmentedItem { value: string; label: string; icon?: IconName; /** картинка 20 px (логотип бренда) вместо значка кита */ src?: string; disabled?: boolean; /** цвет акцента (бренд): выбранный пункт заливается им */ color?: string }
 export interface SegmentedOptions { items: SegmentedItem[]; value?: string; wide?: boolean; ariaLabel?: string; onChange?: (value: string) => void }
 export interface SegmentedHandle { element: HTMLElement; getValue(): string; setValue(value: string): void; destroy(): void }
 
@@ -141,7 +142,7 @@ export function createSegmented(host: HTMLElement, options: SegmentedOptions): S
     const input = h('input', { type: 'radio', name, value: it.value }) as HTMLInputElement;
     input.checked = it.value === value;
     input.disabled = !!it.disabled;
-    const label = h('label', {}, input, h('span', {}, it.icon ? html(icon(it.icon)) : '', it.label));
+    const label = h('label', {}, input, h('span', {}, it.src ? h('img', { class: 'b24-segmented__img', src: it.src, alt: '' }) : it.icon ? html(icon(it.icon)) : '', it.label));
     if (it.color) { label.style.setProperty('--accent', it.color); label.style.setProperty('--on-accent', readableTextColor(it.color)); }
     root.append(label);
   }

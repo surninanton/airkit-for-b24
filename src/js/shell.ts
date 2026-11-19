@@ -36,20 +36,25 @@ export function initShellSearch(el: HTMLElement): ShellSearchHandle {
     if (el.classList.contains('is-open')) return;
     el.classList.add('is-open');
     toggle!.setAttribute('aria-expanded', 'true');
-    field?.querySelector<HTMLElement>('input, textarea')?.focus();
+    toggle!.innerHTML = icon('close');
     document.addEventListener('pointerdown', onDown, true);
+    // слой раньше фокуса: фокус в фильтре открывает его параметры (свой слой) — они должны лежать выше, и Esc закрывает их первыми
     release.fn = pushLayer(() => { close(); toggle!.focus(); });
+    field?.querySelector<HTMLElement>('input, textarea')?.focus();
   };
   const close = () => {
     if (!el.classList.contains('is-open')) return;
     el.classList.remove('is-open');
     toggle!.setAttribute('aria-expanded', 'false');
+    toggle!.innerHTML = icon('search');
     document.removeEventListener('pointerdown', onDown, true);
     release.fn();
   };
   // курсор в фильтре открывает его попап вне шапки: клики в попапах и календарях — «внутри»
   const onDown = (e: Event) => { const t = e.target as HTMLElement; if (!el.contains(t) && !t.closest('.b24-popup, .b24-datepicker-popup, .b24-overlay')) close(); };
   toggle.addEventListener('click', () => (el.classList.contains('is-open') ? close() : open()));
+  // Esc, закрывший параметры фильтра внутри поля, сворачивает и само поле: одного Esc достаточно
+  el.addEventListener('b24:filter-esc', () => { close(); toggle!.focus(); });
   const handle: ShellSearchHandle = {
     open, close, isOpen: () => el.classList.contains('is-open'),
     destroy() { close(); delete (el as HTMLElement & { _b24Search?: ShellSearchHandle })._b24Search; },

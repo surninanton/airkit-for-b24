@@ -12,7 +12,7 @@ test('контекстное меню: правая кнопка, пункты, 
   await expect(menu).toBeVisible();
   await expect(menu.locator('.b24-menu__item')).toHaveText(['ОткрытьEnter', 'Копировать номер', 'Отменить заказ', 'Недоступно']);
   await expect(menu.locator('.b24-menu__title')).toHaveText('Заказ № 4821');
-  await expect(menu.locator('.b24-menu__divider')).toHaveCount(1);
+  await expect(menu.locator('.b24-menu__divider')).toHaveCount(2);
   await expect(menu.locator('.b24-menu__item--danger')).toHaveText('Отменить заказ');
   await expect(menu.getByRole('menuitem', { name: 'Недоступно' })).toBeDisabled();
   // клавиатура: фокус на первом, ↓ ↓ Enter
@@ -146,4 +146,63 @@ test('звонок: аватар и бренд в строке журнала, �
   await expect(card).toHaveCSS('border-top-color', 'rgb(226, 121, 58)');
   await expect(card.locator('.b24-callcard__brand')).toHaveText('Пицца Ролл');
   await page.evaluate(() => { /* смена бренда на лету */ });
+});
+
+test('меню: пункт со своим содержимым (палитра с подписями), позиция пересчитывается, выше правой панели', async ({ page }) => {
+  await open(page, '/controls.html');
+  const area = page.locator('#ctx-area');
+  await area.scrollIntoViewIfNeeded();
+  await area.click({ button: 'right' });
+  const menu = page.locator('.b24-context-menu');
+  await expect(menu.locator('.b24-context-menu__content .b24-colors__swatch')).toHaveCount(4);
+  await expect(menu.locator('.b24-colors__swatch').first()).toHaveAttribute('title', 'Голубой');
+  await expect(menu.locator('.b24-colors__swatch input').nth(1)).toHaveAttribute('aria-label', 'Оранжевый');
+  await menu.locator('.b24-colors__swatch').nth(2).click();                 // выбор в содержимом закрывает меню через close()
+  await expect(menu).toHaveCount(0);
+  await expect(page.locator('#ctx-out')).toHaveText('Цвет: #ff5752');
+  // у правого нижнего края содержимое не уводит меню за экран; z-index выше панели мессенджера (1090) и окон (1100)
+  await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Api }).B24UI;
+    B.openContextMenu(window.innerWidth - 4, window.innerHeight - 4, [{ label: 'Один' }, { content: () => { const d = document.createElement('div'); d.style.height = '120px'; d.textContent = 'Содержимое'; return d; } }]);
+  });
+  await expect(menu).toBeVisible();
+  const box = (await menu.boundingBox())!;
+  const vp = page.viewportSize()!;
+  expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+  expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+  expect(Number(await menu.evaluate((e) => getComputedStyle(e).zIndex))).toBeGreaterThan(1100);
+});
+
+test('таблетка: логотип-картинка вместо значка; заголовок оболочки крупный по модификатору', async ({ page }) => {
+  await open(page, '/controls.html');
+  const logo = page.locator('#brands .b24-segmented > label', { hasText: 'Лого' });
+  await expect(logo.locator('img.b24-segmented__img')).toHaveCount(1);
+  const wh = await logo.locator('img').evaluate((e) => [e.clientWidth, e.clientHeight]);
+  expect(wh).toEqual([20, 20]);
+  await logo.click();
+  await expect(logo.locator('span')).toHaveCSS('background-color', 'rgb(226, 121, 58)');
+  const small = await page.locator('#fake-title').evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  const big = await page.locator('#fake-title2').evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  expect(big).toBeGreaterThan(small);
+  expect(big).toBeGreaterThanOrEqual(24);
+});
+
+test('поиск в шапке (мобильный режим): лупа не перекрывает поле, нет горизонтальной прокрутки, один Esc закрывает и фильтр, и поле', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await open(page, '/controls.html');
+  await page.locator('#fake-shell2').scrollIntoViewIfNeeded();
+  const search = page.locator('#fake-search2');
+  await search.locator('.b24-shell__search-toggle').click();
+  await expect(search).toHaveClass(/is-open/);
+  await noHorizontalScroll(page);
+  const tb = (await search.locator('.b24-shell__search-toggle').boundingBox())!;
+  const fb = (await search.locator('.b24-filter').boundingBox())!;
+  expect(fb.x + fb.width).toBeLessThanOrEqual(tb.x + 1);              // поле заканчивается до лупы
+  await expect(search.locator('.b24-shell__search-toggle svg')).toBeVisible();
+  // курсор в строке — параметры открыты; Esc закрывает всё сразу
+  await search.locator('.b24-filter__input').click();
+  await expect(page.locator('.b24-filter-popup')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.b24-filter-popup')).toBeHidden();
+  await expect(search).not.toHaveClass(/is-open/);
 });

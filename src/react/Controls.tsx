@@ -84,14 +84,14 @@ export function CheckGroup({ options, value, onChange, height, ariaLabel }: { op
 }
 
 /* ── Сегментированный переключатель ── */
-export function Segmented<V extends string>({ options, value, onChange, wide, ariaLabel }: { options: Array<{ value: V; label: ReactNode; icon?: IconName; disabled?: boolean; /** цвет акцента пункта (бренд): выбранный заливается им */ color?: string }>; value: V; onChange: (v: V) => void; wide?: boolean; ariaLabel?: string }) {
+export function Segmented<V extends string>({ options, value, onChange, wide, ariaLabel }: { options: Array<{ value: V; label: ReactNode; icon?: IconName; /** картинка 20 px (логотип бренда) вместо значка */ src?: string; disabled?: boolean; /** цвет акцента пункта (бренд): выбранный заливается им */ color?: string }>; value: V; onChange: (v: V) => void; wide?: boolean; ariaLabel?: string }) {
   const name = useId();
   return (
     <div className={cx('b24-segmented', wide && 'b24-segmented--wide')} role="radiogroup" aria-label={ariaLabel}>
       {options.map((o) => (
         <label key={o.value} style={o.color ? ({ '--accent': o.color, '--on-accent': readableTextColor(o.color) } as CSSProperties) : undefined}>
           <input type="radio" name={name} value={o.value} checked={value === o.value} disabled={o.disabled} onChange={() => onChange(o.value)} />
-          <span>{o.icon && <Icon name={o.icon} />}{o.label}</span>
+          <span>{o.src ? <img className="b24-segmented__img" src={o.src} alt="" /> : o.icon && <Icon name={o.icon} />}{o.label}</span>
         </label>
       ))}
     </div>

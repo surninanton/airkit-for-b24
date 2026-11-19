@@ -274,7 +274,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     position();
     document.addEventListener('mousedown', onDocDown);
     addEventListener('resize', position);
-    releaseLayer = pushLayer(() => close());
+    releaseLayer = pushLayer(() => { close(); container.dispatchEvent(new CustomEvent('b24:filter-esc', { bubbles: true })); });
     if (opts.focus !== false) popup.querySelector<HTMLElement>('input,select')?.focus();
   }
   function close() {

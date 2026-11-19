@@ -25,6 +25,8 @@ export interface ContextMenuItem {
   separator?: boolean;
   /** заголовок группы (серым) вместо пункта */
   title?: string;
+  /** своё содержимое вместо пункта: палитра, поле ввода, мини-форма; функция получает close() для закрытия меню. Позиция пересчитывается, когда меню выросло */
+  content?: Node | ((close: () => void) => Node);
   onClick?: () => void;
 }
 export type ContextMenuItems = ContextMenuItem[] | ((event: Event, target: HTMLElement) => ContextMenuItem[] | null | undefined);
@@ -55,6 +57,12 @@ export function openContextMenu(x: number, y: number, items: ContextMenuItem[], 
   const btns: HTMLButtonElement[] = [];
   for (const it of items) {
     if (it.separator) { list.append(h('div', { class: 'b24-menu__divider', role: 'separator' })); continue; }
+    if (it.content) {
+      const box = h('div', { class: 'b24-context-menu__content' });
+      box.append(typeof it.content === 'function' ? it.content(() => close()) : it.content);
+      list.append(box);
+      continue;
+    }
     if (it.title && !it.label) { list.append(h('div', { class: 'b24-menu__title' }, it.title)); continue; }
     const b = h('button', { type: 'button', role: 'menuitem', class: `b24-menu__item${it.danger ? ' b24-menu__item--danger' : ''}`, tabindex: '-1' }, it.icon ? html(icon(it.icon)) : '', h('span', {}, it.label ?? '')) as HTMLButtonElement;
     if (it.hint) b.append(h('span', { class: 'b24-menu__hint' }, it.hint));
@@ -74,6 +82,9 @@ export function openContextMenu(x: number, y: number, items: ContextMenuItem[], 
     menu.style.visibility = '';
   };
   place();
+  // содержимое пункта может менять размер (палитра, раскрытие): держим меню внутри экрана
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => place()) : null;
+  ro?.observe(menu);
   const openedAt = Date.now();
   const ignore = options.ignoreOutsideMs ?? 400;
   const onDown = (e: Event) => { if (Date.now() - openedAt < ignore) return; if (!menu.contains(e.target as Node)) close(); };
@@ -102,6 +113,7 @@ export function openContextMenu(x: number, y: number, items: ContextMenuItem[], 
     document.removeEventListener('pointerdown', onDown, true);
     document.removeEventListener('scroll', onScroll, true);
     window.removeEventListener('resize', close);
+    ro?.disconnect();
     menu.remove();
     if (current?.close === close) current = null;
     options.onClose?.();
