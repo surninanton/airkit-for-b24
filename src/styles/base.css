@@ -23,6 +23,10 @@ body.b24-root { margin: 0; }
   outline: 2px solid var(--b24-focus-color);
   outline-offset: 2px;
 }
+/* поля ввода показывают фокус своей рамкой и кольцом: системную обводку поверх них не рисуем */
+.b24-root :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="button"], [type="submit"], [type="reset"], [type="color"]), textarea, select, [contenteditable="true"]):focus-visible {
+  outline: none;
+}
 
 /* Typography helpers */
 .b24-h1 { font-size: var(--b24-font-size-4xl); font-weight: var(--b24-font-weight-medium); line-height: 34px; margin: 0; }

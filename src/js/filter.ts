@@ -33,7 +33,8 @@ export interface FilterOptions {
 export interface FilterHandle {
   getState(): FilterState;
   setState(state: Partial<FilterState>, apply?: boolean): void;
-  open(): void;
+  /** открыть параметры; { focus: false } — не переносить фокус в первое поле (по умолчанию переносится) */
+  open(options?: { focus?: boolean }): void;
   close(): void;
   /** обновить числа у пресетов и вариантов полей (undefined — убрать) */
   setCounts(counts: FilterCounts): void;
@@ -258,7 +259,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     if (!popup.contains(t) && !bar.contains(t) && !t.closest('.b24-datepicker-popup, .b24-overlay')) close();
   };
 
-  function open() {
+  function open(opts: { focus?: boolean } = {}) {
     if (opened) return;
     opened = true;
     draft = structuredClone(state);
@@ -274,7 +275,7 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     document.addEventListener('mousedown', onDocDown);
     addEventListener('resize', position);
     releaseLayer = pushLayer(() => close());
-    popup.querySelector<HTMLElement>('input,select')?.focus();
+    if (opts.focus !== false) popup.querySelector<HTMLElement>('input,select')?.focus();
   }
   function close() {
     if (!opened) return;
@@ -330,8 +331,11 @@ export function createFilter(container: HTMLElement, options: FilterOptions): Fi
     clearTimeout(timer);
     if (searchDebounce > 0 && submit === 'event') timer = setTimeout(apply, searchDebounce);
   });
+  // параметры открываются сразу, как только курсор встал в строку поиска; фокус остаётся в строке, можно печатать
+  input.addEventListener('focus', () => open({ focus: false }));
+  input.addEventListener('click', () => open({ focus: false }));     // курсор уже в строке (после Esc) — клик открывает снова
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); apply(); }
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); close(); apply(); }
     if (e.key === 'Backspace' && !input.value && Object.keys(state.values).length) {
       const keys = Object.keys(cleanValues(fields, state.values));
       const values = { ...state.values };
