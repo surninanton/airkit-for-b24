@@ -27,11 +27,11 @@ html:has(.b24-shell) .b24-im-bar { --b24-im-bar-top: var(--b24-header-height); }
 }
 .b24-im-bar__list::-webkit-scrollbar { display: none; }
 .b24-im-bar__btn {
-  position: relative; flex: 0 0 auto; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; margin: 0;
+  position: relative; flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; margin: 2px;
   color: #fff; background: transparent; border: 0; border-radius: 50%; cursor: pointer;
   transition: background-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast);
 }
-.b24-im-bar__btn > svg { width: 22px; height: 22px; }
+.b24-im-bar__btn > svg { width: 20px; height: 20px; }
 .b24-im-bar__all, .b24-im-bar__action { background: rgba(255, 255, 255, 0.16); }
 .b24-im-bar__all:hover, .b24-im-bar__action:hover { background: rgba(255, 255, 255, 0.26); }
 .b24-im-bar__item .b24-avatar { --_s: 40px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
@@ -117,6 +117,7 @@ html.b24-has-im-bar .b24-chat-docks { right: calc(var(--b24-im-bar-width) + 8px)
 .b24-im-bar__action--primary, .b24-im-bar__action--primary:hover { background: var(--b24-color-primary); }
 .b24-im-bar__action:disabled { opacity: 0.45; cursor: not-allowed; }
 .b24-im-bar__dot { position: absolute; right: 2px; bottom: 2px; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #9aa3ad; box-shadow: 0 0 0 2px var(--b24-air-bg-color, #1f4ea8); pointer-events: none; }
+.b24-im-bar__action--success .b24-im-bar__dot { box-shadow: 0 0 0 2px #fff; }
 .b24-im-bar__dot.is-online { background: #1bce7b; }
 .b24-im-bar__dot.is-away { background: #faa72c; }
 .b24-im-bar__dot.is-offline { background: #9aa3ad; }

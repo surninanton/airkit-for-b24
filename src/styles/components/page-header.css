@@ -68,5 +68,7 @@
 
 /* пустая шапка раздела не занимает места: ни одного элемента внутри, и пустые строки тоже скрыты */
 .b24-page-header:not(:has(*)) { display: none; }
-.b24-page-header__nav:not(:has(*)), .b24-page-header__main:not(:has(*)), .b24-page-header__sub:not(:has(*)) { display: none; }
-.b24-page-header:not(:has(.b24-page-header__nav > *, .b24-page-header__main > *, .b24-page-header__sub > *)) { display: none; }
+.b24-page-header__nav:not(:has(> :not([hidden]))), .b24-page-header__main:not(:has(> :not([hidden]))), .b24-page-header__sub:not(:has(> :not([hidden]))) { display: none; }
+/* слот, где остались только скрытые ([hidden]) элементы, не занимает место */
+.b24-page-header :is(.b24-page-header__create, .b24-page-header__selectors, .b24-page-header__tools, .b24-page-header__counters, .b24-page-header__extra, .b24-page-header__aside, .b24-page-header__views):has(> *):not(:has(> :not([hidden]))) { display: none; }
+.b24-page-header:not(:has(.b24-page-header__nav > :not([hidden]), .b24-page-header__main > :not([hidden]), .b24-page-header__sub > :not([hidden]))) { display: none; }

@@ -35,6 +35,9 @@ body.b24-col-reordering, body.b24-col-reordering * { cursor: grabbing !important
   opacity: 0;
   transition: opacity var(--b24-duration-fast), background-color var(--b24-duration-fast);
 }
+/* у последнего столбца ручка внутри края, чтобы не давать горизонтальную прокрутку */
+.b24-datagrid thead th:last-child .b24-table__resizer { right: 0; width: 5px; }
+.b24-datagrid thead th:last-child .b24-table__resizer::after { left: auto; right: 0; }
 /* как в Б24: разделители в заголовке видны только когда курсор в заголовке */
 .b24-datagrid thead:hover .b24-table__resizer::after,
 body.b24-col-resizing .b24-table__resizer::after { opacity: 1; }
