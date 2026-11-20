@@ -75,3 +75,28 @@ test('звонок: плеер записи и компакт без гориз�
   await expect(page.locator('.b24-entity--compact')).toBeVisible();
   await noHorizontalScroll(page);
 });
+
+test('футер панели: на узком экране лишние кнопки в «Ещё», на широком все на месте', async ({ page }) => {
+  await open(page, '/cards.html?card=order');
+  const narrow = (page.locator('.b24-sidepanel').first());
+  const w = (await narrow.boundingBox())!.width;
+  if (w < 600) {
+    await expect(page.locator('[data-b24-more]')).toBeVisible();
+    await expect(page.locator('.b24-sidepanel__footer > button:visible')).toHaveCount(3);
+    await page.locator('[data-b24-more]').click();
+    await expect(page.locator('.b24-context-menu [role="menuitem"]')).toHaveCount(4);
+    await expect(page.locator('.b24-context-menu')).toContainText('Отменить заказ');
+  } else {
+    await expect(page.locator('[data-b24-more]')).toHaveCount(0);
+    await expect(page.locator('.b24-sidepanel__footer > button:visible')).toHaveCount(6);
+  }
+});
+
+test('стадии на узком экране: текущая крупно, остальные без подписи; бейдж бренда с картинкой', async ({ page }) => {
+  await open(page, '/cards.html?card=order');
+  await expect(page.locator('.b24-badge--brand .b24-badge__img')).toHaveJSProperty('height', 18);
+  if (((await page.locator('.b24-sidepanel').boundingBox())!.width) < 600) {
+    const w = await page.locator('.b24-stages__item:not(.is-current)').first().evaluate((e) => e.getBoundingClientRect().width);
+    expect(w).toBeLessThanOrEqual(31);
+  }
+});

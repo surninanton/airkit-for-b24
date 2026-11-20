@@ -874,3 +874,5 @@ import { Credit } from 'airkit-for-b24/react';
 - **Кто менял.** `.b24-entity__editor`: аватар `--sm` и «изменил Анна О. · 18:52», полное имя в `data-b24-tooltip`.
 - **Запись разговора** в записи ленты — `<div class="b24-timeline__record">` + `createAudioPlayer(el, { compact: true, preload: 'none' })`. В журнале звонков — `CallLogItem.record: { src, duration?, download? }`: под строкой встаёт компактный плеер.
 - **Компактный вариант** (попап софтфона, панель 360–400 px): `.b24-entity--compact` — одна колонка, аватар 44 px.
+- **Узкий экран.** Футер панели сам прячет лишние кнопки в «Ещё ▾» (`footerKeep`, по умолчанию остаются две; главные помечайте `data-b24-keep`). `.b24-stages` прокручивается по горизонтали, а `.b24-stages--fold` оставляет подпись только у текущей стадии.
+- **Метка бренда.** `<span class="b24-badge b24-badge--brand" style="--b24-badge-bg:#3b4a8a"><img class="b24-badge__img" src="…">Пицц и Ролл</span>`; цвет текста — `--b24-badge-color` (React: `<Badge color textColor src>`).

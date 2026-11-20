@@ -259,3 +259,4 @@ body.b24-scroll-lock { overflow: hidden; }
 .b24-sidepanel--air .b24-sidepanel__back { color: var(--b24-glass-text); background: rgba(255, 255, 255, 0.18); }
 .b24-sidepanel__back:hover { filter: brightness(1.08); }
 .b24-sidepanel__back svg { width: 16px; height: 16px; }
+.b24-sidepanel__footer [hidden] { display: none !important; }

@@ -100,6 +100,10 @@ export function init(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>('[data-b24-tabs]').forEach((el) => initTabs(el));
   root.querySelectorAll<HTMLElement>('.b24-timeline').forEach((el) => initTimelinePin(el));
   initEntityOpen();
+  root.querySelectorAll<HTMLElement>('.b24-stages').forEach((el) => {
+    const cur = el.querySelector<HTMLElement>('.is-current');
+    if (cur && el.scrollWidth > el.clientWidth) el.scrollLeft = cur.offsetLeft - (el.clientWidth - cur.offsetWidth) / 2;
+  });
   root.querySelectorAll<HTMLTableElement>('table[data-b24-sortable]').forEach(initSortableTable);
 
   root.querySelectorAll<HTMLInputElement>('input[data-b24-datepicker]').forEach((input) => {

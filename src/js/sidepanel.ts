@@ -1,3 +1,4 @@
+import { openContextMenu } from './context-menu';
 import { icon } from '../icons';
 import { animateOut, append, runAutoInit, bringToFront, focusFirst, h, html, lockScroll, pushLayer, trapFocus, type Content } from './dom';
 import { t } from './i18n';
@@ -13,6 +14,11 @@ export interface SidePanelOptions {
   footer?: Content;
   /** кнопка «← Назад» в шапке (для вложенной панели): закрывает эту панель и возвращает к предыдущей; строка — свой текст */
   back?: boolean | string;
+  /**
+   * Узкая панель (уже 600 px, на телефоне): в футере остаются первые `footerKeep` кнопок (или помеченные [data-b24-keep]),
+   * остальные уходят в меню «Ещё ▾». По умолчанию 2; 0 — не сворачивать, всегда показывать все.
+   */
+  footerKeep?: number;
   closeLabel?: string;
   onClose?: () => void;
   /** false — не инициализировать data-b24-* в содержимом (по умолчанию init() запускается для тела панели) */
@@ -28,9 +34,44 @@ export interface SidePanelHandle {
 
 const openPanels: SidePanelHandle[] = [];
 
+/** Узкая панель: лишние кнопки футера прячутся в «Ещё ▾» (кнопки остаются в DOM, пункт меню нажимает их). */
+function collapseFooter(footer: HTMLElement, panel: HTMLElement, keep: number, minWidth = 600): () => void {
+  let more: HTMLButtonElement | null = null;
+  let hiddenBtns: HTMLElement[] = [];
+  const restore = () => { hiddenBtns.forEach((b) => b.removeAttribute('hidden')); hiddenBtns = []; more?.remove(); more = null; };
+  const apply = () => {
+    const narrow = panel.getBoundingClientRect().width < minWidth;
+    const buttons = [...footer.children].filter((el): el is HTMLElement => el instanceof HTMLElement && el !== more && el.matches('button, a') && (!el.hidden || hiddenBtns.includes(el)));
+    const marked = buttons.filter((b) => b.hasAttribute('data-b24-keep'));
+    const kept = marked.length ? marked : buttons.slice(0, keep);
+    const extras = buttons.filter((b) => !kept.includes(b));
+    if (!narrow || !extras.length) { if (hiddenBtns.length) restore(); return; }
+    if (hiddenBtns.length === extras.length && extras.every((b, i) => b === hiddenBtns[i])) return;
+    restore();
+    hiddenBtns = extras;
+    extras.forEach((b) => b.setAttribute('hidden', ''));
+    const btn = h('button', { type: 'button', class: 'b24-btn b24-btn--secondary', 'data-b24-more': '', 'aria-haspopup': 'menu' }, t('Ещё'), html(icon('chevronDown')));
+    btn.addEventListener('click', () => {
+      const r = btn.getBoundingClientRect();
+      openContextMenu(r.right, r.top - 8, hiddenBtns.map((b) => ({
+        label: (b.textContent ?? '').replace(/\s+/g, ' ').trim() || b.getAttribute('aria-label') || '',
+        danger: b.classList.contains('b24-btn--danger'),
+        disabled: (b as HTMLButtonElement).disabled,
+        onClick: () => b.click(),
+      })));
+    });
+    footer.append(btn);
+    more = btn;
+  };
+  const ro = new ResizeObserver(apply);
+  ro.observe(panel);
+  apply();
+  return () => ro.disconnect();
+}
+
 /** Слайдер справа — аналог BX.SidePanel.Instance.open(). Вложенные панели сдвигаются «лесенкой». */
 export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
-  const { title, content, url, width = 900, air = false, footer, back, closeLabel = t('Закрыть'), onClose, autoInit = true } = options;
+  const { title, content, url, width = 900, air = false, footer, back, footerKeep = 2, closeLabel = t('Закрыть'), onClose, autoInit = true } = options;
   const depth = openPanels.length;
   const overlay = h('div', { class: 'b24-sidepanel-overlay b24-root', style: `background-color:var(--b24-bg-overlay)` });
   const panel = h('div', {
@@ -46,6 +87,7 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   const backBtn = back ? h('button', { type: 'button', class: 'b24-sidepanel__back' }, html(icon('arrowLeft')), typeof back === 'string' ? back : t('Назад')) : null;
   const header = h('div', { class: 'b24-sidepanel__header' }, ...(backBtn ? [backBtn] : []), titleEl);
   const body = h('div', { class: 'b24-sidepanel__body' });
+  let footerEl: HTMLElement | null = null;
 
   if (url) {
     body.style.padding = '0';
@@ -58,9 +100,9 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   if (title !== undefined) panel.append(header);
   panel.append(body);
   if (footer) {
-    const f = h('div', { class: 'b24-sidepanel__footer' });
-    append(f, footer);
-    panel.append(f);
+    footerEl = h('div', { class: 'b24-sidepanel__footer' });
+    append(footerEl, footer);
+    panel.append(footerEl);
   }
   overlay.append(panel);
 
@@ -78,6 +120,7 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
       closed = true;
       releaseLayer();
       releaseTrap();
+      stopFooter?.();
       const i = openPanels.indexOf(handle);
       if (i >= 0) openPanels.splice(i, 1);
       await animateOut(overlay, 'is-closing', 450);
@@ -94,6 +137,7 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) void handle.close(); });
 
   document.body.append(overlay);
+  const stopFooter = footerEl && footerKeep > 0 ? collapseFooter(footerEl, panel, footerKeep) : null;
   if (autoInit && !url) runAutoInit(panel);
   bringToFront(overlay);
   openPanels.push(handle);

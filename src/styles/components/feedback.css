@@ -118,3 +118,12 @@
 .b24-stage-mini__bar > i { flex: 1 1 0; min-width: 0; background: var(--b24-bg-surface-3); border-radius: 1px; }
 .b24-stage-mini__bar > i.is-done { background: var(--stage-color, var(--b24-color-primary)); }
 .b24-stage-mini__label { max-width: 100%; font-size: var(--b24-font-size-2xs); color: var(--b24-text-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Узкий экран: стадии не обрезаются, а прокручиваются по горизонтали; --fold — текущая крупно, остальные «точками» */
+@media (max-width: 560px) {
+  .b24-stages { overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .b24-stages::-webkit-scrollbar { display: none; }
+  .b24-stages__item { flex: 0 0 auto; min-width: 84px; scroll-snap-align: center; }
+  .b24-stages--fold .b24-stages__item:not(.is-current) { min-width: 0; width: 30px; padding: 0; font-size: 0; }
+  .b24-stages--fold .b24-stages__item.is-current { flex: 1 0 auto; }
+}

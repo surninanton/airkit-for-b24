@@ -81,12 +81,13 @@
       <div class="b24-entity__ident">
         <div class="b24-entity__sub"><span>Пицц и Ролл</span><span>·</span><span>20.11.2026 18:48</span><span>·</span><span>Магазин VK</span></div>
         <div class="b24-entity__sub"><span class="b24-badge b24-badge--danger">Отменён</span><span class="b24-badge b24-badge--success b24-badge--sm">ФП №62</span>
+          <span class="b24-badge b24-badge--brand b24-badge--sm" style="--b24-badge-bg:#3b4a8a"><img class="b24-badge__img" alt="" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='9' fill='%23ffd23f'/%3E%3C/svg%3E">Пицц и Ролл</span>
           <span class="b24-entity__editor" data-b24-tooltip="Анна Образцова, оператор"><span class="b24-avatar b24-avatar--sm" style="--b24-avatar-bg:#c58b4a">АО</span><span>изменил Анна О. · 18:52</span></span></div>
       </div>
       <div class="b24-entity__amount">1 399 ₽</div>
     </div>
-    <div class="b24-stages">
-      <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6">Принят</button>
+    <div class="b24-stages b24-stages--fold">
+      <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6" title="Принят">Принят</button>
       <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6">Готовится</button>
       <button class="b24-stages__item" style="--stage-color:#2fc6f6">Доставка</button>
       <button class="b24-stages__item is-current" style="--stage-color:#ff5752">Отменён</button>
@@ -135,7 +136,7 @@
       </div>
     </div>
   </div>`;
-  const orderFooter = () => `<button class="b24-btn b24-btn--success">${I('phone')}Позвонить</button><button class="b24-btn b24-btn--secondary">Чат · ВКонтакте</button><button class="b24-btn b24-btn--secondary">Чат · Telegram</button><button class="b24-btn b24-btn--secondary">Печать</button>`;
+  const orderFooter = () => `<button class="b24-btn b24-btn--success">${I('phone')}Позвонить</button><button class="b24-btn b24-btn--secondary">Чат · Telegram</button><button class="b24-btn b24-btn--secondary">Чат · MAX</button><button class="b24-btn b24-btn--secondary">Изменить в кассе</button><button class="b24-btn b24-btn--secondary">Отправить во Frontpad</button><button class="b24-btn b24-btn--danger">Отменить заказ</button>`;
 
   /* ── Клиент ── */
   const contact = () => `

@@ -83,10 +83,16 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   round?: boolean;
   caps?: boolean;
   icon?: IconName;
+  /** свой фон (бренд) и цвет текста; без textColor текст белый */
+  color?: string;
+  textColor?: string;
+  /** картинка 18 px слева (логотип бренда) */
+  src?: string;
 }
-export function Badge({ tone = 'gray', filled, size = 'md', round, caps, icon, className, children, ...rest }: BadgeProps) {
+export function Badge({ tone = 'gray', filled, size = 'md', round, caps, icon, color, textColor, src, className, style, children, ...rest }: BadgeProps) {
   return (
-    <span className={cx('b24-badge', `b24-badge--${tone}`, filled && 'b24-badge--filled', size !== 'md' && `b24-badge--${size}`, round && 'b24-badge--round', caps && 'b24-badge--caps', className)} {...rest}>
+    <span className={cx('b24-badge', `b24-badge--${tone}`, filled && 'b24-badge--filled', size !== 'md' && `b24-badge--${size}`, round && 'b24-badge--round', caps && 'b24-badge--caps', color && 'b24-badge--brand', className)} style={color || textColor ? { ...(color ? { '--b24-badge-bg': color } : null), ...(textColor ? { '--b24-badge-color': textColor } : null), ...style } as CSSProperties : style} {...rest}>
+      {src && <img className="b24-badge__img" src={src} alt="" />}
       {icon && <Icon name={icon} size={12} strokeWidth={2} />}
       {children}
     </span>

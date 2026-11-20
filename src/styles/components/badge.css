@@ -93,3 +93,10 @@
 }
 .b24-tag__remove:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
 .b24-tag__remove svg { width: 12px; height: 12px; }
+
+/* Свой цвет: style="--b24-badge-bg:#3b4a8a; --b24-badge-color:#fff"; картинка слева — .b24-badge__img (18px) */
+.b24-badge--brand { --_bg: var(--b24-badge-bg, var(--b24-color-primary)); --_color: var(--b24-badge-color, #fff); }
+.b24-badge[style*="--b24-badge-bg"] { background: var(--b24-badge-bg); }
+.b24-badge[style*="--b24-badge-color"] { color: var(--b24-badge-color); }
+.b24-badge__img { flex: 0 0 auto; width: auto; height: 18px; max-width: 56px; margin-left: -5px; border-radius: 3px; object-fit: contain; }
+.b24-badge--lg .b24-badge__img { height: 20px; }
