@@ -175,7 +175,7 @@
 .b24-sidepanel__body > * { min-width: 0; max-width: 100%; }
 .b24-sidepanel__footer {
   position: sticky; bottom: 0;
-  display: flex; gap: var(--b24-space-xs); justify-content: center;
+  display: flex; flex-wrap: wrap; gap: var(--b24-space-xs); justify-content: center;
   padding: 14px 24px;
   background: var(--b24-bg-surface);
   box-shadow: 0 -1px 0 var(--b24-divider), 0 -4px 12px rgba(0, 0, 0, 0.04);
@@ -251,3 +251,11 @@ body.b24-scroll-lock { overflow: hidden; }
 .b24-context-menu { min-width: 180px; max-width: min(320px, calc(100vw - 16px)); padding: 4px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .b24-context-menu .b24-menu__item { min-height: 36px; }
 .b24-context-menu__content { padding: 6px 10px; user-select: auto; -webkit-user-select: auto; touch-action: manipulation; }
+.b24-sidepanel__back {
+  display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto;
+  height: 32px; padding: 0 12px 0 8px; font: inherit; font-size: var(--b24-font-size-sm);
+  color: var(--b24-text-primary); background: var(--b24-bg-surface); border: 0; border-radius: var(--b24-radius-pill); cursor: pointer;
+}
+.b24-sidepanel--air .b24-sidepanel__back { color: var(--b24-glass-text); background: rgba(255, 255, 255, 0.18); }
+.b24-sidepanel__back:hover { filter: brightness(1.08); }
+.b24-sidepanel__back svg { width: 16px; height: 16px; }

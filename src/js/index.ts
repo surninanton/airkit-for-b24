@@ -3,6 +3,7 @@ export { modal, confirm, alert, type ModalOptions, type ModalHandle, type ModalB
 export { openSidePanel, closeAllSidePanels, type SidePanelOptions, type SidePanelHandle } from './sidepanel';
 export { dropdown, type DropdownOptions, type DropdownHandle } from './dropdown';
 export { initTabs } from './tabs';
+export { initEntityOpen } from './entity';
 export { initSortableTable, diffHtml, chipHtml, type DiffOptions } from './table';
 export { createCalendar, datepicker, type CalendarOptions, type CalendarHandle, type DatePickerOptions, type DatePickerHandle } from './calendar';
 export * from './date';
@@ -20,7 +21,7 @@ export { createFieldMapper, UPDATE_RULES, type FieldMapperOptions, type FieldMap
 export { createTagSelector, type TagSelectorOptions, type TagSelectorHandle } from './tag-selector';
 export { createUploader, formatSize, type UploaderOptions, type UploaderHandle, type UploaderFile, type UploadContext, type UploadStatus } from './uploader';
 export { createEntityEditor, formatMoney, type EntityEditorOptions, type EntityEditorHandle, type EditorField, type EditorSection, type EditorValues, type EditorFieldType } from './editor';
-export { initComposer, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
+export { initComposer, initTimelinePin, setTimelinePinned, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
 export { initTopnavMore } from './topnav-more';
 export {
   createChatList, createChatRail, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,

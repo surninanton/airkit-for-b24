@@ -81,3 +81,86 @@
 .b24-empty__icon svg { width: 34px; height: 34px; }
 .b24-empty__title { font-size: var(--b24-font-size-2xl); font-weight: var(--b24-font-weight-medium); color: var(--b24-text-primary); margin: 0; }
 .b24-empty__text { max-width: 420px; margin: 0 0 var(--b24-space-xs); }
+
+/* ── Карточка сущности (заказ, клиент, профиль) ─────────────
+ * Внутри .b24-sidepanel__body:
+ *   .b24-entity > .b24-entity__head (аватар/логотип, название, бейджи, сумма)
+ *               + .b24-entity__stages (необязательно, .b24-stages)
+ *               + .b24-entity__cols > .b24-entity__main (.b24-card …) + .b24-entity__side (композер и .b24-timeline)
+ * На узком экране колонки встают друг под друга: сначала данные, затем лента.
+ */
+.b24-entity { display: flex; flex-direction: column; gap: var(--b24-space-md); min-width: 0; }
+.b24-entity__head { color: var(--b24-entity-head-color, var(--b24-text-primary)); display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: var(--b24-space-xs) 0; }
+.b24-entity__head > .b24-avatar { --_s: 56px; }
+.b24-entity__ident { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 220px; }
+.b24-entity__name { margin: 0; font-size: var(--b24-font-size-3xl); font-weight: var(--b24-font-weight-medium); line-height: 1.25; color: inherit; }
+.b24-entity__sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--b24-font-size-sm); color: inherit; }
+.b24-entity__sub > span:not([class]) { opacity: 0.8; }
+.b24-entity__amount { margin-left: auto; font-size: var(--b24-font-size-5xl); font-weight: var(--b24-font-weight-medium); font-variant-numeric: tabular-nums; white-space: nowrap; color: inherit; }
+.b24-sidepanel--air { --b24-entity-head-color: var(--b24-glass-text); }
+.b24-sidepanel--air .b24-entity .b24-section-title { color: var(--b24-glass-text); opacity: 0.85; }
+.b24-entity__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--b24-space-sm); }
+.b24-entity__stats > .b24-card { padding: 12px 14px; }
+.b24-entity__cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--b24-space-md); align-items: start; }
+.b24-entity__main, .b24-entity__side { display: flex; flex-direction: column; gap: var(--b24-space-md); min-width: 0; }
+@media (max-width: 860px) { .b24-entity__cols { grid-template-columns: minmax(0, 1fr); } .b24-entity__amount { margin-left: 0; } }
+
+/* Свойства строками «название — значение» */
+.b24-props--rows { gap: 8px; }
+.b24-props--rows .b24-prop { flex-direction: row; align-items: baseline; gap: 12px; }
+.b24-props--rows .b24-prop__label { flex: 0 0 132px; }
+.b24-props--rows .b24-prop__value { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 480px) { .b24-props--rows .b24-prop { flex-direction: column; gap: 2px; } .b24-props--rows .b24-prop__label { flex-basis: auto; } }
+.b24-entity__stats .b24-stat__value { font-size: var(--b24-font-size-3xl); }
+
+/* Имя / номер, ведущие в другую карточку: [data-b24-entity-open] */
+.b24-entity-link {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%;
+  min-height: 30px; padding: 2px 8px 2px 3px;
+  font: inherit; font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-medium);
+  color: var(--b24-color-link); text-decoration: none;
+  background: var(--b24-color-soft-blue-3);
+  border: 1px solid transparent; border-radius: var(--b24-radius-pill);
+  cursor: pointer;
+  transition: background-color var(--b24-duration-fast) var(--b24-ease), box-shadow var(--b24-duration-fast) var(--b24-ease);
+}
+.b24-entity-link:not(:has(.b24-avatar)) { padding-left: 12px; }
+.b24-entity-link:hover { background: var(--b24-color-soft-blue-2); text-decoration: none; }
+.b24-entity-link:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; }
+.b24-entity-link > .b24-avatar { --_s: 24px; }
+.b24-entity-link > svg { width: 16px; height: 16px; flex: 0 0 auto; opacity: 0.7; }
+.b24-entity-link > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Значение с кнопками справа: номер + «Позвонить», почта + «Написать» */
+.b24-prop__value--row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.b24-btn--channel {
+  --_bg: var(--_c, var(--b24-color-primary)); --_bg-hover: color-mix(in srgb, var(--_c, var(--b24-color-primary)) 85%, #000); --_bg-active: color-mix(in srgb, var(--_c, var(--b24-color-primary)) 70%, #000);
+  --_border: transparent; --_color: #fff;
+}
+.b24-msgrs { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.b24-msgr { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.b24-msgr__id { color: var(--b24-text-primary); word-break: break-all; }
+
+/* Способ оплаты: меняется, пока нет фискального чека */
+.b24-pay { display: flex; flex-direction: column; gap: 10px; }
+.b24-pay__row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.b24-pay__row > .b24-select { width: auto; min-width: 200px; }
+.b24-pay__hint { margin: 0; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+
+/* Кто последним менял запись: аватар --sm и подпись */
+.b24-entity__editor { display: inline-flex; align-items: center; gap: 6px; font-size: var(--b24-font-size-xs); }
+.b24-entity__editor > .b24-avatar { --_s: 22px; font-size: 9px; }
+
+/* Закрепление в ленте */
+.b24-timeline__divider--pinned > span { --_c: var(--b24-color-warning); }
+.b24-timeline__pin[aria-pressed="true"] { color: var(--b24-color-warning); }
+.b24-timeline__record { margin-top: 8px; }
+
+/* Компактный вариант (попап софтфона, узкая панель): одна колонка, шапка поменьше */
+.b24-entity--compact { gap: var(--b24-space-sm); }
+.b24-entity--compact .b24-entity__cols { grid-template-columns: minmax(0, 1fr); }
+.b24-entity--compact .b24-entity__head > .b24-avatar { --_s: 44px; }
+.b24-entity--compact .b24-entity__name { font-size: var(--b24-font-size-xl); }
+.b24-entity--compact .b24-entity__amount { font-size: var(--b24-font-size-xl); margin-left: 0; }
+.b24-entity--compact .b24-props--rows .b24-prop__label { flex-basis: 104px; }
+.b24-prop__value--row > .b24-select { width: auto; min-width: 200px; }

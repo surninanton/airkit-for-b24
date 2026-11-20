@@ -2,6 +2,18 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### Карточки сущностей
+- `.b24-entity` — раскладка карточки в слайдере: шапка (`__head`, `__name`, `__sub`, `__amount`, `__editor`), `__stats`, колонки `__main` / `__side`, вариант `.b24-entity--compact`; `.b24-props--rows`, `.b24-prop__value--row`.
+- `.b24-entity-link` и `[data-b24-entity-open="тип:id"]` — переход в другую карточку; событие `b24:entity-open` (`initEntityOpen`, подключается в `init()`).
+- `openSidePanel({ back })` и `<SidePanel onBack>` — кнопка «← Назад» во вложенной панели.
+- Закрепление в ленте: `[data-b24-pin]`, `initTimelinePin`, `setTimelinePinned`, событие `b24:timeline-pin`; React `<TimelineItem pinnable>`, `<Timeline onPin>`.
+- Круглые кнопки связи: `.b24-btn--channel` (цвет в `--_c`), `.b24-msgrs` / `.b24-msgr`; блок оплаты `.b24-pay`.
+- `CallLogItem.record` — компактный плеер записи под строкой журнала звонков.
+- `.b24-sidepanel__footer` переносит кнопки на узком экране.
+- Демо `cards.html`: заказ, клиент, профиль (вкладки, правка по «Изменить»), звонок и его компакт.
+
 ## 0.18.1 — 2026-11-20
 
 ### Доработки меню и шапки оболочки

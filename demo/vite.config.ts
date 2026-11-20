@@ -26,6 +26,7 @@ export default defineConfig({
         chat: resolve(__dirname, 'chat.html'),
         receipt: resolve(__dirname, 'receipt.html'),
         phone: resolve(__dirname, 'phone.html'),
+        cards: resolve(__dirname, 'cards.html'),
       },
     },
   },

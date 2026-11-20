@@ -105,3 +105,53 @@ export function formatTimelineTime(date: Date, now = new Date()): string {
   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
   return `${date.getDate()} ${months[date.getMonth()]}${date.getFullYear() !== now.getFullYear() ? ` ${date.getFullYear()}` : ''}, ${time}`;
 }
+
+/**
+ * Закрепление записей ленты. Кнопка `[data-b24-pin]` внутри `.b24-timeline__item` закрепляет запись вверху ленты
+ * под разделителем «Закреплено», повторное нажатие возвращает её на прежнее место.
+ * Событие b24:timeline-pin { item, pinned } (cancelable: preventDefault — оставить как есть).
+ */
+const pinHome = new WeakMap<HTMLElement, Comment>();
+
+export function setTimelinePinned(timeline: HTMLElement, item: HTMLElement, pinned: boolean): void {
+  if (item.classList.contains('b24-timeline__item--pinned') === pinned) return;
+  let divider = timeline.querySelector<HTMLElement>(':scope > .b24-timeline__divider--pinned');
+  if (pinned) {
+    if (!divider) {
+      divider = document.createElement('div');
+      divider.className = 'b24-timeline__divider b24-timeline__divider--pinned';
+      divider.innerHTML = `<span>${t('Закреплено')}</span>`;
+      timeline.prepend(divider);
+    }
+    const home = document.createComment('pin');
+    item.before(home);
+    pinHome.set(item, home);
+    divider.after(item);
+  } else {
+    const home = pinHome.get(item);
+    if (home?.isConnected) home.replaceWith(item);
+    pinHome.delete(item);
+    item.classList.remove('b24-timeline__item--pinned');
+    if (!timeline.querySelector(':scope > .b24-timeline__item--pinned')) divider?.remove();
+  }
+  item.classList.toggle('b24-timeline__item--pinned', pinned);
+  const btn = item.querySelector<HTMLElement>('[data-b24-pin]');
+  if (btn) {
+    btn.setAttribute('aria-pressed', String(pinned));
+    btn.setAttribute('aria-label', pinned ? t('Открепить') : t('Закрепить'));
+    btn.title = pinned ? t('Открепить') : t('Закрепить');
+  }
+}
+
+export function initTimelinePin(timeline: HTMLElement): void {
+  if (timeline.dataset.b24PinReady) return;
+  timeline.dataset.b24PinReady = '1';
+  timeline.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-b24-pin]');
+    const item = btn?.closest<HTMLElement>('.b24-timeline__item');
+    if (!btn || !item || !timeline.contains(item)) return;
+    const pinned = !item.classList.contains('b24-timeline__item--pinned');
+    if (!timeline.dispatchEvent(new CustomEvent('b24:timeline-pin', { detail: { item, pinned }, bubbles: true, cancelable: true }))) return;
+    setTimelinePinned(timeline, item, pinned);
+  });
+}

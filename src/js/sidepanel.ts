@@ -11,6 +11,8 @@ export interface SidePanelOptions {
   /** Air-подложка внутри панели (как карточки CRM) */
   air?: boolean;
   footer?: Content;
+  /** кнопка «← Назад» в шапке (для вложенной панели): закрывает эту панель и возвращает к предыдущей; строка — свой текст */
+  back?: boolean | string;
   closeLabel?: string;
   onClose?: () => void;
   /** false — не инициализировать data-b24-* в содержимом (по умолчанию init() запускается для тела панели) */
@@ -28,7 +30,7 @@ const openPanels: SidePanelHandle[] = [];
 
 /** Слайдер справа — аналог BX.SidePanel.Instance.open(). Вложенные панели сдвигаются «лесенкой». */
 export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
-  const { title, content, url, width = 900, air = false, footer, closeLabel = t('Закрыть'), onClose, autoInit = true } = options;
+  const { title, content, url, width = 900, air = false, footer, back, closeLabel = t('Закрыть'), onClose, autoInit = true } = options;
   const depth = openPanels.length;
   const overlay = h('div', { class: 'b24-sidepanel-overlay b24-root', style: `background-color:var(--b24-bg-overlay)` });
   const panel = h('div', {
@@ -41,7 +43,8 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
 
   const closeBtn = h('button', { type: 'button', class: 'b24-sidepanel__close', 'aria-label': closeLabel }, html(icon('close')));
   const titleEl = h('h2', { class: 'b24-sidepanel__title' }, title ?? '');
-  const header = h('div', { class: 'b24-sidepanel__header' }, titleEl);
+  const backBtn = back ? h('button', { type: 'button', class: 'b24-sidepanel__back' }, html(icon('arrowLeft')), typeof back === 'string' ? back : t('Назад')) : null;
+  const header = h('div', { class: 'b24-sidepanel__header' }, ...(backBtn ? [backBtn] : []), titleEl);
   const body = h('div', { class: 'b24-sidepanel__body' });
 
   if (url) {
@@ -87,6 +90,7 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   const releaseLayer = pushLayer(() => void handle.close());
 
   closeBtn.addEventListener('click', () => void handle.close());
+  backBtn?.addEventListener('click', () => void handle.close());
   overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) void handle.close(); });
 
   document.body.append(overlay);

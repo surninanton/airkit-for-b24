@@ -5,6 +5,7 @@
  *   const log = createCallLog(el, { items, onSelect, onMissedChange: (n) => setNavCounter('/phone/missed/', n) });
  *   items: [{ id, direction: 'in' | 'out', missed: true, title: 'Мария Образцова', subtitle: '+7 (999) 123-45-67 · Доставка', time, duration: 125 }]
  */
+import { createAudioPlayer } from './audio-player';
 import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
 import { h, html } from './dom';
@@ -36,6 +37,8 @@ export interface CallLogItem {
   selected?: boolean;
   /** кнопки справа в строке («Перезвонить»); клик — onAction, не onSelect */
   actions?: CallLogAction[];
+  /** запись разговора: под строкой встаёт компактный плеер (createAudioPlayer; метаданные грузятся по нажатию) */
+  record?: { src: string; duration?: number; label?: string; download?: boolean | string };
   data?: unknown;
 }
 /** Метка бренда / линии у звонка: значок или картинка и подпись цветом бренда. */
@@ -154,6 +157,11 @@ export function createCallLog(host: HTMLElement, options: CallLogOptions): CallL
       if (!acts) out.push(row);
       else if (!interactive) { row.append(acts); out.push(row); }
       else out.push(h('div', { class: 'b24-calllog__rowwrap', role: 'presentation' }, row, acts));
+      if (it.record) {
+        const rec = h('div', { class: 'b24-calllog__record', role: 'presentation' });
+        out.push(rec);
+        createAudioPlayer(rec, { compact: true, preload: 'none', label: t('Запись разговора'), ...it.record });
+      }
     }
     root.replaceChildren(...out);
     if (interactive) { const first = rows.values().next().value as HTMLElement | undefined; if (first) first.tabIndex = 0; }

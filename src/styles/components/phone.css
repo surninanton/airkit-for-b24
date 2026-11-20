@@ -218,3 +218,4 @@ button.b24-calllog__item:focus-visible { outline: 2px solid var(--b24-focus-colo
 .b24-callcard__brand:empty, .b24-callcard__brand[hidden] { display: none; }
 .b24-callcard__brand > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .b24-callcard__brand-logo { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
+.b24-calllog__record { padding: 0 12px 8px 56px; }

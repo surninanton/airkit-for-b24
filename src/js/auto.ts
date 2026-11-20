@@ -1,5 +1,6 @@
 import { dropdown } from './dropdown';
 import { initTabs } from './tabs';
+import { initEntityOpen } from './entity';
 import { initSortableTable } from './table';
 import { datepicker } from './calendar';
 import { parseDate, startOfDay } from './date';
@@ -9,7 +10,7 @@ import { enhanceSelect } from './combobox';
 import { createTagSelector, type TagSelectorOptions } from './tag-selector';
 import { createUploader } from './uploader';
 import { createEntityEditor, type EntityEditorOptions } from './editor';
-import { initComposer } from './timeline';
+import { initComposer, initTimelinePin } from './timeline';
 import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
 import { createVendor, type VendorOptions } from './vendor';
@@ -97,6 +98,8 @@ export function init(root: ParentNode = document): void {
   });
   root.querySelectorAll<HTMLElement>('.b24-shell__search--collapsible, .b24-shell__search--collapsible-mobile').forEach((el) => initShellSearch(el));
   root.querySelectorAll<HTMLElement>('[data-b24-tabs]').forEach((el) => initTabs(el));
+  root.querySelectorAll<HTMLElement>('.b24-timeline').forEach((el) => initTimelinePin(el));
+  initEntityOpen();
   root.querySelectorAll<HTMLTableElement>('table[data-b24-sortable]').forEach(initSortableTable);
 
   root.querySelectorAll<HTMLInputElement>('input[data-b24-datepicker]').forEach((input) => {

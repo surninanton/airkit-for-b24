@@ -5,11 +5,23 @@ import { Badge } from './Display';
 import { Icon } from './Icon';
 import { cx } from './utils';
 import { t } from '../js/i18n';
+import { initTimelinePin } from '../js/timeline';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'violet' | 'gray' | 'outline';
 
-export function Timeline({ light, children, className }: { light?: boolean; children: ReactNode; className?: string }) {
-  return <div className={cx('b24-timeline', light && 'b24-timeline--light', className)} role="feed">{children}</div>;
+/** Закрепление: у записи с `pinnable` кнопка закрепляет её вверху ленты (DOM, как у vanilla initTimelinePin); `onPin` — событие b24:timeline-pin. */
+export function Timeline({ light, children, className, onPin }: { light?: boolean; children: ReactNode; className?: string; onPin?: (item: HTMLElement, pinned: boolean) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const cb = useRef(onPin);
+  cb.current = onPin;
+  useEffect(() => {
+    const el = ref.current!;
+    initTimelinePin(el);
+    const h = (e: Event) => { const d = (e as CustomEvent<{ item: HTMLElement; pinned: boolean }>).detail; cb.current?.(d.item, d.pinned); };
+    el.addEventListener('b24:timeline-pin', h);
+    return () => el.removeEventListener('b24:timeline-pin', h);
+  }, []);
+  return <div ref={ref} className={cx('b24-timeline', light && 'b24-timeline--light', className)} role="feed">{children}</div>;
 }
 
 export interface TimelineItemProps {
@@ -20,10 +32,12 @@ export interface TimelineItemProps {
   actions?: ReactNode;
   footer?: ReactNode;
   pinned?: boolean;
+  /** кнопка «Закрепить» в шапке записи */
+  pinnable?: boolean;
   className?: string;
   children?: ReactNode;
 }
-export function TimelineItem({ icon = 'info', tone = 'primary', title, time, actions, footer, pinned, className, children }: TimelineItemProps) {
+export function TimelineItem({ icon = 'info', tone = 'primary', title, time, actions, footer, pinned, pinnable, className, children }: TimelineItemProps) {
   return (
     <article className={cx('b24-timeline__item', pinned && 'b24-timeline__item--pinned', className)}>
       <span className={cx('b24-timeline__icon', tone !== 'primary' && `b24-timeline__icon--${tone}`)} aria-hidden><Icon name={icon} /></span>
@@ -31,7 +45,12 @@ export function TimelineItem({ icon = 'info', tone = 'primary', title, time, act
         <header className="b24-timeline__header">
           <span className="b24-timeline__title">{title}</span>
           {time && <span className="b24-timeline__time">{time}</span>}
-          {actions && <span className="b24-timeline__actions">{actions}</span>}
+          {(actions || pinnable) && (
+            <span className="b24-timeline__actions">
+              {pinnable && <button type="button" className="b24-btn b24-btn--plain b24-btn--xs b24-btn--icon b24-timeline__pin" data-b24-pin aria-pressed={!!pinned} aria-label={pinned ? t('Открепить') : t('Закрепить')} title={pinned ? t('Открепить') : t('Закрепить')}><Icon name="pin" /></button>}
+              {actions}
+            </span>
+          )}
         </header>
         {children && <div className="b24-timeline__body">{children}</div>}
         {footer && <div className="b24-timeline__footer">{footer}</div>}

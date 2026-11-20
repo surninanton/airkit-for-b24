@@ -852,3 +852,25 @@ import { Credit } from 'airkit-for-b24/react';
 <Credit />
 ```
 
+
+## Карточка сущности: заказ, клиент, профиль, звонок
+
+Слайдер `openSidePanel({ air: true, width: 1180, content, footer })`, внутри `.b24-entity`. Эталон — `demo/cards.html` (`cards.html?card=order|contact|profile|call|callmini`).
+
+```
+.b24-entity
+  .b24-entity__head      аватар/логотип + .b24-entity__ident (.b24-entity__name, .b24-entity__sub с бейджами) + .b24-entity__amount
+  .b24-stages            стадии (необязательно)   .b24-entity__stats — плитки .b24-stat
+  .b24-entity__cols
+    .b24-entity__main    .b24-card с .b24-props.b24-props--rows (название — значение), .b24-table--compact
+    .b24-entity__side    .b24-composer + .b24-timeline
+```
+
+- Имя сущности — только в шапке, не в заголовке панели («Звонок», «Клиент», «Мой профиль»; у заказа «ПиР · Заказ №7275» — номер, а не имя). Не повторяйте его в заголовке панели, строке «Клиент» и полях ФИО. Поля правки показывайте по кнопке «Изменить», а «Сохранить / Отмена» в `footer` — только в режиме правки.
+- **Переход в другую карточку.** Имя клиента и номера заказов — `<a class="b24-entity-link" data-b24-entity-open="contact:42">`. Клик шлёт `b24:entity-open { type, id, trigger }` (всплывает, `cancelable`); приложение открывает панель поверх: `document.addEventListener('b24:entity-open', (e) => { e.preventDefault(); openSidePanel({ back: true, … }); })`. `back: true` (React — `onBack`) добавляет в шапку «← Назад».
+- **Телефон и связь.** `.b24-prop__value--row` с круглой `b24-btn b24-btn--round b24-btn--icon b24-btn--sm b24-btn--success` («Позвонить»). Мессенджеры — `.b24-msgrs > .b24-msgr` с круглой `.b24-btn--channel` (цвет канала в `--_c`) и идентификатором; почта — круглая `b24-btn--secondary` с иконкой `mail`.
+- **Закрепление в ленте.** Кнопка `[data-b24-pin]` в `.b24-timeline__actions` записи (React: `<TimelineItem pinnable>`, `<Timeline onPin>`) поднимает запись под разделитель «Закреплено» вверху ленты, повторное нажатие возвращает её на место. `initTimelinePin(timeline)` подключается сам; `setTimelinePinned(timeline, item, pinned)` — из кода. Событие `b24:timeline-pin { item, pinned }`. Само закрепление приложению нужно сохранить на сервере.
+- **Оплата с фискальным чеком.** Пока чек не пробит — обычный `select` способа. Пробит — `select` отключён, рядом бейдж «Фискальный чек №…» и кнопка «Сделать возврат чека» (с подтверждением); после возврата способ снова меняется, и можно пробить новый чек. Подсказка под полем объясняет, почему поле недоступно.
+- **Кто менял.** `.b24-entity__editor`: аватар `--sm` и «изменил Анна О. · 18:52», полное имя в `data-b24-tooltip`.
+- **Запись разговора** в записи ленты — `<div class="b24-timeline__record">` + `createAudioPlayer(el, { compact: true, preload: 'none' })`. В журнале звонков — `CallLogItem.record: { src, duration?, download? }`: под строкой встаёт компактный плеер.
+- **Компактный вариант** (попап софтфона, панель 360–400 px): `.b24-entity--compact` — одна колонка, аватар 44 px.

@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Карточки сущностей — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1200px">
+    <div id="header"></div>
+    <div class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Карточки в слайдере</h2><span class="b24-card__subtitle">&nbsp;openSidePanel({ air: true }) · .b24-entity · .b24-timeline</span></div>
+      <div class="b24-card__body">
+        <p class="b24-text-sm b24-text-secondary" style="margin:0 0 12px">Как в портале: слева данные карточками, справа лента событий с композером. Шапка — название, бейджи, сумма; под ней стадии; внизу панель действий. Адрес вида <code>cards.html?card=order</code> открывает нужную карточку сразу.</p>
+        <div class="b24-row" style="flex-wrap:wrap">
+          <button type="button" class="b24-btn b24-btn--primary" data-card="order">Карточка заказа</button>
+          <button type="button" class="b24-btn b24-btn--primary" data-card="contact">Карточка клиента</button>
+          <button type="button" class="b24-btn b24-btn--primary" data-card="profile">Мой профиль</button>
+          <button type="button" class="b24-btn b24-btn--primary" data-card="call">Карточка звонка</button>
+          <button type="button" class="b24-btn b24-btn--secondary" data-card="callmini">Звонок: компакт (360)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  B24UI.createPageHeader(document.getElementById('header'), {
+    menu: [{ label: 'Карточки', href: '#', active: true }],
+    title: 'Карточки сущностей',
+  });
+  const I = (n) => B24UI.icon(n);
+  const ico = (name, cls = '') => `<span class="b24-timeline__icon ${cls}">${I(name)}</span>`;
+  const pinBtn = `<span class="b24-timeline__actions"><button type="button" class="b24-btn b24-btn--plain b24-btn--xs b24-btn--icon b24-timeline__pin" data-b24-pin aria-pressed="false" aria-label="Закрепить" title="Закрепить">${B24UI.icon('pin')}</button></span>`;
+  const ev = (name, cls, title, time, body = '', meta = '', opts = {}) => `
+    <article class="b24-timeline__item">${ico(name, cls)}
+      <div class="b24-timeline__card">
+        <header class="b24-timeline__header"><span class="b24-timeline__title">${title}</span><span class="b24-timeline__time">${time}</span>${opts.pin ? pinBtn : ''}</header>
+        ${body ? `<div class="b24-timeline__body">${body}</div>` : ''}${opts.record ? `<div class="b24-timeline__record" data-record="${opts.record}"></div>` : ''}${meta ? `<div class="b24-timeline__meta">${meta}</div>` : ''}
+      </div>
+    </article>`;
+  const day = (t, cls = '') => `<div class="b24-timeline__divider ${cls}"><span>${t}</span></div>`;
+  const composer = (tabs) => `
+    <div class="b24-composer" data-b24-composer>
+      <div class="b24-tabs" role="tablist">${tabs.map(([k, l, p], i) => `<button class="b24-tabs__item${i ? '' : ' is-active'}" aria-selected="${!i}" data-b24-composer-tab="${k}" data-placeholder="${p}">${l}</button>`).join('')}</div>
+      <div class="b24-composer__body">
+        <textarea class="b24-composer__input" rows="1" placeholder="${tabs[0][2]}" aria-label="Сообщение"></textarea>
+        <div class="b24-composer__footer">
+          <button class="b24-btn b24-btn--primary b24-btn--sm" data-b24-composer-submit>Отправить</button>
+          <button class="b24-btn b24-btn--link b24-btn--sm" data-b24-composer-cancel>Отменить</button>
+          <span class="b24-composer__hint">Ctrl+Enter — отправить</span>
+        </div>
+      </div>
+    </div>`;
+  const prop = (l, v) => `<div class="b24-prop"><span class="b24-prop__label">${l}</span><span class="b24-prop__value">${v}</span></div>`;
+  const card = (title, body, extra = '') => `<section class="b24-card"><div class="b24-card__header"><h3 class="b24-card__title">${title}</h3>${extra}</div><div class="b24-card__body">${body}</div></section>`;
+  const brand = `<span class="b24-avatar b24-avatar--square" style="--b24-avatar-bg:#3b4a8a">ПиР</span>`;
+
+  /* ── Общие куски ── */
+  const who = (ini, name, c = '#7fa3c8') => `<span class="b24-avatar b24-avatar--xs" style="--b24-avatar-bg:${c}">${ini}</span>${name}`;
+  const clientLink = (label = 'Степан Громов', avatar = true) => `<a href="#" class="b24-entity-link" data-b24-entity-open="contact:1" title="Открыть карточку клиента">${avatar ? `<span class="b24-avatar b24-avatar--xs" style="--b24-avatar-bg:#6b8f5e">СГ</span>` : ''}<span>${label}</span>${I('chevronRight')}</a>`;
+  const round = (kind, label, icon, color) => `<button type="button" class="b24-btn b24-btn--round b24-btn--icon b24-btn--sm ${kind}"${color ? ` style="--_c:${color}"` : ''} aria-label="${label}" data-b24-tooltip="${label}">${I(icon)}</button>`;
+  const phoneRow = (num) => `<span class="b24-prop__value b24-prop__value--row"><span style="font-variant-numeric:tabular-nums">${num}</span>${round('b24-btn--success', 'Позвонить', 'phone')}</span>`;
+  const channels = `<div class="b24-msgrs">
+      <span class="b24-msgr">${round('b24-btn--channel', 'Написать в Telegram', 'send', '#2aabee')}<span class="b24-msgr__id">@stepan_g</span></span>
+      <span class="b24-msgr">${round('b24-btn--channel', 'Написать во ВКонтакте', 'chat', '#0077ff')}<span class="b24-msgr__id">id000000</span></span>
+      <span class="b24-msgr">${round('b24-btn--channel', 'Написать в WhatsApp', 'comment', '#25d366')}<span class="b24-msgr__id">+7 900 000-00-00</span></span></div>`;
+  const propHtml = (l, v) => `<div class="b24-prop"><span class="b24-prop__label">${l}</span>${v}</div>`;
+  const mailRow = `<span class="b24-prop__value b24-prop__value--row"><span>stepan@example.com</span>${round('b24-btn--secondary', 'Написать на почту', 'mail')}</span>`;
+  const badgeOk = (t) => `<span class="b24-badge b24-badge--success b24-badge--sm">${t}</span>`;
+
+  /* ── Заказ ── */
+  const order = () => `
+  <div class="b24-entity" id="order-card">
+    <div class="b24-entity__head">
+      ${brand}
+      <div class="b24-entity__ident">
+        <div class="b24-entity__sub"><span>Пицц и Ролл</span><span>·</span><span>20.11.2026 18:48</span><span>·</span><span>Магазин VK</span></div>
+        <div class="b24-entity__sub"><span class="b24-badge b24-badge--danger">Отменён</span><span class="b24-badge b24-badge--success b24-badge--sm">ФП №62</span>
+          <span class="b24-entity__editor" data-b24-tooltip="Анна Образцова, оператор"><span class="b24-avatar b24-avatar--sm" style="--b24-avatar-bg:#c58b4a">АО</span><span>изменил Анна О. · 18:52</span></span></div>
+      </div>
+      <div class="b24-entity__amount">1 399 ₽</div>
+    </div>
+    <div class="b24-stages">
+      <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6">Принят</button>
+      <button class="b24-stages__item is-done" style="--stage-color:#2fc6f6">Готовится</button>
+      <button class="b24-stages__item" style="--stage-color:#2fc6f6">Доставка</button>
+      <button class="b24-stages__item is-current" style="--stage-color:#ff5752">Отменён</button>
+    </div>
+    <div class="b24-alert b24-alert--warning"><div class="b24-alert__content">Причина отмены: отменён во Frontpad</div></div>
+    <div class="b24-entity__cols">
+      <div class="b24-entity__main">
+        ${card('Клиент и доставка', `<div class="b24-props b24-props--rows">
+          ${propHtml('Клиент', `<span class="b24-prop__value">${clientLink()}</span>`)}
+          ${propHtml('Телефон', phoneRow('+7 900 000-00-00'))}
+          ${propHtml('Мессенджеры', `<span class="b24-prop__value">${channels}</span>`)}
+          ${propHtml('Почта', mailRow)}
+          ${prop('Доставка', 'Доставка курьером')}
+          ${prop('Адрес', 'ул. Образцовая, 12, кв. 34')}
+          ${prop('Комментарий', 'Проверка промокодов')}</div>`)}
+        ${card('Состав', `<div class="b24-table-wrap"><table class="b24-table b24-table--compact"><tbody>
+          <tr><td>Сет «Бора Бора»</td><td class="b24-text-secondary">× 1</td><td style="text-align:right">1 114 ₽</td></tr>
+          <tr><td>Запечённый сливочный ролл с мидиями</td><td class="b24-text-secondary">× 1</td><td style="text-align:right">285 ₽</td></tr>
+          <tr><td><b>Итого</b></td><td></td><td style="text-align:right"><b>1 399 ₽</b></td></tr></tbody></table></div>`)}
+        ${card('Оплата', `<div class="b24-pay" id="pay">
+          <div class="b24-props b24-props--rows">
+            ${propHtml('Способ', `<span class="b24-prop__value b24-prop__value--row"><select class="b24-select b24-select--sm" id="pay-method" aria-label="Способ оплаты"><option>Онлайн, картой</option><option>Наличными курьеру</option><option>Картой курьеру</option><option>СБП</option></select><span class="b24-badge b24-badge--primary" id="pay-fiscal">${I('check')} Фискальный чек №0142</span></span>`)}
+            ${prop('Статус', '<span class="b24-badge b24-badge--gray">Не оплачен</span>')}
+          </div>
+          <div class="b24-pay__row"><button type="button" class="b24-btn b24-btn--secondary b24-btn--sm" id="pay-refund">Сделать возврат чека</button><button type="button" class="b24-btn b24-btn--primary b24-btn--sm" id="pay-print" hidden>Пробить чек</button></div>
+          <p class="b24-pay__hint" id="pay-hint"></p></div>`)}
+        ${card('Frontpad', `<div class="b24-props b24-props--rows">${prop('Заказ', '<span class="b24-badge b24-badge--success b24-badge--sm">ФП №62</span>')}${prop('Состояние', 'Отменён')}</div>`)}
+        ${card('История клиента', `<p style="margin:0 0 8px">Ещё заказов: <b>3</b> на 2 156 ₽</p>
+          <div class="b24-table-wrap"><table class="b24-table b24-table--compact"><tbody>
+          <tr><td><a href="#" data-b24-entity-open="order:7264">№7264</a></td><td>16.11.2026</td><td>688 ₽</td><td>${badgeOk('Выполнен')}</td></tr>
+          <tr><td><a href="#" data-b24-entity-open="order:7220">№7220</a></td><td>03.11.2026</td><td>599 ₽</td><td>${badgeOk('Выполнен')}</td></tr>
+          <tr><td><a href="#" data-b24-entity-open="order:7191">№7191</a></td><td>27.10.2026</td><td>649 ₽</td><td><span class="b24-badge b24-badge--danger b24-badge--sm">Отменён</span></td></tr>
+          </tbody></table></div>`)}
+      </div>
+      <div class="b24-entity__side">
+        ${composer([['comment', 'Комментарий', 'Комментарий к заказу'], ['chat', 'Написать клиенту', 'Сообщение клиенту']])}
+        <div class="b24-timeline" id="order-timeline">
+          ${day('Сегодня')}
+          ${ev('comment', 'b24-timeline__icon--gray', 'Комментарий', '18:55', 'Клиент просил не перезванивать, написать в Telegram', who('АО', 'Анна Образцова', '#c58b4a'), { pin: true })}
+          ${ev('close', 'b24-timeline__icon--danger', 'Заказ отменён', '18:52', 'Причина: отменён во Frontpad', 'Оператор <a href="#">Анна Образцова</a>')}
+          ${ev('phone', 'b24-timeline__icon--outline', 'Звонок клиенту', '18:50', 'Исходящий, 0:12', 'Оператор <a href="#">Анна Образцова</a>', { record: 'order' })}
+          ${ev('ticket', 'b24-timeline__icon--success', 'Фискальный чек пробит', '18:49', 'Чек №0142 · онлайн, картой · 1 399 ₽')}
+          ${ev('send', '', 'Заказ передан во Frontpad', '18:49', '', 'ФП №62')}
+          ${ev('ticket', 'b24-timeline__icon--success', 'Заказ принят', '18:48', 'Оформлен в магазине VK, доставка курьером')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const orderFooter = () => `<button class="b24-btn b24-btn--success">${I('phone')}Позвонить</button><button class="b24-btn b24-btn--secondary">Чат · ВКонтакте</button><button class="b24-btn b24-btn--secondary">Чат · Telegram</button><button class="b24-btn b24-btn--secondary">Печать</button>`;
+
+  /* ── Клиент ── */
+  const contact = () => `
+  <div class="b24-entity">
+    <div class="b24-entity__head">
+      <span class="b24-avatar b24-avatar--xl" style="--b24-avatar-bg:#6b8f5e">СГ</span>
+      <div class="b24-entity__ident">
+        <h3 class="b24-entity__name">Степан Громов</h3>
+        <div class="b24-entity__sub"><span class="b24-badge b24-badge--success">Постоянный клиент</span><span class="b24-badge b24-badge--violet">VIP</span><span>Клиент с 27.10.2024</span></div>
+      </div>
+    </div>
+    <div class="b24-entity__stats">
+      <div class="b24-card"><div class="b24-stat"><span class="b24-stat__label">Заказов</span><span class="b24-stat__value">4</span></div></div>
+      <div class="b24-card"><div class="b24-stat"><span class="b24-stat__label">Сумма</span><span class="b24-stat__value">3 555 ₽</span></div></div>
+      <div class="b24-card"><div class="b24-stat"><span class="b24-stat__label">Средний чек</span><span class="b24-stat__value">889 ₽</span></div></div>
+      <div class="b24-card"><div class="b24-stat"><span class="b24-stat__label">Последний заказ</span><span class="b24-stat__value">4 дня назад</span></div></div>
+    </div>
+    <div class="b24-entity__cols">
+      <div class="b24-entity__main">
+        ${card('О клиенте', `<div class="b24-props b24-props--rows">
+          ${propHtml('Телефон', phoneRow('+7 900 000-00-00'))}
+          ${propHtml('Мессенджеры', `<span class="b24-prop__value">${channels}</span>`)}
+          ${propHtml('Почта', mailRow)}
+          ${prop('Дата рождения', '30.10.1986 <span class="b24-text-secondary">· скидка в день рождения</span>')}
+          ${prop('Источник', 'Магазин VK')}
+          ${prop('Ответственный', '<span class="b24-user"><span class="b24-avatar b24-avatar--xs">АО</span><span class="b24-user__name">Анна Образцова</span></span>')}</div>`,
+          `<span style="margin-left:auto"><button class="b24-btn b24-btn--plain b24-btn--sm">${I('edit')}Изменить</button></span>`)}
+        ${card('Адреса доставки', `<div class="b24-props b24-props--rows">${prop('Основной', 'ул. Образцовая, 12, кв. 34')}${prop('Дополнительный', 'пр. Примерный, 5, офис 210')}</div>`)}
+        ${card('Заказы', `<div class="b24-table-wrap"><table class="b24-table b24-table--compact"><tbody>
+          <tr><td><a href="#" data-b24-entity-open="order:7275">№7275</a></td><td>20.11.2026</td><td>1 399 ₽</td><td><span class="b24-badge b24-badge--danger b24-badge--sm">Отменён</span></td></tr>
+          <tr><td><a href="#" data-b24-entity-open="order:7264">№7264</a></td><td>16.11.2026</td><td>688 ₽</td><td>${badgeOk('Выполнен')}</td></tr>
+          <tr><td><a href="#" data-b24-entity-open="order:7220">№7220</a></td><td>03.11.2026</td><td>599 ₽</td><td>${badgeOk('Выполнен')}</td></tr>
+          <tr><td><a href="#" data-b24-entity-open="order:7191">№7191</a></td><td>27.10.2026</td><td>649 ₽</td><td>${badgeOk('Выполнен')}</td></tr>
+          </tbody></table></div>`)}
+        ${card('Скидки и бонусы', `<div class="b24-props b24-props--rows">${prop('Бонусов', '120')}${prop('Промокоды', 'TEST10 (использован)')}</div>`)}
+      </div>
+      <div class="b24-entity__side">
+        ${composer([['comment', 'Комментарий', 'Заметка о клиенте'], ['activity', 'Дело', 'Что нужно сделать'], ['sms', 'Сообщение', 'Текст клиенту']])}
+        <div class="b24-timeline">
+          ${day('Что нужно сделать', 'b24-timeline__divider--success')}
+          <article class="b24-timeline__item b24-timeline__item--activity">${ico('phone', 'b24-timeline__icon--warning')}
+            <div class="b24-timeline__card"><header class="b24-timeline__header">
+              <button class="b24-timeline__complete" role="checkbox" aria-checked="false" aria-label="Выполнить">${I('circle')}</button>
+              <span class="b24-timeline__title">Уточнить отмену заказа №7275</span><span class="b24-timeline__time">сегодня, 20:00</span></header></div></article>
+          ${day('Сегодня')}
+          ${ev('close', 'b24-timeline__icon--danger', 'Заказ №7275 отменён', '18:52', '1 399 ₽ · магазин VK')}
+          ${ev('ticket', 'b24-timeline__icon--success', 'Новый заказ №7275', '18:48', '1 399 ₽ · доставка курьером')}
+          ${day('16 ноября', 'b24-timeline__divider--gray')}
+          ${ev('phone', 'b24-timeline__icon--outline', 'Входящий звонок', '13:20', 'Вопрос по времени доставки, 2 мин 40 с', 'Оператор <a href="#">Анна Образцова</a>', { record: 'call' })}
+          ${ev('comment', 'b24-timeline__icon--gray', 'Комментарий', '13:24', 'Просит не звонить в домофон, писать в Telegram', who('АО', 'Анна Образцова', '#c58b4a'), { pin: true })}
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const contactFooter = () => `<button class="b24-btn b24-btn--success">${I('phone')}Позвонить</button><button class="b24-btn b24-btn--secondary">Написать</button><button class="b24-btn b24-btn--primary">Создать заказ</button>`;
+
+  /* ── Профиль: просмотр, правка по «Изменить» ── */
+  const panel = (id, inner, hidden = true) => `<div data-b24-tab-panel="${id}"${hidden ? ' hidden' : ''} class="b24-entity__main">${inner}</div>`;
+  const profile = () => `
+  <div class="b24-entity" data-b24-tabs-scope id="profile-card">
+    <div class="b24-entity__head">
+      <span class="b24-avatar b24-avatar--xl" style="--b24-avatar-bg:#c58b4a">АС</span>
+      <div class="b24-entity__ident">
+        <h3 class="b24-entity__name" id="profile-name">Антон Сергеев</h3>
+        <div class="b24-entity__sub"><span>Оператор, Администратор доставки, Кухонный работник</span></div>
+        <div class="b24-entity__sub"><span class="b24-badge b24-badge--success"><span class="b24-dot" style="background:var(--b24-color-success)"></span> в сети</span></div>
+      </div>
+      <button type="button" class="b24-btn b24-btn--glass b24-btn--sm" id="profile-edit">${I('edit')}Изменить</button>
+    </div>
+    <div class="b24-tabs b24-tabs--pills b24-tabs--glass" data-b24-tabs style="align-self:flex-start">
+      <button type="button" class="b24-tabs__item" data-b24-tab="main" aria-selected="true">Основное</button>
+      <button type="button" class="b24-tabs__item" data-b24-tab="work">Работа</button>
+      <button type="button" class="b24-tabs__item" data-b24-tab="personal">Личные данные</button>
+      <button type="button" class="b24-tabs__item" data-b24-tab="login">Вход</button>
+    </div>
+    <div class="b24-entity__cols">
+      <div style="display:contents">
+        <div class="b24-entity__main" style="grid-column:1">
+          <div data-b24-tab-panel="main" class="b24-entity__main">
+            <div id="profile-form-card" hidden>${card('Имя', `<form class="b24-form" onsubmit="return false">
+              <div class="b24-form-row"><div class="b24-field"><label class="b24-field__label" for="pf-last">Фамилия</label><input class="b24-input" id="pf-last" value="Сергеев"></div>
+              <div class="b24-field"><label class="b24-field__label" for="pf-first">Имя</label><input class="b24-input" id="pf-first" value="Антон"></div></div>
+              <div class="b24-field"><label class="b24-field__label" for="pf-mid">Отчество</label><input class="b24-input" id="pf-mid" value=""></div></form>`)}</div>
+            ${card('Контакты', `<div class="b24-props b24-props--rows">
+              ${propHtml('Телефон для входа', phoneRow('+7 900 000-00-00'))}
+              ${propHtml('Почта', `<span class="b24-prop__value">anton@example.com</span>`)}
+              ${prop('Telegram', 'привязан')}</div>`)}
+            ${card('Учётная запись', `<div class="b24-props b24-props--rows">
+              ${prop('Логин', '79000000000')}
+              ${prop('Группы', 'Оператор, Администратор доставки, Кухонный работник, Упаковщик-логист, Управляющий')}
+              ${prop('На сайте с', '27.10.2026')}</div>
+              <p class="b24-text-xs b24-text-secondary" style="margin:12px 0 0">Логин, телефон для входа и группы — системные, меняются через поддержку.</p>`)}
+          </div>
+          ${panel('work', `${card('Должность', `<div class="b24-props b24-props--rows">
+              ${prop('Подразделение', 'Доставка')}${prop('Должность', 'Администратор доставки')}
+              ${prop('Руководитель', '<span class="b24-user"><span class="b24-avatar b24-avatar--xs">МЛ</span><span class="b24-user__name">Мария Лебедева</span></span>')}
+              ${prop('Рабочий график', 'Пн–Пт, 10:00–19:00')}</div>`)}
+            ${card('Роли', `<div class="b24-row" style="flex-wrap:wrap;gap:6px"><span class="b24-badge b24-badge--primary">Оператор</span><span class="b24-badge b24-badge--primary">Администратор доставки</span><span class="b24-badge b24-badge--primary">Кухонный работник</span><span class="b24-badge b24-badge--primary">Упаковщик-логист</span><span class="b24-badge b24-badge--primary">Управляющий</span></div>`)}`)}
+          ${panel('personal', `${card('Личные данные', `<div class="b24-props b24-props--rows">
+              ${prop('Дата рождения', '30.10.1986 <span class="b24-text-secondary">· меняется через поддержку</span>')}
+              ${prop('Пол', 'Мужской')}${prop('Город', 'Образцовск')}${prop('Размер формы', 'L')}</div>`)}
+            ${card('Экстренный контакт', `<div class="b24-props b24-props--rows">${prop('Имя', 'Ольга (супруга)')}${propHtml('Телефон', phoneRow('+7 900 000-00-01'))}</div>`)}`)}
+          ${panel('login', `${card('Пароль и защита', `<div class="b24-props b24-props--rows">
+              ${propHtml('Пароль', `<span class="b24-prop__value b24-prop__value--row"><span>изменён 19.11.2026</span><button type="button" class="b24-btn b24-btn--secondary b24-btn--sm">Сменить пароль</button></span>`)}
+              ${propHtml('Telegram', `<span class="b24-prop__value b24-prop__value--row"><span>привязан</span><button type="button" class="b24-btn b24-btn--plain b24-btn--sm">Отвязать</button></span>`)}
+              ${propHtml('Подтверждение входа', `<span class="b24-prop__value"><label class="b24-switch"><input type="checkbox" checked><span>Код в Telegram при входе</span></label></span>`)}</div>`)}
+            ${card('Устройства', `<div class="b24-table-wrap"><table class="b24-table b24-table--compact"><tbody>
+              <tr><td>Chrome · macOS</td><td class="b24-text-secondary">192.0.2.10</td><td>${badgeOk('Это устройство')}</td></tr>
+              <tr><td>Safari · iPhone</td><td class="b24-text-secondary">192.0.2.44</td><td><button type="button" class="b24-btn b24-btn--plain b24-btn--xs">Завершить</button></td></tr></tbody></table></div>`)}`)}
+        </div>
+      </div>
+      <div class="b24-entity__side">
+        <div class="b24-section-title">История</div>
+        <div class="b24-timeline">
+          ${day('Сегодня')}
+          ${ev('user', 'b24-timeline__icon--success', 'Вход в портал', '09:02', 'Chrome, macOS', 'IP 192.0.2.10')}
+          ${day('Вчера', 'b24-timeline__divider--gray')}
+          ${ev('send', '', 'Привязан Telegram', '15:40')}
+          ${ev('lock', 'b24-timeline__icon--warning', 'Пароль изменён', '15:31', '', 'Сменён самостоятельно')}
+          ${ev('edit', 'b24-timeline__icon--gray', 'Профиль обновлён', '15:30', 'Изменено: фамилия')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const profileFooter = () => `<button class="b24-btn b24-btn--success" data-save>Сохранить</button><button class="b24-btn b24-btn--link" data-cancel>Отмена</button>`;
+
+  /* ── Звонок ── */
+  const callBody = (compact) => `
+  <div class="b24-entity${compact ? ' b24-entity--compact' : ''}">
+    <div class="b24-entity__head">
+      <span class="b24-avatar ${compact ? '' : 'b24-avatar--xl'}" style="--b24-avatar-bg:#6b8f5e">СГ</span>
+      <div class="b24-entity__ident">
+        <h3 class="b24-entity__name">Степан Громов</h3>
+        <div class="b24-entity__sub"><span style="font-variant-numeric:tabular-nums">+7 900 000-00-00</span></div>
+        <div class="b24-entity__sub"><span class="b24-badge b24-badge--success">${I('phoneIncoming')} Входящий</span>${brand.replace('b24-avatar--square', 'b24-avatar--square b24-avatar--sm')}<span>Пицц и Ролл · Доставка</span></div>
+      </div>
+      <div class="b24-entity__amount">2:40</div>
+    </div>
+    <div class="b24-entity__cols">
+      <div class="b24-entity__main">
+        ${card('Клиент', `<div class="b24-props b24-props--rows">
+          ${propHtml('Телефон', phoneRow('+7 900 000-00-00'))}
+          ${prop('Заказов', '4 на 3 555 ₽')}${prop('Последний заказ', '20.11.2026 · 1 399 ₽')}
+          ${propHtml('Карточка', `<span class="b24-prop__value">${clientLink('Карточка клиента', false)}</span>`)}</div>`)}
+        ${card('Активный заказ', `<div class="b24-row" style="justify-content:space-between;gap:8px"><a href="#" data-b24-entity-open="order:7275"><b>№7275</b></a><span class="b24-badge b24-badge--warning">Готовится</span><span>1 399 ₽</span></div>
+          <div style="margin-top:10px"><button type="button" class="b24-btn b24-btn--primary b24-btn--sm">${I('plus')}Создать заказ</button></div>`)}
+      </div>
+      <div class="b24-entity__side">
+        ${card('Запись разговора', `<div id="call-player"></div>`)}
+        ${card('Комментарий к звонку', `<textarea class="b24-textarea" rows="3" aria-label="Комментарий к звонку" placeholder="О чём говорили, что договорились"></textarea><div style="margin-top:8px"><button type="button" class="b24-btn b24-btn--primary b24-btn--sm">Сохранить</button></div>`)}
+        <div class="b24-timeline">
+          ${day('Раньше', 'b24-timeline__divider--gray')}
+          ${ev('phone', 'b24-timeline__icon--outline', 'Входящий звонок', '16 ноября, 13:20', '2 мин 40 с', 'Оператор <a href="#">Анна Образцова</a>', { record: 'call' })}
+          ${ev('ticket', 'b24-timeline__icon--success', 'Заказ №7264', '16 ноября, 13:30', '688 ₽ · выполнен')}
+          ${ev('phone', 'b24-timeline__icon--danger', 'Пропущенный звонок', '10 ноября, 19:02')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const callFooter = () => `<button class="b24-btn b24-btn--success">${I('phone')}Перезвонить</button><button class="b24-btn b24-btn--primary">Создать заказ</button><button class="b24-btn b24-btn--secondary">Чат</button>`;
+
+  /* ── Запись разговора (тон в памяти) ── */
+  const wav = (() => {
+    const rate = 8000, n = rate * 12, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const str = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.sin(i / rate * 2 * Math.PI * (220 + 40 * Math.sin(i / rate * 3))) * 2500 * (0.5 + 0.5 * Math.sin(i / rate * 2)), true);
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  })();
+  const mountPlayers = (root) => root.querySelectorAll('[data-record]:empty').forEach((el) => B24UI.createAudioPlayer(el, { src: wav, duration: 12, compact: true, preload: 'none', label: 'Запись разговора', download: true }));
+
+  /* ── Оплата: чек пробит — способ не меняется, пока нет возврата ── */
+  const initPay = (root) => {
+    const pay = root.querySelector('#pay'); if (!pay) return;
+    const sel = pay.querySelector('#pay-method'), badge = pay.querySelector('#pay-fiscal'), refund = pay.querySelector('#pay-refund'), print = pay.querySelector('#pay-print'), hint = pay.querySelector('#pay-hint');
+    const tl = root.querySelector('#order-timeline');
+    const log = (icon, cls, title, body) => {
+      const first = tl.querySelector('.b24-timeline__divider');
+      first.insertAdjacentHTML('afterend', ev(icon, cls, title, B24UI.formatTimelineTime(new Date()), body, 'Оператор <a href="#">Анна Образцова</a>'));
+    };
+    const render = (fiscal) => {
+      sel.disabled = fiscal; badge.hidden = !fiscal; refund.hidden = !fiscal; print.hidden = fiscal;
+      hint.textContent = fiscal ? 'Фискальный чек пробит: способ оплаты не изменить. Сначала сделайте возврат чека.' : 'Чек не пробит — способ оплаты можно изменить.';
+    };
+    render(true);
+    refund.addEventListener('click', async () => {
+      if (!await B24UI.confirm('Будет оформлен возврат фискального чека №0142 на 1 399 ₽.', { title: 'Возврат чека', okText: 'Сделать возврат', danger: true })) return;
+      render(false); log('refresh', 'b24-timeline__icon--warning', 'Возврат чека', 'Чек №0142 возвращён, 1 399 ₽');
+    });
+    print.addEventListener('click', () => { render(true); log('ticket', 'b24-timeline__icon--success', 'Фискальный чек пробит', `${sel.value} · 1 399 ₽`); });
+    sel.addEventListener('change', () => log('edit', 'b24-timeline__icon--gray', 'Способ оплаты изменён', sel.value));
+  };
+
+  /* ── Композер: комментарий сразу в ленту, с кнопкой «Закрепить» ── */
+  const initComments = (root) => root.addEventListener('b24:composer-submit', (e) => {
+    const tl = e.target.closest('.b24-entity__side')?.querySelector('.b24-timeline'); if (!tl || e.detail.tab === 'sms') return;
+    const first = [...tl.querySelectorAll('.b24-timeline__divider')].find((d) => d.textContent === 'Сегодня') ?? tl.querySelector('.b24-timeline__divider');
+    first?.insertAdjacentHTML('afterend', ev('comment', 'b24-timeline__icon--gray', 'Комментарий', B24UI.formatTimelineTime(new Date()), e.detail.text.replace(/</g, '&lt;'), who('Вы', 'Вы'), { pin: true }));
+  });
+
+  const defs = {
+    order: ['ПиР · Заказ №7275', order, orderFooter, 1180],
+    contact: ['Клиент', contact, contactFooter, 1180],
+    profile: ['Мой профиль', profile, profileFooter, 1180],
+    call: ['Звонок', () => callBody(false), callFooter, 1180],
+    callmini: ['Звонок', () => callBody(true), callFooter, 400],
+  };
+  const openCard = (key, opts = {}) => {
+    const [title, body, footer, width] = defs[key];
+    const p = B24UI.openSidePanel({ title, air: true, width, content: B24UI.html(body()), footer: B24UI.html(footer()), ...opts });
+    mountPlayers(p.body); initPay(p.body); initComments(p.body);
+    const pl = p.body.querySelector('#call-player'); if (pl) B24UI.createAudioPlayer(pl, { src: wav, duration: 12, label: 'Запись разговора', download: true });
+    if (key === 'profile') {
+      const foot = p.element.querySelector('.b24-sidepanel__footer'); foot.hidden = true;
+      const formCard = p.body.querySelector('#profile-form-card'), editBtn = p.body.querySelector('#profile-edit');
+      const mode = (on) => { formCard.hidden = !on; foot.hidden = !on; editBtn.hidden = on; if (on) p.body.querySelector('#pf-last').focus(); };
+      editBtn.addEventListener('click', () => mode(true));
+      foot.querySelector('[data-cancel]').addEventListener('click', () => mode(false));
+      foot.querySelector('[data-save]').addEventListener('click', () => {
+        const v = (id) => p.body.querySelector(id).value.trim();
+        p.body.querySelector('#profile-name').textContent = [v('#pf-first'), v('#pf-mid'), v('#pf-last')].filter(Boolean).join(' ');
+        mode(false);
+      });
+    }
+    return p;
+  };
+  document.addEventListener('b24:entity-open', (e) => {
+    const { type } = e.detail;
+    const key = type === 'contact' ? 'contact' : type === 'order' ? 'order' : null;
+    if (!key) return;
+    e.preventDefault();
+    openCard(key, { back: true, width: 1180 });
+  });
+  document.querySelectorAll('[data-card]').forEach((b) => b.addEventListener('click', () => openCard(b.dataset.card)));
+  const q = new URLSearchParams(location.search).get('card');
+  if (q && defs[q]) openCard(q);
+</script>
+</body>
+</html>

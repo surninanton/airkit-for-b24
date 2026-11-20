@@ -83,9 +83,12 @@ export interface SidePanelProps {
   footer?: ReactNode;
   width?: number;
   air?: boolean;
+  /** вложенная панель: кнопка «← Назад» в шапке */
+  onBack?: () => void;
+  backLabel?: string;
   children?: ReactNode;
 }
-export function SidePanel({ open, onClose, title, headerActions, footer, width = 900, air, children }: SidePanelProps) {
+export function SidePanel({ open, onClose, onBack, backLabel, title, headerActions, footer, width = 900, air, children }: SidePanelProps) {
   const { mounted, closing } = usePresence(open, 300);
   const ref = useRef<HTMLDivElement>(null);
   useLayer(mounted && !closing, ref, onClose);
@@ -100,6 +103,7 @@ export function SidePanel({ open, onClose, title, headerActions, footer, width =
         <button type="button" className="b24-sidepanel__close" aria-label={t('Закрыть')} onClick={onClose}><Icon name="close" /></button>
         {(title || headerActions) && (
           <div className="b24-sidepanel__header">
+            {onBack && <button type="button" className="b24-sidepanel__back" onClick={onBack}><Icon name="arrowLeft" />{backLabel ?? t('Назад')}</button>}
             <h2 className="b24-sidepanel__title">{title}</h2>
             {headerActions && <div className="b24-row">{headerActions}</div>}
           </div>
