@@ -166,7 +166,7 @@
       setTimeout(() => feed.update(m.id, { status: 'delivered' }), 700);
     },
   });
-  window.__feed = feed; window.__list = list;
+  window.__feed = feed; window.__list = list; window.__bar = () => bar; window.__openDock = (id) => openDock(id);
   const composer = window.__composer = B24UI.createChatComposer(document.getElementById('chat-composer'), {
     emoji: true,
     // файлы можно бросать на всю переписку; проверка размера, числа и типа — для перетаскивания, вставки и скрепки

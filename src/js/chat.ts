@@ -254,6 +254,8 @@ export interface ChatMessage {
   reactions?: ChatReaction[];
   /** сообщение изменено: серая подпись «изменено» в meta; дата/время правки — в подсказке */
   edited?: boolean | ChatDate;
+  /** false — «Изменить» из onEdit для этого сообщения не показывается (чужое, старше срока правки); по умолчанию — у своих (out и своя заметка) с текстом */
+  editable?: boolean;
 }
 export interface ChatFeedOptions {
   messages?: ChatMessage[];
@@ -280,7 +282,7 @@ export interface ChatFeedOptions {
   quickReactions?: string[];
   /** «Ответить» в меню сообщения */
   onReply?: (message: ChatMessage) => void;
-  /** «Изменить» в меню своих сообщений (dir: 'out'; не у отправляющихся и недоставленных) — обычно composer.startEdit */
+  /** «Изменить» в меню своих сообщений (dir: 'out' и своя заметка; скрыть у конкретного — message.editable: false; не у отправляющихся и недоставленных) — обычно composer.startEdit */
   onEdit?: (message: ChatMessage) => void;
   /** «Копировать» текст в меню сообщения (по умолчанию да) */
   copy?: boolean;
@@ -422,7 +424,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const list: ChatMessageAction[] = [];
     if (options.onReply) list.push({ id: 'reply', label: t('Ответить'), icon: 'reply', onClick: options.onReply });
     if (m.text && options.copy !== false) list.push({ id: 'copy', label: t('Копировать'), icon: 'copy', onClick: (x) => void copyText(x.text ?? '') });
-    if (options.onEdit && m.dir === 'out' && m.text && m.status !== 'failed' && m.status !== 'sending') list.push({ id: 'edit', label: t('Изменить'), icon: 'edit', onClick: options.onEdit });
+    if (options.onEdit && (m.dir === 'out' || (m.dir === 'note' && m.mine !== false)) && m.editable !== false && m.text && m.status !== 'failed' && m.status !== 'sending') list.push({ id: 'edit', label: t('Изменить'), icon: 'edit', onClick: options.onEdit });
     return [...list, ...(options.actions?.(m) ?? [])];
   };
 

@@ -26,6 +26,8 @@ export interface MessengerBarItem {
   status?: 'online' | 'away';
   /** канал — в подсказке: «Мария · Telegram» */
   channel?: string;
+  /** собеседник печатает: анимированные точки на аватаре, в подсказке «печатает…» (строка — свой текст) */
+  typing?: boolean | string;
 }
 export interface MessengerBarAction {
   id: string;
@@ -95,7 +97,8 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
   document.documentElement.classList.add('b24-has-im-bar');
 
   const counterEl = (n?: number) => (n ? h('span', { class: 'b24-counter b24-im-bar__counter' }, fmtCount(n)) : '');
-  const label = (it: MessengerBarItem) => (it.channel ? `${it.name} · ${it.channel}` : it.name);
+  const typingText = (it: MessengerBarItem) => (typeof it.typing === 'string' ? it.typing : t('печатает…'));
+  const label = (it: MessengerBarItem) => [it.name, it.channel, it.typing ? typingText(it) : ''].filter(Boolean).join(' · ');
 
   const renderTop = () => {
     top.replaceChildren();
@@ -106,10 +109,10 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
   };
   const itemEl = (it: MessengerBarItem) => {
     const b = h('button', {
-      type: 'button', role: 'listitem', class: `b24-im-bar__btn b24-im-bar__item${it.id === active ? ' is-active' : ''}`,
+      type: 'button', role: 'listitem', class: `b24-im-bar__btn b24-im-bar__item${it.id === active ? ' is-active' : ''}${it.typing ? ' is-typing' : ''}`,
       'data-id': it.id, 'data-tip': label(it), 'aria-label': `${label(it)}${it.counter ? `, ${t('непрочитанных: {n}', { n: it.counter })}` : ''}`,
       'aria-current': it.id === active ? 'true' : undefined,
-    }, html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })), counterEl(it.counter));
+    }, html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })), counterEl(it.counter), it.typing ? h('span', { class: 'b24-im-bar__typing', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')) : '');
     return b;
   };
   const renderList = () => list.replaceChildren(...items.map(itemEl));
@@ -204,6 +207,8 @@ export interface ChatDockHandle {
   /** контейнеры: head — место для своих кнопок и аватаров в шапке */
   slots: { head: HTMLElement };
   setHeader(patch: { name?: string; meta?: string; avatar?: string; status?: 'online' | 'away' }): void;
+  /** «Анна печатает…»: строка в ленте окна и «печатает…» во второй строке шапки ; null — убрать */
+  setTyping(text: string | null): void;
   focus(): void;
   close(): void;
 }
@@ -250,11 +255,14 @@ export function openChatDock(options: ChatDockOptions): ChatDockHandle {
   dockHost.prepend(el); // новые — справа, у панели
 
   const header = { name: options.name, meta: options.meta, avatar: options.avatar, status: options.status };
+  let typingText: string | null = null;
   const paintHeader = () => {
     avatarBox.innerHTML = avatarHtml(header.name, header.avatar, 'sm', { status: header.status });
     nameEl.textContent = header.name;
-    metaEl.textContent = header.meta ?? '';
-    metaEl.hidden = !header.meta;
+    metaEl.textContent = typingText ? t('печатает…') : header.meta ?? '';
+    metaEl.hidden = !typingText && !header.meta;
+    metaEl.classList.toggle('is-typing', !!typingText);
+    el.classList.toggle('is-typing', !!typingText);
     el.setAttribute('aria-label', header.name);
   };
   paintHeader();
@@ -292,6 +300,7 @@ export function openChatDock(options: ChatDockOptions): ChatDockHandle {
     isMinimized: () => el.classList.contains('is-minimized'),
     setCounter(n) { badge.textContent = fmtCount(n); badge.hidden = !n; },
     setHeader(patch) { Object.assign(header, patch); paintHeader(); },
+    setTyping(text) { typingText = text || null; feed.setTyping(typingText); paintHeader(); },
     focus() { (composer ? el.querySelector<HTMLElement>('.b24-chat-composer__input') : el.querySelector<HTMLElement>('.b24-chat-feed'))?.focus(); },
     close() {
       composer?.destroy();

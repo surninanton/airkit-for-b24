@@ -244,3 +244,47 @@ test('чаты: статусы доставки, аватары входящих
   for (const s of ['sending', 'sent', 'delivered', 'read']) await expect(probe.locator(`.b24-chat-msg__status.is-${s}`)).toHaveCount(1);
   await expect(probe.locator('.b24-chat-list__item img')).toHaveAttribute('src', '/proxy/avatar/1.jpg');
 });
+
+test('чаты: editable и «Изменить» у своей заметки; «печатает…» в панели и окне', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'probe2';
+    document.body.append(host);
+    const now = new Date();
+    B.createChatFeed(host, { onEdit: () => {}, messages: [
+      { id: 'a', dir: 'out', text: 'можно', time: now },
+      { id: 'b', dir: 'out', text: 'нельзя', time: now, editable: false },
+      { id: 'c', dir: 'note', text: 'моя заметка', time: now },
+      { id: 'd', dir: 'note', mine: false, text: 'чужая заметка', time: now },
+      { id: 'e', dir: 'in', text: 'входящее', time: now },
+    ] });
+  });
+  const has = async (id: string) => {
+    const msg = page.locator(`#probe2 .b24-chat-msg[data-id="${id}"]`);
+    await msg.locator('.b24-chat-msg__tool[aria-label="Ещё"]').count();
+    return msg.locator('.b24-chat-msg__tool[aria-label="Ещё"]').evaluate((b) => { (b as HTMLElement).click(); const t = Array.from(document.querySelectorAll('.b24-chat-menu__item')).some((x) => x.textContent === 'Изменить'); document.querySelector('.b24-chat-menu')?.remove(); return t; });
+  };
+  expect(await has('a')).toBe(true);
+  expect(await has('c')).toBe(true);
+  expect(await has('b')).toBe(false);
+  expect(await has('d')).toBe(false);
+  expect(await has('e')).toBe(false);
+  // правая панель
+  await page.evaluate(() => (window as any).__bar().update('d2', { typing: true }));
+  const item = page.locator('.b24-im-bar__item[data-id="d2"]');
+  await expect(item).toHaveClass(/is-typing/);
+  await expect(item.locator('.b24-im-bar__typing')).toHaveCount(1);
+  await expect(item).toHaveAttribute('data-tip', /печатает…/);
+  await page.evaluate(() => (window as any).__bar().update('d2', { typing: false }));
+  await expect(page.locator('.b24-im-bar__item[data-id="d2"] .b24-im-bar__typing')).toHaveCount(0);
+  // окно
+  await page.evaluate(() => (window as any).__openDock('d2').setTyping('Анна печатает…'));
+  const dock = page.locator('.b24-chat-dock[data-id="d2"]');
+  await expect(dock.locator('.b24-chat-dock__meta')).toHaveText('печатает…');
+  await expect(dock.locator('.b24-chat-typing')).toContainText('Анна печатает…');
+  await page.evaluate(() => (window as any).__openDock('d2').setTyping(null));
+  await expect(dock.locator('.b24-chat-typing')).toBeHidden();
+  await expect(dock.locator('.b24-chat-dock__meta')).not.toHaveText('печатает…');
+});

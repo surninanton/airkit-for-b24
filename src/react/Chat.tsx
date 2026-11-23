@@ -260,9 +260,11 @@ export interface ChatDockProps {
   counter?: number;
   onExpand?: () => void;
   onClose?: () => void;
+  /** собеседник печатает: «печатает…» в шапке окна и строка в ленте; строка — свой текст («Анна печатает…») */
+  typing?: boolean | string;
 }
 /** Плавающее окно чата у правого края; несколько <ChatDock> — окна в ряд. Сам ничего не рендерит на месте */
-export function ChatDock({ id, name, avatar, status, meta, messages, hasMore, onLoadMore, onRetry, onSend, quickReplies, minimized, onMinimize, counter, onExpand, onClose }: ChatDockProps) {
+export function ChatDock({ id, name, avatar, status, meta, messages, hasMore, onLoadMore, onRetry, onSend, quickReplies, minimized, onMinimize, counter, onExpand, onClose, typing }: ChatDockProps) {
   const h = useRef<ChatDockHandle | null>(null);
   const cbs = useRef({ onLoadMore, onRetry, onSend, onMinimize, onExpand, onClose });
   cbs.current = { onLoadMore, onRetry, onSend, onMinimize, onExpand, onClose };
@@ -286,6 +288,7 @@ export function ChatDock({ id, name, avatar, status, meta, messages, hasMore, on
   useEffect(() => { h.current?.setHeader({ name, avatar, status, meta }); }, [name, avatar, status, meta]);
   useEffect(() => { if (minimized == null || !h.current) return; if (minimized) h.current.minimize(); else h.current.restore(); }, [minimized]);
   useEffect(() => { h.current?.setCounter(counter ?? 0); }, [counter]);
+  useEffect(() => { h.current?.setTyping(typing ? (typeof typing === 'string' ? typing : t('печатает…')) : null); }, [typing]);
   return null;
 }
 
