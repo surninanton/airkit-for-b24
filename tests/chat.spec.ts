@@ -158,3 +158,89 @@ test('вложения без url: не ссылка на текущую стр�
   expect(res).toEqual({ links: 0, disabled: 3, audio: 0, img: 0 });
   expect(errors()).toEqual([]);
 });
+
+test('чаты: «изменено», правка в поле ввода, индикатор набора', async ({ page }) => {
+  await open(page, '/chat.html');
+  if (mobile(page)) await page.locator('#chat .b24-chat-list__item').first().click();
+  const feed = page.locator('#chat .b24-chat-feed');
+  const input = page.locator('#chat .b24-chat-composer__input');
+  const composer = page.locator('#chat .b24-chat-composer');
+  // полоска действий: наведением, на телефоне — «долгим нажатием» (в эмуляции — событием)
+  const tools = async (msg: import('@playwright/test').Locator) => {
+    if (mobile(page)) await msg.locator('.b24-chat-msg__bubble').dispatchEvent('pointerdown', { pointerType: 'touch' });
+    else await msg.locator('.b24-chat-msg__bubble').hover();
+  };
+  // своё сообщение
+  await input.fill('Опечаткаа');
+  await page.keyboard.press('Enter');
+  const mine = feed.locator('.b24-chat-msg.is-out').last();
+  await expect(mine.locator('.b24-chat-msg__status')).toHaveClass(/is-delivered/);
+  await expect(mine.locator('.b24-chat-msg__edited')).toHaveCount(0);
+  // «Изменить» в меню
+  await tools(mine);
+  await mine.locator('.b24-chat-msg__tool[aria-label="Ещё"]').click();
+  await page.locator('.b24-chat-menu__item', { hasText: 'Изменить' }).click();
+  await expect(composer.locator('.b24-chat-composer__editing')).toBeVisible();
+  await expect(composer.locator('.b24-chat-composer__editing-text')).toHaveText('Опечаткаа');
+  await expect(input).toHaveValue('Опечаткаа');
+  await expect(composer.locator('.b24-chat-composer__attach')).toBeHidden();
+  // пустой текст — отправка неактивна
+  await input.fill('');
+  await expect(composer.locator('.b24-chat-composer__send')).toBeDisabled();
+  // Esc — выход, поле пустое
+  await page.keyboard.press('Escape');
+  await expect(composer.locator('.b24-chat-composer__editing')).toBeHidden();
+  await expect(input).toHaveValue('');
+  // правка и отправка
+  await tools(mine);
+  await mine.locator('.b24-chat-msg__tool[aria-label="Ещё"]').click();
+  await page.locator('.b24-chat-menu__item', { hasText: 'Изменить' }).click();
+  await input.fill('Опечатка исправлена');
+  await page.keyboard.press('Enter');
+  const edited = feed.locator('.b24-chat-msg.is-out').last();
+  await expect(edited.locator('.b24-chat-msg__text')).toHaveText('Опечатка исправлена');
+  await expect(edited.locator('.b24-chat-msg__edited')).toHaveText('изменено');
+  await expect(edited.locator('.b24-chat-msg__edited')).toHaveAttribute('title', /Изменено/);
+  await expect(composer.locator('.b24-chat-composer__editing')).toBeHidden();
+  // onTyping не чаще раза в 3 с
+  await input.pressSequentially('abc');
+  const calls = () => page.evaluate(() => (window as any).__typingCalls as number);
+  const c0 = await calls();
+  expect(c0).toBeGreaterThan(0);
+  await input.pressSequentially('def');
+  expect((await calls()) - c0).toBeLessThanOrEqual(1);
+  // индикатор набора в ленте
+  await page.evaluate(() => (window as any).__feed.setTyping('Анна печатает…'));
+  await expect(feed.locator('.b24-chat-typing')).toContainText('Анна печатает…');
+  await expect.poll(() => feed.evaluate((f) => f.scrollHeight - f.scrollTop - f.clientHeight)).toBeLessThan(5);
+  await page.evaluate(() => (window as any).__feed.setTyping(null));
+  await expect(feed.locator('.b24-chat-typing')).toBeHidden();
+  // в списке диалогов
+  await page.evaluate(() => (window as any).__list.update('d2', { typing: true }));
+  await expect(page.locator('#chat .b24-chat-list__item[data-id="d2"] .b24-chat-list__typing')).toHaveText('печатает…');
+});
+
+test('чаты: статусы доставки, аватары входящих и в списке по относительному url', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'probe';
+    document.body.append(host);
+    const a = document.createElement('div'); const b = document.createElement('div');
+    host.append(a, b);
+    const now = new Date();
+    B.createChatFeed(a, { showAvatars: true, messages: [
+      { id: 'i1', dir: 'in', author: 'Иван Тестов', avatar: '/proxy/avatar/1.jpg', text: 'Привет', time: now },
+      { id: 'o1', dir: 'out', text: 's', time: now, status: 'sending' },
+      { id: 'o2', dir: 'out', text: 's', time: now, status: 'sent' },
+      { id: 'o3', dir: 'out', text: 's', time: now, status: 'delivered' },
+      { id: 'o4', dir: 'out', text: 's', time: now, status: 'read' },
+    ] });
+    B.createChatList(b, { items: [{ id: 'x', name: 'Иван Тестов', avatar: '/proxy/avatar/1.jpg', preview: 'Привет' }] });
+  });
+  const probe = page.locator('#probe');
+  await expect(probe.locator('.b24-chat-msg.is-in img')).toHaveAttribute('src', '/proxy/avatar/1.jpg');
+  for (const s of ['sending', 'sent', 'delivered', 'read']) await expect(probe.locator(`.b24-chat-msg__status.is-${s}`)).toHaveCount(1);
+  await expect(probe.locator('.b24-chat-list__item img')).toHaveAttribute('src', '/proxy/avatar/1.jpg');
+});

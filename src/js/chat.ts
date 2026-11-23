@@ -85,6 +85,8 @@ export interface ChatListItem {
   muted?: boolean;
   /** группа: заголовок («Покупатели», «Сотрудники») ставится перед первым диалогом группы; порядок — как в items */
   group?: string;
+  /** собеседник печатает: вместо превью курсивом «печатает…»; строка — свой текст («Анна печатает…») */
+  typing?: boolean | string;
 }
 export interface ChatListOptions {
   items: ChatListItem[];
@@ -125,14 +127,16 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
     row.setAttribute('aria-selected', String(it.id === active));
     const av = html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })).firstElementChild!;
     const top = h('span', { class: 'b24-chat-list__top' }, h('span', { class: 'b24-chat-list__name' }, it.name), it.time != null ? h('span', { class: 'b24-chat-list__time' }, formatChatListTime(it.time)) : '');
-    const preview = it.preview || !it.subtitle
+    const preview = it.typing
+      ? h('span', { class: 'b24-chat-list__preview b24-chat-list__typing' }, typeof it.typing === 'string' ? it.typing : t('печатает…'))
+      : it.preview || !it.subtitle
       ? h('span', { class: 'b24-chat-list__preview' }, it.previewOut ? h('span', { class: 'b24-chat-list__you' }, `${t('Вы')}: `) : '', it.preview ?? '')
       : h('span', { class: 'b24-chat-list__preview b24-chat-list__subtitle' }, it.subtitle);
     const bottom = h('span', { class: 'b24-chat-list__bottom' }, preview);
     if (it.channel) bottom.append(channelBadge(it.channel));
     if (it.unread) bottom.append(h('span', { class: 'b24-counter' }, it.unread > 99 ? '99+' : String(it.unread)));
     row.replaceChildren(av, h('span', { class: 'b24-chat-list__body' }, top, bottom));
-    row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.preview ? `. ${it.preview}` : it.subtitle ? `. ${it.subtitle}` : ''}`);
+    row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.typing ? `. ${typeof it.typing === 'string' ? it.typing : t('печатает…')}` : it.preview ? `. ${it.preview}` : it.subtitle ? `. ${it.subtitle}` : ''}`);
   };
 
   const render = () => {
@@ -248,6 +252,8 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
   /** реакции под пузырём: чипы «👍 3» */
   reactions?: ChatReaction[];
+  /** сообщение изменено: серая подпись «изменено» в meta; дата/время правки — в подсказке */
+  edited?: boolean | ChatDate;
 }
 export interface ChatFeedOptions {
   messages?: ChatMessage[];
@@ -274,6 +280,8 @@ export interface ChatFeedOptions {
   quickReactions?: string[];
   /** «Ответить» в меню сообщения */
   onReply?: (message: ChatMessage) => void;
+  /** «Изменить» в меню своих сообщений (dir: 'out'; не у отправляющихся и недоставленных) — обычно composer.startEdit */
+  onEdit?: (message: ChatMessage) => void;
   /** «Копировать» текст в меню сообщения (по умолчанию да) */
   copy?: boolean;
   /** свои пункты меню сообщения (после «Ответить» и «Копировать»); вернуть [] — без своих */
@@ -289,6 +297,8 @@ export interface ChatFeedHandle {
   prepend(messages: ChatMessage[]): void;
   update(id: string, patch: Partial<ChatMessage>): void;
   setHasMore(value: boolean): void;
+  /** индикатор набора внизу ленты («Анна печатает…» с анимированными точками); null — скрыть. Прокрутка не сдвигается, если пользователь не у низа */
+  setTyping(text: string | null): void;
   scrollToBottom(smooth?: boolean): void;
   /** пользователь у низа ленты */
   isAtBottom(): boolean;
@@ -315,7 +325,8 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   const root = h('div', { class: 'b24-chat-feed', role: 'log', 'aria-live': 'polite', 'aria-label': t('Сообщения'), tabindex: '0' });
   const list = h('div', { class: 'b24-chat-feed__list' });
   const more = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm b24-chat-feed__more' }, t('Показать раньше'));
-  root.append(more, list);
+  const typing = h('div', { class: 'b24-chat-typing', hidden: '', role: 'status' });
+  root.append(more, list, typing);
   host.append(root);
 
   const nearBottom = () => root.scrollHeight - root.scrollTop - root.clientHeight < 80;
@@ -370,7 +381,13 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     if (m.author && !grouped) bubble.append(h('div', { class: 'b24-chat-msg__author' }, m.author));
     if (m.attachments?.length) bubble.append(h('div', { class: 'b24-chat-msg__atts' }, ...m.attachments.map((a) => attachment(a, m))));
     if (m.text) bubble.append(h('div', { class: 'b24-chat-msg__text' }, richText(m.text)));
-    bubble.append(h('span', { class: 'b24-chat-msg__meta' }, h('time', { datetime: d.toISOString() }, hm(d)), statusIcon(m)));
+    const meta = h('span', { class: 'b24-chat-msg__meta' });
+    if (m.edited) {
+      const ed = m.edited === true ? null : toDate(m.edited);
+      meta.append(h('span', { class: 'b24-chat-msg__edited', title: ed && !isNaN(ed.getTime()) ? `${t('Изменено')} ${formatChatDay(ed)}, ${hm(ed)}` : undefined }, t('изменено')));
+    }
+    meta.append(h('time', { datetime: d.toISOString() }, hm(d)), statusIcon(m));
+    bubble.append(meta);
     const col = h('div', { class: 'b24-chat-msg__col' }, bubble);
     if (m.status === 'failed') {
       const err = h('div', { class: 'b24-chat-msg__error', role: 'alert' }, html(icon('warning', { size: 14 })), h('span', {}, `${t('Не доставлено')}${m.error ? `: ${m.error}` : ''}`));
@@ -405,6 +422,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const list: ChatMessageAction[] = [];
     if (options.onReply) list.push({ id: 'reply', label: t('Ответить'), icon: 'reply', onClick: options.onReply });
     if (m.text && options.copy !== false) list.push({ id: 'copy', label: t('Копировать'), icon: 'copy', onClick: (x) => void copyText(x.text ?? '') });
+    if (options.onEdit && m.dir === 'out' && m.text && m.status !== 'failed' && m.status !== 'sending') list.push({ id: 'edit', label: t('Изменить'), icon: 'edit', onClick: options.onEdit });
     return [...list, ...(options.actions?.(m) ?? [])];
   };
 
@@ -538,6 +556,14 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       if (atBottom) handle.scrollToBottom(); else root.scrollTop = top;
     },
     setHasMore(v) { hasMore = v; more.hidden = !v; },
+    setTyping(text) {
+      const at = nearBottom();
+      const top = root.scrollTop;
+      if (text) typing.replaceChildren(h('span', { class: 'b24-chat-typing__dots', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), h('span', {}, text));
+      else typing.replaceChildren();
+      typing.hidden = !text;
+      if (at) handle.scrollToBottom(); else root.scrollTop = top;
+    },
     scrollToBottom(smooth = false) {
       stick = true;
       programmatic = true;
@@ -582,8 +608,10 @@ export interface ChatComposerMode {
 export interface ChatSendContext {
   /** загруженные вложения (без ошибочных); после успешной отправки они убираются */
   attachments: ComposerAttachment[];
-  /** id выбранного режима, если заданы modes */
+  /** id выбранного режима, если заданы modes; 'edit' — правка сообщения (startEdit), тогда есть editId */
   mode?: string;
+  /** id правимого сообщения (mode: 'edit') */
+  editId?: string;
 }
 export interface ChatComposerOptions {
   placeholder?: string;
@@ -616,6 +644,8 @@ export interface ChatComposerOptions {
   /** причина, почему ответить нельзя («Диалог закрыт») — вместо поля */
   disabledText?: string;
   maxLength?: number;
+  /** пользователь печатает: вызывается при вводе не чаще раза в 3 с — шлите «печатает» в канал */
+  onTyping?: () => void;
   /** кнопка выбора эмодзи рядом со скрепкой: панель с «Частыми», разделами и поиском; вставка в позицию курсора */
   emoji?: boolean;
 }
@@ -626,6 +656,12 @@ export interface ChatComposerHandle {
   focus(): void;
   getValue(): string;
   setValue(text: string): void;
+  /** правка своего сообщения: плашка «Редактирование» над полем, текст в поле, курсор в конце; onSend получит mode: 'edit' и editId, вложения выключены */
+  startEdit(message: { id: string; text: string }): void;
+  /** выйти из правки (Esc или ✕): поле очищается */
+  cancelEdit(): void;
+  /** id правимого сообщения или null */
+  getEditing(): string | null;
   insert(text: string): void;
   /** чип вложения под полем; обновляйте прогресс через updateAttachment */
   addAttachment(a: ComposerAttachment): void;
@@ -680,17 +716,19 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   }
   const modesEl = h('div', { class: 'b24-chat-composer__modes', role: 'radiogroup', 'aria-label': t('Режим ответа') });
   const row = h('div', { class: 'b24-chat-composer__row' }, actions, input, send);
-  root.append(quick, modesEl, atts, row, blocked);
+  const editBar = h('div', { class: 'b24-chat-composer__editing', hidden: '' });
+  root.append(quick, modesEl, editBar, atts, row, blocked);
   host.append(root);
   const unResize = autoResize(input);
 
   /* вложения */
   const files = new Map<string, { a: ComposerAttachment; el: HTMLElement }>();
+  let editId: string | null = null;
   const sending = new Set<string>();
   const uploading = (a: ComposerAttachment) => !a.error && a.progress != null && a.progress < 1;
   const ready = () => Array.from(files.values()).map((x) => x.a).filter((a) => !a.error && !uploading(a));
   const sync = () => {
-    const can = !!input.value.trim() || ready().length > 0;
+    const can = editId != null ? !!input.value.trim() : !!input.value.trim() || ready().length > 0;
     const wait = Array.from(files.values()).some((x) => uploading(x.a));
     send.disabled = !can || wait || root.classList.contains('is-busy') || root.classList.contains('is-disabled');
   };
@@ -728,18 +766,19 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
 
   const submit = async () => {
     const text = input.value.trim();
-    const atts = ready();
+    const atts = editId != null ? [] : ready();
     if ((!text && !atts.length) || root.classList.contains('is-busy') || root.classList.contains('is-disabled')) return;
-    if (Array.from(files.values()).some((x) => uploading(x.a))) return;
+    if (editId == null && Array.from(files.values()).some((x) => uploading(x.a))) return;
     root.classList.add('is-busy');
     sync();
     const sendingIds = new Set(atts.map((a) => a.id));
     sendingIds.forEach((id) => { sending.add(id); const rec = files.get(id); if (rec) paintChip(rec); });
     let ok = false;
     try {
-      const r = await options.onSend(text, { attachments: atts, mode });
+      const r = await options.onSend(text, editId != null ? { attachments: [], mode: 'edit', editId } : { attachments: atts, mode });
       ok = r !== false;
-      if (ok) {
+      if (ok && editId != null) { handle.cancelEdit(); }
+      else if (ok) {
         input.value = ''; fit();
         atts.forEach((a) => handle.removeAttachment(a.id));
         if (options.clearFailedOnSend) Array.from(files.values()).filter((x) => x.a.error).forEach((x) => handle.removeAttachment(x.a.id));
@@ -754,8 +793,15 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     }
   };
 
-  input.addEventListener('input', sync);
+  let lastTyping = 0;
+  input.addEventListener('input', () => {
+    sync();
+    if (!options.onTyping || !input.value) return;
+    const now = Date.now();
+    if (now - lastTyping >= 3000) { lastTyping = now; try { options.onTyping(); } catch (err) { console.error('[airkit-for-b24] onTyping:', err); } }
+  });
   input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && editId != null) { e.preventDefault(); e.stopPropagation(); handle.cancelEdit(); return; }
     if (e.key !== 'Enter' || e.isComposing) return;
     const mod = e.ctrlKey || e.metaKey;
     if (enter ? !e.shiftKey && !mod : mod) { e.preventDefault(); void submit(); }
@@ -807,6 +853,30 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     focus: () => input.focus(),
     getValue: () => input.value,
     setValue(text) { input.value = text; fit(); },
+    startEdit(m) {
+      editId = m.id;
+      root.classList.add('is-editing');
+      const cut = m.text.replace(/\s+/g, ' ').trim();
+      const x = h('button', { type: 'button', class: 'b24-chat-composer__editing-x', 'aria-label': t('Отменить редактирование'), title: t('Отменить редактирование') }, html(icon('close', { size: 14 })));
+      x.addEventListener('click', () => { handle.cancelEdit(); });
+      editBar.replaceChildren(html(icon('edit', { size: 16 })), h('span', { class: 'b24-chat-composer__editing-body' }, h('span', { class: 'b24-chat-composer__editing-title' }, t('Редактирование')), h('span', { class: 'b24-chat-composer__editing-text' }, cut.length > 140 ? `${cut.slice(0, 140)}…` : cut)), x);
+      editBar.hidden = false;
+      input.value = m.text; fit();
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+      sync();
+    },
+    cancelEdit() {
+      if (editId == null) return;
+      editId = null;
+      root.classList.remove('is-editing');
+      editBar.hidden = true;
+      editBar.replaceChildren();
+      input.value = ''; fit();
+      sync();
+      input.focus();
+    },
+    getEditing: () => editId,
     addAttachment(a) {
       const old = files.get(a.id);
       if (old) { old.a = a; paintChip(old); sync(); return; }

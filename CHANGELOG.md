@@ -4,6 +4,14 @@
 
 ## Не выпущено
 
+### Добавлено (чаты)
+- `ChatMessage.edited?: boolean | ChatDate` — серая подпись «изменено» в meta рядом со временем, время правки — в `title`; `feed.update(id, { text, edited })` перерисовывает пузырь.
+- `createChatFeed({ onEdit })` — штатный пункт «Изменить» в меню своих сообщений (`dir: 'out'`, не у отправляющихся и недоставленных); React `<ChatFeed onEdit>`.
+- `composer.startEdit({ id, text })` / `cancelEdit()` / `getEditing()` — правка в поле ввода: плашка «Редактирование» с исходным текстом и ✕, текст в поле, курсор в конце, Esc — выход, вложения выключены, пустой текст — отправка неактивна. `onSend(text, { mode: 'edit', editId, attachments: [] })`.
+- `feed.setTyping(text | null)` — строка «Анна печатает…» с анимированными точками внизу ленты; прокрутка не сдвигается, если пользователь не у низа.
+- `ChatListItem.typing?: boolean | string` — вместо превью курсивом «печатает…» (строка — свой текст).
+- `createChatComposer({ onTyping })` — при вводе не чаще раза в 3 с; React `<ChatComposer onTyping>`.
+
 ### Исправлено
 - Лента чата: вложения `file`, `photo`, `voice` без `url` рисуются неактивной плашкой `.b24-chat-att.is-disabled` (без `href`, `download`, `<img>` и `<audio>`) — «Скачать» больше не сохраняет текущую страницу.
 

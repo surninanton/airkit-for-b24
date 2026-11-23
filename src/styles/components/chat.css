@@ -307,3 +307,29 @@
 .b24-chat__list { position: relative; }
 .b24-chat__center { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; overflow-y: auto; }
 @media (max-width: 768px) { .b24-chat__open { display: grid; } .b24-chat.is-dialog-open .b24-chat__open { display: none; } }
+
+/* «изменено» рядом со временем */
+.b24-chat-msg__edited { margin-right: 2px; font-style: italic; }
+
+/* индикатор набора в ленте и в списке диалогов */
+.b24-chat-typing { display: flex; align-items: center; gap: 8px; padding: 4px 14px 8px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
+.b24-chat-typing[hidden] { display: none; }
+.b24-chat-typing__dots { display: inline-flex; align-items: center; gap: 3px; }
+.b24-chat-typing__dots i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: b24-typing 1.2s infinite ease-in-out; }
+.b24-chat-typing__dots i:nth-child(2) { animation-delay: .15s; }
+.b24-chat-typing__dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes b24-typing { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .b24-chat-typing__dots i { animation: none; opacity: .6; } }
+.b24-chat-list__typing { font-style: italic; color: var(--b24-color-primary); }
+.b24-chat-list__item.is-unread .b24-chat-list__typing { color: var(--b24-color-primary); }
+
+/* правка сообщения: плашка над полем */
+.b24-chat-composer__editing { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; color: var(--b24-color-primary); background: var(--b24-color-soft-blue-3, #e5f4ff); border-left: 3px solid var(--b24-color-primary); border-radius: 6px; }
+.b24-chat-composer__editing[hidden] { display: none; }
+.b24-chat-composer__editing-body { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.b24-chat-composer__editing-title { font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-semibold); }
+.b24-chat-composer__editing-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
+.b24-chat-composer__editing-x { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; color: var(--b24-text-secondary); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.b24-chat-composer__editing-x:hover { background: var(--b24-bg-hover); }
+.b24-chat-composer__editing-x:focus-visible { outline: 2px solid var(--b24-focus-color); }
+.b24-chat-composer.is-editing .b24-chat-composer__attach, .b24-chat-composer.is-editing .b24-chat-composer__attachments { display: none; }

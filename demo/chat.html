@@ -148,6 +148,8 @@
       feed.setMessages(feeds[active]);
     },
     onReply: (m) => { composer.setValue(`> ${m.text ?? ''}\n`); composer.focus(); },
+    // «Изменить» в меню своих сообщений: текст уходит в поле, отправка придёт с mode: 'edit'
+    onEdit: (m) => composer.startEdit({ id: m.id, text: m.text ?? '' }),
     decorate: (m, el) => { if (m.text && /заказ/i.test(m.text) && m.dir !== 'system') el.dataset.hasOrder = '1'; },
     onLoadMore: () => new Promise((r) => setTimeout(() => {
       const cur = feeds[active] ?? [];
@@ -164,6 +166,7 @@
       setTimeout(() => feed.update(m.id, { status: 'delivered' }), 700);
     },
   });
+  window.__feed = feed; window.__list = list;
   const composer = window.__composer = B24UI.createChatComposer(document.getElementById('chat-composer'), {
     emoji: true,
     // файлы можно бросать на всю переписку; проверка размера, числа и типа — для перетаскивания, вставки и скрепки
@@ -186,7 +189,13 @@
         if (p >= 1) clearInterval(timer);
       }, 250);
     }),
+    onTyping: () => { window.__typingCalls = (window.__typingCalls ?? 0) + 1; },
     onSend: (text, ctx) => new Promise((resolve) => {
+      if (ctx.mode === 'edit') {
+        feeds[active] = feeds[active].map((m) => (m.id === ctx.editId ? { ...m, text, edited: new Date() } : m));
+        feed.setMessages(feeds[active]);
+        return resolve();
+      }
       const isNote = ctx.mode === 'note';
       const atts = ctx.attachments.map((a) => (a.thumb ? { type: 'photo', url: a.thumb, name: a.name } : { type: 'file', url: '#', name: a.name, size: a.size }));
       const m = { id: `n${msgId++}`, dir: isNote ? 'note' : 'out', author: 'Оператор Елена', time: new Date(), text, attachments: atts, status: isNote ? undefined : 'sending' };
