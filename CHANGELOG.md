@@ -2,7 +2,7 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
-## Не выпущено
+## 0.22.0 — 2026-11-24
 
 ### Добавлено
 - Чат: вложение `{ type: 'video', player?, url?, thumb?, name?, duration? }` — превью с ▶; с `player` (http/https) по клику встаёт iframe 16:9 (`allow="autoplay; encrypted-media; fullscreen; picture-in-picture"`, `sandbox`), с `url` — превью-ссылка в новой вкладке, без обоих — неактивная плашка.
