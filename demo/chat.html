@@ -60,6 +60,7 @@
 </div>
 <script type="module">
   import * as B24UI from '../src/js/global.ts';
+  window.B24UI = B24UI;
   document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
   B24UI.createPageHeader(document.getElementById('header'), {
     menu: [{ label: 'Открытые линии', href: '#', active: true, counter: 5 }, { label: 'Чат сотрудников', href: '#' }, { label: 'Шаблоны ответов', href: '#' }],

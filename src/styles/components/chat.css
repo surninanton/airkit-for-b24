@@ -125,6 +125,8 @@
 .b24-chat-att__body { display: flex; flex-direction: column; min-width: 0; }
 .b24-chat-att__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-sm); font-weight: var(--b24-font-weight-medium); }
 .b24-chat-att__meta { font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); font-variant-numeric: tabular-nums; }
+.b24-chat-att.is-disabled { cursor: default; opacity: 0.6; }
+.b24-chat-att.is-disabled:hover { background: color-mix(in srgb, var(--b24-text-subtle) 8%, transparent); }
 .b24-chat-att--voice audio { height: 32px; max-width: 240px; min-width: 0; flex: 1 1 auto; }
 
 /* Поле ответа */

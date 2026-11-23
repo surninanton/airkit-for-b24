@@ -136,3 +136,25 @@ test('чаты: пустое поле без прокрутки; лента в �
   });
   expect(Math.abs(res.gap)).toBeLessThan(2);
 });
+
+test('вложения без url: не ссылка на текущую страницу, а неактивная плашка', async ({ page }) => {
+  const { errors } = await open(page, '/chat.html');
+  const res = await page.evaluate(async () => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    document.body.append(host);
+    B.createChatFeed(host, { messages: [{ id: 'x1', dir: 'in', author: 'Клиент', time: new Date(), attachments: [
+      { type: 'file', url: '', name: 'Скан.pdf', size: 1000 },
+      { type: 'photo', url: '', name: 'Фото.jpg' },
+      { type: 'voice', url: '', duration: 5 },
+    ] }] });
+    return {
+      links: host.querySelectorAll('a[href=""], a[download]').length,
+      disabled: host.querySelectorAll('.b24-chat-att.is-disabled').length,
+      audio: host.querySelectorAll('audio').length,
+      img: host.querySelectorAll('img').length,
+    };
+  });
+  expect(res).toEqual({ links: 0, disabled: 3, audio: 0, img: 0 });
+  expect(errors()).toEqual([]);
+});

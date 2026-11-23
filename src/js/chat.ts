@@ -326,16 +326,20 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   const attachment = (a: ChatAttachment, m: ChatMessage): HTMLElement => {
     switch (a.type) {
       case 'photo': {
+        // без адреса (вложение без ссылки): не битая картинка и не ссылка на текущую страницу, а неактивная плашка
+        if (!a.url && !a.thumb) return h('div', { class: 'b24-chat-att b24-chat-att--file is-disabled' }, html(icon('image')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.name ?? t('Фото'))));
         const img = h('img', { src: a.thumb ?? a.url, alt: a.name ?? t('Фото'), loading: 'lazy' });
         if (a.width && a.height) { img.width = a.width; img.height = a.height; }
-        const link = h('a', { class: 'b24-chat-att b24-chat-att--photo', href: a.url, target: '_blank', rel: 'noopener' }, img);
+        const link = h('a', { class: 'b24-chat-att b24-chat-att--photo', href: a.url || a.thumb, target: '_blank', rel: 'noopener' }, img);
         if (options.onPhotoClick) link.addEventListener('click', (e) => { e.preventDefault(); options.onPhotoClick!(a, m); });
         return link;
       }
       case 'file':
+        if (!a.url) return h('div', { class: 'b24-chat-att b24-chat-att--file is-disabled', title: t('Файл недоступен') }, html(icon('file')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.name), a.size != null ? h('span', { class: 'b24-chat-att__meta' }, fmtSize(a.size)) : ''));
         return h('a', { class: 'b24-chat-att b24-chat-att--file', href: a.url, target: '_blank', rel: 'noopener', download: a.name },
           html(icon('file')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.name), a.size != null ? h('span', { class: 'b24-chat-att__meta' }, fmtSize(a.size)) : ''));
       case 'voice': {
+        if (!a.url) return h('div', { class: 'b24-chat-att b24-chat-att--voice is-disabled', title: t('Запись недоступна') }, html(icon('mic')), h('span', { class: 'b24-chat-att__name' }, t('Голосовое сообщение')), a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
         const audio = h('audio', { src: a.url, controls: true, preload: 'none' });
         return h('div', { class: 'b24-chat-att b24-chat-att--voice' }, html(icon('mic')), audio, a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
       }
