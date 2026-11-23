@@ -8,6 +8,8 @@
 </head>
 <body class="b24-root">
 <div class="b24-app b24-app--air">
+  <!-- одинаковые id на странице и в панели: оглавление панели ищет заголовки только в панели -->
+  <h2 id="section-1" hidden>Чужой заголовок</h2>
   <div class="b24-page" style="--b24-page-max: 1200px">
     <div id="header"></div>
     <div class="b24-card">
@@ -85,7 +87,7 @@
         <p>Проверьте <mark>права доступа</mark> и откройте раздел «Заказы».</p>
         <blockquote><p>Сначала чек, потом возврат.</p><cite>Правило кассы</cite></blockquote>
         <h2>Порядок действий</h2>
-        <ul class="b24-checklist"><li><input type="checkbox" disabled checked><span>Открыть заказ</span></li><li><input type="checkbox" disabled><span>Принять оплату</span></li></ul>
+        <ul class="b24-checklist"><li><input type="checkbox" disabled checked><span>Открыть заказ</span><ul class="b24-checklist"><li><input type="checkbox" disabled checked><span>Найти клиента</span></li></ul></li><li><input type="checkbox" disabled><span>Принять оплату</span></li></ul>
         <div class="b24-callout b24-callout--warning"><div><p class="b24-callout__title">Важно</p><p>После пробития чека способ оплаты не меняется.</p></div></div>
         <hr class="b24-delimiter">
         ${'<p>Подробности порядка действий для кассира и менеджера, чтобы текст был достаточно длинным для прокрутки панели. </p>'.repeat(14)}
@@ -96,7 +98,7 @@
     </div>`;
   document.getElementById('open-article').addEventListener('click', () => {
     const steps = [
-      { title: 'Приём заказа', footer: '<button type="button" class="b24-btn b24-btn--primary" data-act="1">Дальше: возврат чека</button>' },
+      { title: 'Приём заказа', footer: '<button type="button" class="b24-btn b24-btn--primary" data-act="1">Дальше: возврат чека</button><button type="button" class="b24-btn b24-btn--secondary">Все статьи</button><a class="b24-btn b24-btn--link" href="#">Открыть в базе знаний</a>' },
       { title: 'Возврат чека', footer: '<button type="button" class="b24-btn b24-btn--secondary" data-act="0">Назад: приём заказа</button>' },
     ];
     const panel = B24UI.openSidePanel({ title: steps[0].title, width: 900, content: B24UI.html(article(steps[0].title)), footer: B24UI.html(steps[0].footer) });

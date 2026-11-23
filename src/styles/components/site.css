@@ -50,9 +50,19 @@
 .b24-prose .b24-delimiter::before { content: "***"; }
 /* чек-лист: <ul class="b24-checklist"><li><input type="checkbox" disabled checked><span>…</span></li></ul>; подойдёт и li > input[type=checkbox] без класса */
 .b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) { padding-left: 0; list-style: none; }
-.b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) > li { display: flex; align-items: flex-start; gap: 10px; }
-.b24-prose li > input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; margin: 0.2em 0 0; accent-color: var(--b24-color-primary); }
-.b24-prose li:has(> input[type="checkbox"]:checked) > :not(input) { color: var(--b24-text-subtle); text-decoration: line-through; }
+.b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) > li { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 10px; }
+.b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) > li > :is(ul, ol) { flex: 0 0 100%; min-width: 0; }
+.b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) > li > :not(input, ul, ol) { flex: 1 1 0; min-width: 0; }
+.b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) > li > :is(ul, ol) { margin-top: 8px; padding-left: 28px; }
+/* свой флажок: у disabled Chrome красит галочку серым и не слушает accent-color */
+.b24-prose li > input[type="checkbox"] {
+  appearance: none; flex: 0 0 auto; position: relative; width: 18px; height: 18px; margin: 0.25em 0 0;
+  background: var(--b24-bg-surface); border: 1.5px solid var(--b24-border-field); border-radius: 5px;
+}
+.b24-prose li > input[type="checkbox"]:checked { background: var(--b24-color-primary); border-color: var(--b24-color-primary); }
+.b24-prose li > input[type="checkbox"]:checked::after { content: ""; position: absolute; left: 5px; top: 1.5px; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.b24-prose li > input[type="checkbox"]:disabled { opacity: 1; cursor: default; }
+.b24-prose li:has(> input[type="checkbox"]:checked) > :not(input, ul, ol) { color: var(--b24-text-subtle); text-decoration: line-through; }
 /* выноска внутри текста (.b24-callout): заголовок и абзацы без лишних отступов */
 .b24-prose .b24-callout p { margin: 0 0 6px; }
 .b24-prose .b24-callout > div { min-width: 0; }

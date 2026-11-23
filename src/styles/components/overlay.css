@@ -259,4 +259,7 @@ body.b24-scroll-lock { overflow: hidden; }
 .b24-sidepanel--air .b24-sidepanel__back { color: var(--b24-glass-text); background: rgba(255, 255, 255, 0.18); }
 .b24-sidepanel__back:hover { filter: brightness(1.08); }
 .b24-sidepanel__back svg { width: 16px; height: 16px; }
+.b24-sidepanel__footer.is-collapsed { flex-wrap: nowrap; }
+.b24-sidepanel__footer.is-collapsed > :not([data-b24-more]) { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-sidepanel__footer.is-collapsed > [data-b24-more] { flex: 0 0 auto; }
 .b24-sidepanel__footer [hidden] { display: none !important; }

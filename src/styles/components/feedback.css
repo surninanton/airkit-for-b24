@@ -135,6 +135,7 @@
 .b24-savestatus__icon { display: inline-grid; place-items: center; width: 16px; height: 16px; }
 .b24-savestatus[data-state="saved"] .b24-savestatus__icon { color: var(--b24-color-success); }
 .b24-savestatus[data-state="error"] { color: var(--b24-color-danger); }
+.b24-savestatus[data-state="neutral"] .b24-savestatus__icon { display: none; }
 .b24-savestatus--compact .b24-savestatus__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* на подложке Air */
 .b24-page-header:not(.b24-page-header--light) .b24-savestatus, .b24-sidepanel--air .b24-sidepanel__header .b24-savestatus { color: var(--b24-glass-text-secondary); }

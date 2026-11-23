@@ -55,6 +55,13 @@ test('статья в панели: оглавление следит за пр�
   await page.locator('.b24-toc a', { hasText: 'Порядок действий' }).click();
   await expect(page.locator('.b24-toc a.is-active')).toHaveText('Порядок действий');
   await expect(page.locator('.b24-prose blockquote cite')).toBeVisible();
+  // вложенный чек-лист — под пунктом, зачёркивание не задевает подпункты без галочки; свой флажок синий
+  const nested = page.locator('.b24-prose .b24-checklist .b24-checklist li').first();
+  const outer = page.locator('.b24-prose > .b24-checklist > li').first();
+  expect((await nested.boundingBox())!.y).toBeGreaterThan((await outer.locator('> span').boundingBox())!.y + 10);
+  expect(await page.locator('.b24-prose input:checked').first().evaluate((e) => getComputedStyle(e).backgroundColor)).not.toBe('rgb(255, 255, 255)');
+  // заголовки ищутся в панели, а не по первому id на странице
+  expect(await page.locator('.b24-toc a').first().evaluate((a) => (a as HTMLAnchorElement).hash)).toBe('#section-1');
   await expect(page.locator('.b24-prose mark')).toBeVisible();
   await page.locator('[data-act="1"]').click();
   await expect(page.locator('.b24-sidepanel__title')).toHaveText('Возврат чека');
@@ -73,7 +80,27 @@ test('индикатор автосохранения и тема блочног
   await expect(st).toHaveText('Сохранено · 14:32');
   await page.evaluate(() => (window as any).kbStatus.setState('error'));
   await expect(st).toContainText('Не сохранено — повторяю');
+  await page.evaluate(() => (window as any).kbStatus.setState('neutral', { text: 'Опубликованная версия' }));
+  await expect(st).toHaveText('Опубликованная версия');
+  await expect(st.locator('.b24-savestatus__icon')).toBeHidden();
   const warn = await page.locator('.b24-blockeditor .cdx-warning').evaluate((e) => getComputedStyle(e).borderLeftWidth);
   expect(warn).toBe('3px');
   await noHorizontalScroll(page);
+});
+
+test('панель 390: футер в один ряд, оглавление в панели липкое', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await open(page, '/kb.html');
+  await page.locator('#open-article').click();
+  const tops = await page.locator('.b24-sidepanel__footer > :visible').evaluateAll((els) => [...new Set(els.map((e) => (e as HTMLElement).offsetTop))]);
+  expect(tops.length).toBe(1);
+  await expect(page.locator('[data-b24-more]')).toBeVisible();
+});
+
+test('дерево на узком экране: подпись не уходит под значок', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await open(page, '/kb.html');
+  const node = page.locator('[data-id="login"] > .b24-tree__node');
+  const [label, grip] = await Promise.all([node.locator('.b24-tree__label').boundingBox(), node.locator('.b24-tree__grip').boundingBox()]);
+  expect(Math.abs(label!.y - grip!.y)).toBeLessThan(12);
 });

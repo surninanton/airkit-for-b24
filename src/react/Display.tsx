@@ -202,11 +202,11 @@ export function Spinner({ size = 'md', label = t('Загрузка') }: { size?:
   return <span className={cx('b24-spinner', size !== 'md' && `b24-spinner--${size}`)} role="status" aria-label={label} />;
 }
 /** Индикатор автосохранения: «Сохраняю… / Сохранено · 14:32 / Не сохранено — повторяю». */
-export function SaveStatus({ state, time, text, compact, className }: { state: 'idle' | 'saving' | 'saved' | 'error'; time?: Date; text?: string; compact?: boolean; className?: string }) {
+export function SaveStatus({ state, time, text, compact, className }: { state: 'idle' | 'saving' | 'saved' | 'error' | 'neutral'; time?: Date; text?: string; compact?: boolean; className?: string }) {
   const d = time ?? new Date();
   const label = text ?? (state === 'saving' ? t('Сохраняю…') : state === 'saved' ? t('Сохранено · {time}', { time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }) : state === 'error' ? t('Не сохранено — повторяю') : '');
   return (
-    <span className={cx('b24-savestatus', compact && 'b24-savestatus--compact', className)} data-state={state} hidden={state === 'idle'} role="status" aria-live="polite" title={label}>
+    <span className={cx('b24-savestatus', compact && 'b24-savestatus--compact', className)} data-state={state} hidden={state === 'idle' || (state === 'neutral' && !text)} role="status" aria-live="polite" title={label}>
       <span className="b24-savestatus__icon" aria-hidden="true">
         {state === 'saving' && <span className="b24-spinner b24-spinner--sm" />}
         {state === 'saved' && <Icon name="check" size={14} />}

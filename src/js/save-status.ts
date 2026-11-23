@@ -6,13 +6,15 @@
  *   st.setState('saving');                 // спиннер + «Сохраняю…»
  *   st.setState('saved');                  // галочка + «Сохранено · 14:32» (время — сейчас; можно { time: Date })
  *   st.setState('error', { text: 'Нет сети — повторяю' });   // красный; text заменяет подпись любого состояния
+ *   st.setState('neutral', { text: 'Опубликованная версия' });   // серый текст без значка
  *   st.setState('idle');                   // пусто
  */
 import { icon } from '../icons';
 import { h } from './dom';
 import { t } from './i18n';
 
-export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+/** neutral — спокойная подпись без значка: «Опубликованная версия», «Новая статья» (текст — через setState(…, { text }) или labels.neutral) */
+export type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'neutral';
 export interface SaveStatusOptions {
   state?: SaveState;
   /** свои подписи состояний */
@@ -40,7 +42,7 @@ export function createSaveStatus(host: HTMLElement, options: SaveStatusOptions =
   const setState: SaveStatusHandle['setState'] = (state, opts = {}) => {
     current = state;
     root.dataset.state = state;
-    root.hidden = state === 'idle';
+    root.hidden = state === 'idle' || (state === 'neutral' && !opts.text && !options.labels?.neutral);
     ico.replaceChildren();
     if (state === 'saving') ico.append(h('span', { class: 'b24-spinner b24-spinner--sm' }));
     else if (state === 'saved') ico.innerHTML = icon('check', { size: 14 });
@@ -49,6 +51,7 @@ export function createSaveStatus(host: HTMLElement, options: SaveStatusOptions =
     if (state === 'saving') label = options.labels?.saving ?? t('Сохраняю…');
     else if (state === 'saved') { const d = opts.time ?? new Date(); label = options.labels?.saved ?? t('Сохранено · {time}', { time: `${pad(d.getHours())}:${pad(d.getMinutes())}` }); }
     else if (state === 'error') label = options.labels?.error ?? t('Не сохранено — повторяю');
+    else if (state === 'neutral') label = options.labels?.neutral ?? '';
     if (opts.text) label = opts.text;
     text.textContent = label;
     root.title = label;

@@ -293,4 +293,4 @@
 .b24-tree-values { display: flex; flex-direction: column; gap: 8px; min-width: 220px; max-width: calc(100vw - 16px); padding: 12px; background: var(--b24-bg-surface); border-radius: var(--b24-radius-md); box-shadow: var(--b24-shadow-3xl); }
 .b24-tree-values__title { font-weight: var(--b24-font-weight-semibold); }
 .b24-tree-values__inherit { padding-bottom: 8px; border-bottom: 1px solid var(--b24-divider); }
-@media (max-width: 768px) { .b24-tree__valuebox { max-width: 100%; } .b24-tree__node { flex-wrap: wrap; } }
+@media (max-width: 768px) { .b24-tree__valuebox { max-width: 100%; } .b24-tree__node:has(> .b24-tree__valuebox) { flex-wrap: wrap; } }

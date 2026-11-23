@@ -40,15 +40,23 @@ const openPanels: SidePanelHandle[] = [];
 function collapseFooter(footer: HTMLElement, panel: HTMLElement, keep: number, minWidth = 600): () => void {
   let more: HTMLButtonElement | null = null;
   let hiddenBtns: HTMLElement[] = [];
-  const restore = () => { hiddenBtns.forEach((b) => b.removeAttribute('hidden')); hiddenBtns = []; more?.remove(); more = null; };
+  const restore = () => { hiddenBtns.forEach((b) => b.removeAttribute('hidden')); hiddenBtns = []; more?.remove(); more = null; footer.classList.remove('is-collapsed'); };
   const apply = () => {
     const narrow = panel.getBoundingClientRect().width < minWidth;
     const buttons = [...footer.children].filter((el): el is HTMLElement => el instanceof HTMLElement && el !== more && el.matches('button, a') && (!el.hidden || hiddenBtns.includes(el)));
     const marked = buttons.filter((b) => b.hasAttribute('data-b24-keep'));
-    const kept = marked.length ? marked : buttons.slice(0, keep);
-    const extras = buttons.filter((b) => !kept.includes(b));
-    if (!narrow || !extras.length) { if (hiddenBtns.length) restore(); return; }
-    if (hiddenBtns.length === extras.length && extras.every((b, i) => b === hiddenBtns[i])) return;
+    if (!narrow || buttons.length <= (marked.length || keep)) { if (hiddenBtns.length) restore(); return; }
+    // оставляем keep кнопок; если с «Ещё» они не помещаются в один ряд — на одну меньше (но не меньше одной)
+    for (let n = marked.length || keep; n >= 1; n--) {
+      const kept = marked.length ? marked : buttons.slice(0, n);
+      mount(buttons.filter((b) => !kept.includes(b)));
+      if (marked.length || n === 1 || oneRow()) break;
+    }
+    // один ряд всегда: оставшиеся кнопки при нехватке места сжимаются с многоточием
+    footer.classList.add('is-collapsed');
+  };
+  const oneRow = () => new Set([...footer.children].filter((el): el is HTMLElement => el instanceof HTMLElement && !el.hidden).map((el) => el.offsetTop)).size <= 1;
+  const mount = (extras: HTMLElement[]) => {
     restore();
     hiddenBtns = extras;
     extras.forEach((b) => b.setAttribute('hidden', ''));

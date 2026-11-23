@@ -249,7 +249,8 @@ function initMegamenuPanes(menu: HTMLElement, mq: MediaQueryList): () => void {
  */
 export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onActive?: (a: HTMLAnchorElement) => void, firstByDefault = false, scroller?: HTMLElement | null): () => void {
   const pairs = links
-    .map((a) => ({ a, t: document.getElementById(decodeURIComponent(a.hash.slice(1))) }))
+    // с контейнером заголовки ищем только в нём: в панели и на странице могут быть одинаковые id
+    .map((a) => { const id = decodeURIComponent(a.hash.slice(1)); return { a, t: scroller ? scroller.querySelector<HTMLElement>(`[id="${CSS.escape(id)}"]`) : document.getElementById(id) }; })
     .filter((p): p is { a: HTMLAnchorElement; t: HTMLElement } => !!p.t);
   if (!pairs.length) return () => {};
   let current: HTMLAnchorElement | null = null;
@@ -292,7 +293,14 @@ export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onAc
   };
   // троттлинг таймером, а не кадрами: в фоновой вкладке кадры не приходят и пересчёт бы «залип»
   const onScroll = () => { if (!timer) timer = setTimeout(update, 60); };
-  const onPick = (e: MouseEvent) => { const p = pairs.find((x) => x.a === (e.target as Element).closest?.('a')); if (p) { picked = p; setActive(p.a); } };
+  const onPick = (e: MouseEvent) => {
+    const p = pairs.find((x) => x.a === (e.target as Element).closest?.('a'));
+    if (!p) return;
+    picked = p;
+    setActive(p.a);
+    // #id в адресе увёл бы к первому такому id на странице, а не в панели
+    if (scroller) { e.preventDefault(); p.t.scrollIntoView({ block: 'start' }); }
+  };
   const onUserScroll = () => { picked = null; };
   pairs.forEach((p) => p.a.addEventListener('click', onPick));
   const target: HTMLElement | Window = scroller ?? window;
@@ -342,8 +350,11 @@ export function initAnchorNav(nav: HTMLElement): () => void {
  * В теле openSidePanel (или с data-scroller="селектор" / options.scroller) следит за прокруткой этого контейнера, а не окна.
  */
 export function initToc(toc: HTMLElement, options: { scroller?: HTMLElement | string | null } = {}): () => void {
+  // контейнер прокрутки: опция, [data-scroller="селектор"] или тело боковой панели, в котором лежит оглавление
+  const sc = options.scroller ?? toc.dataset.scroller;
+  const scroller = typeof sc === 'string' ? (toc.closest<HTMLElement>(sc) ?? document.querySelector<HTMLElement>(sc)) : sc ?? toc.closest<HTMLElement>('.b24-sidepanel__body');
   let list = toc.querySelector<HTMLOListElement>('ol');
-  const src = toc.dataset.source ? document.querySelector<HTMLElement>(toc.dataset.source) : null;
+  const src = toc.dataset.source ? (scroller?.querySelector<HTMLElement>(toc.dataset.source) ?? document.querySelector<HTMLElement>(toc.dataset.source)) : null;
   if (src && (!list || !list.children.length)) {
     if (!list) { list = h('ol', {}) as HTMLOListElement; toc.append(list); }
     let sub: HTMLOListElement | null = null;
@@ -355,9 +366,6 @@ export function initToc(toc: HTMLElement, options: { scroller?: HTMLElement | st
     });
   }
   const links = Array.from(toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
-  // контейнер прокрутки: опция, [data-scroller="селектор"] или тело боковой панели, в котором лежит оглавление
-  const sc = options.scroller ?? toc.dataset.scroller;
-  const scroller = typeof sc === 'string' ? (toc.closest<HTMLElement>(sc) ?? document.querySelector<HTMLElement>(sc)) : sc ?? toc.closest<HTMLElement>('.b24-sidepanel__body');
   if (scroller) return scrollSpy(links, () => scroller.getBoundingClientRect().top + 24, undefined, true, scroller);
   return scrollSpy(links, headerBottom);
 }

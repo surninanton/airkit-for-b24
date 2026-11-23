@@ -82,9 +82,11 @@ test('футер панели: на узком экране лишние кно�
   const w = (await narrow.boundingBox())!.width;
   if (w < 600) {
     await expect(page.locator('[data-b24-more]')).toBeVisible();
-    await expect(page.locator('.b24-sidepanel__footer > button:visible')).toHaveCount(3);
+    // в один ряд: на 390 px помещается одна кнопка и «Ещё»
+    const tops = await page.locator('.b24-sidepanel__footer > :visible').evaluateAll((els) => [...new Set(els.map((e) => (e as HTMLElement).offsetTop))]);
+    expect(tops.length).toBe(1);
     await page.locator('[data-b24-more]').click();
-    await expect(page.locator('.b24-context-menu [role="menuitem"]')).toHaveCount(4);
+    expect(await page.locator('.b24-context-menu [role="menuitem"]').count()).toBeGreaterThanOrEqual(4);
     await expect(page.locator('.b24-context-menu')).toContainText('Отменить заказ');
   } else {
     await expect(page.locator('[data-b24-more]')).toHaveCount(0);

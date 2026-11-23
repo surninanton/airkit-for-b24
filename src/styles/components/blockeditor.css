@@ -49,6 +49,13 @@
 /* поповеры: меню «/», настройки блока, выпадающие списки */
 .b24-blockeditor .ce-popover__container, .b24-blockeditor .ce-popover { color: var(--b24-text-primary); background: var(--b24-bg-surface); border: 1px solid var(--b24-divider-accent); border-radius: var(--b24-radius-md); box-shadow: var(--b24-shadow-3xl); }
 .b24-blockeditor .ce-popover--opened > .ce-popover__container { animation: none; }
+.b24-blockeditor .ce-popover { --width: 280px; --max-height: 340px; }
+.b24-blockeditor .ce-popover__items { scrollbar-width: thin; scrollbar-color: var(--b24-divider-accent) transparent; }
+.b24-blockeditor .ce-popover__items::-webkit-scrollbar { width: 6px; }
+.b24-blockeditor .ce-popover__items::-webkit-scrollbar-thumb { background: var(--b24-divider-accent); border-radius: 3px; }
+.b24-blockeditor .ce-popover-item__icon { flex: 0 0 auto; box-sizing: border-box; width: 26px; height: 26px; }
+.b24-blockeditor .ce-popover-item__icon svg { width: 18px; height: 18px; }
+.b24-blockeditor .ce-popover-item__title { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
 .b24-blockeditor .ce-popover-item { border-radius: var(--b24-radius-xs); color: var(--b24-text-primary); }
 .b24-blockeditor .ce-popover-item__icon { color: var(--b24-text-secondary); background: var(--b24-bg-surface-2); box-shadow: none; border: 1px solid var(--b24-divider); border-radius: var(--b24-radius-xs); }
 .b24-blockeditor .ce-popover-item__title { font-size: var(--b24-font-size-md); }
@@ -90,6 +97,13 @@
 .b24-blockeditor .cdx-list { margin: 0; padding-left: 24px; }
 .b24-blockeditor .cdx-list__item { padding: 2px 0; line-height: 1.6; }
 .b24-blockeditor .cdx-list__item::marker, .b24-blockeditor .cdx-nested-list__item-content::marker { color: var(--b24-text-subtle); }
+.b24-blockeditor .cdx-list__checkbox { flex: 0 0 auto; background: var(--b24-bg-surface); border: 1.5px solid var(--b24-border-field); border-radius: 5px; box-shadow: none; color: transparent; }
+.b24-blockeditor .cdx-list__checkbox-check, .b24-blockeditor .cdx-list__checkbox-check svg { color: #fff; }
+.b24-blockeditor .cdx-list__checkbox--checked { background: var(--b24-color-primary); border-color: var(--b24-color-primary); }
+.b24-blockeditor .cdx-list__checkbox--checked .cdx-list__checkbox-check, .b24-blockeditor .cdx-list__checkbox--checked .cdx-list__checkbox-check svg { color: #fff; stroke: #fff; }
+.b24-blockeditor .cdx-list__checkbox--checked + .cdx-list__item-content, .b24-blockeditor .cdx-list__checkbox--checked ~ .cdx-list__item-content { color: var(--b24-text-subtle); text-decoration: line-through; }
+.b24-blockeditor .cdx-list__checkbox:not(.cdx-list__checkbox--checked) .cdx-list__checkbox-check { opacity: 0; }
+.b24-blockeditor .cdx-list__item::marker, .b24-blockeditor .cdx-list--ordered .cdx-list__item::marker { color: var(--b24-text-subtle); }
 .b24-blockeditor .cdx-checklist__item-checkbox { background: var(--b24-bg-surface); border: 1px solid var(--b24-border-field); border-radius: 4px; box-shadow: none; }
 .b24-blockeditor .cdx-checklist__item--checked .cdx-checklist__item-checkbox { background: var(--b24-color-primary); border-color: var(--b24-color-primary); }
 .b24-blockeditor .cdx-checklist__item-checkbox-check svg, .b24-blockeditor .cdx-checklist__item-checkbox-check path { stroke: #fff; }
@@ -110,7 +124,7 @@
 .b24-blockeditor .image-tool__caption[contentEditable=true][data-placeholder]:empty::before { color: var(--b24-text-subtle); }
 
 /* таблица (@editorjs/table) */
-.b24-blockeditor .tc-wrap { --color-border: var(--b24-divider-accent); --color-background: var(--b24-bg-surface-2); --color-text-secondary: var(--b24-text-subtle); --color-border-icon: var(--b24-divider-accent); --color-background-icon-hover: var(--b24-bg-hover); }
+.b24-blockeditor .tc-wrap { --color-border: var(--b24-divider-accent); --color-text-secondary: var(--b24-text-subtle); --color-border-icon: var(--b24-divider-accent); --color-background-icon-hover: var(--b24-bg-hover); }
 .b24-blockeditor .tc-table { font-size: var(--b24-font-size-md); border-left-color: var(--b24-divider-accent); }
 .b24-blockeditor .tc-row { border-bottom-color: var(--b24-divider-accent); }
 .b24-blockeditor .tc-row::after { border-bottom-color: var(--b24-divider-accent); }
@@ -121,6 +135,14 @@
 .b24-blockeditor .tc-add-column, .b24-blockeditor .tc-add-row { color: var(--b24-text-subtle); }
 .b24-blockeditor .tc-add-column:hover, .b24-blockeditor .tc-add-row:hover { color: var(--b24-color-primary); background: var(--b24-bg-hover); }
 .b24-blockeditor .tc-add-row::before { background: var(--b24-divider-accent); }
+.b24-blockeditor .tc-popover { color: var(--b24-text-primary); background: var(--b24-bg-surface); border: 1px solid var(--b24-divider-accent); border-radius: var(--b24-radius-md); box-shadow: var(--b24-shadow-3xl); }
+.b24-blockeditor .tc-popover__item { color: var(--b24-text-primary); border-radius: var(--b24-radius-xs); }
+.b24-blockeditor .tc-popover__item:hover { background: var(--b24-bg-hover); }
+.b24-blockeditor .tc-popover__item-icon { flex: 0 0 auto; box-sizing: border-box; color: var(--b24-text-secondary); background: var(--b24-bg-surface-2); border: 1px solid var(--b24-divider); border-radius: var(--b24-radius-xs); box-shadow: none; }
+.b24-blockeditor .tc-popover__item-label { font-size: var(--b24-font-size-md); color: var(--b24-text-primary); }
+.b24-blockeditor .tc-popover__item--confirm { background: var(--b24-color-danger); }
+.b24-blockeditor .tc-popover__item--confirm .tc-popover__item-label, .b24-blockeditor .tc-popover__item--confirm .tc-popover__item-icon { color: #fff; }
+.b24-blockeditor .tc-add-column, .b24-blockeditor .tc-add-row { background: transparent; }
 .b24-blockeditor .tc-toolbox__toggler, .b24-blockeditor .tc-popover__item-icon { color: var(--b24-text-subtle); }
 .b24-blockeditor .tc-toolbox__toggler:hover { color: var(--b24-color-primary); }
 
