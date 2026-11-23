@@ -352,3 +352,24 @@ test('панель мессенджера: общая сетка отступо�
   await expect(page.locator('#probe4 [data-b24-chat-back] svg')).toHaveCount(1);
   await expect(page.locator('#probe4 [data-b24-chat-open] svg')).toHaveCount(1);
 });
+
+test('чаты: brand в списке отдельной меткой; видео без thumb не уже 240px; aside не сжимает детей', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'probe5';
+    host.style.cssText = 'width:360px';
+    document.body.append(host);
+    const a = document.createElement('div'); const b = document.createElement('div');
+    host.append(a, b);
+    B.createChatList(a, { items: [{ id: 'x', name: 'Иван', preview: 'Привет', channel: 'ВКонтакте', brand: { label: 'ПиР', color: '#c0392b' } }] });
+    B.createChatFeed(b, { messages: [{ id: 'v', dir: 'in', time: new Date(), attachments: [{ type: 'video', player: 'https://vk.com/video_ext.php?oid=1&id=2' }] }] });
+  });
+  const badges = page.locator('#probe5 .b24-chat-list__item .b24-chat-channel');
+  await expect(badges).toHaveCount(2);
+  await expect(badges.nth(1)).toHaveText('ПиР');
+  const w = await page.locator('#probe5 .b24-chat-att--video').evaluate((e) => e.getBoundingClientRect().width);
+  expect(w).toBeGreaterThanOrEqual(235);
+  expect(await page.locator('.b24-chat__aside > *').first().evaluate((e) => getComputedStyle(e).flexShrink)).toBe('0');
+});

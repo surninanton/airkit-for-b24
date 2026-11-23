@@ -24,6 +24,7 @@
 .b24-chat__list .b24-chat-list { flex: 1 1 0; }
 .b24-chat__list-head { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid var(--b24-divider); }
 .b24-chat__list-head > .b24-filter, .b24-chat__list-head > .b24-input { flex: 1 1 auto; }
+.b24-chat__aside > * { flex-shrink: 0; }
 .b24-chat__aside { border-left: 1px solid var(--b24-divider); overflow-y: auto; padding: 16px; }
 .b24-chat__main { background: var(--b24-chat-feed-bg, var(--b24-bg-surface-2)); }
 .b24-chat__head {
@@ -335,7 +336,7 @@
 .b24-chat-composer.is-editing .b24-chat-composer__attach, .b24-chat-composer.is-editing .b24-chat-composer__attachments { display: none; }
 
 /* видео во вложениях: превью с ▶, по клику — плеер 16:9 */
-.b24-chat-att--video { position: relative; display: block; width: min(320px, 100%); aspect-ratio: 16 / 9; margin: -3px -6px 0; overflow: hidden; padding: 0; color: #fff; background: #1b1f26; border: 0; border-radius: 10px; }
+.b24-chat-att--video { position: relative; display: block; width: 320px; max-width: 100%; min-width: min(240px, 100%); aspect-ratio: 16 / 9; margin: -3px -6px 0; overflow: hidden; padding: 0; color: #fff; background: #1b1f26; border: 0; border-radius: 10px; }
 .b24-chat-att--video.is-playing { margin: -3px -6px 0; background: #000; }
 .b24-chat-att--video img, .b24-chat-att--video iframe { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; object-fit: cover; }
 .b24-chat-att__poster { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; margin: 0; color: inherit; background: none; border: 0; cursor: pointer; }

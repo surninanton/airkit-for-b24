@@ -78,6 +78,8 @@ export interface ChatListItem {
   previewOut?: boolean;
   /** канал: «Telegram», { label: 'VK', color: '#0077ff' } */
   channel?: string | ChatChannel;
+  /** бренд / магазин: отдельная метка рядом с бейджем канала («ПиР»), цвет — color */
+  brand?: string | ChatChannel;
   unread?: number;
   /** точка у аватара */
   status?: 'online' | 'away';
@@ -134,6 +136,7 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
       : h('span', { class: 'b24-chat-list__preview b24-chat-list__subtitle' }, it.subtitle);
     const bottom = h('span', { class: 'b24-chat-list__bottom' }, preview);
     if (it.channel) bottom.append(channelBadge(it.channel));
+    if (it.brand) { const bb = channelBadge(it.brand); bb.classList.add('b24-chat-channel--brand'); bottom.append(bb); }
     if (it.unread) bottom.append(h('span', { class: 'b24-counter' }, it.unread > 99 ? '99+' : String(it.unread)));
     row.replaceChildren(av, h('span', { class: 'b24-chat-list__body' }, top, bottom));
     row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.typing ? `. ${typeof it.typing === 'string' ? it.typing : t('печатает…')}` : it.preview ? `. ${it.preview}` : it.subtitle ? `. ${it.subtitle}` : ''}`);
