@@ -1,5 +1,9 @@
 /** Английские подписи: forms */
 export const enForms: Record<string, string> = {
+  // автосохранение
+  'Сохраняю…': 'Saving…',
+  'Сохранено · {time}': 'Saved · {time}',
+  'Не сохранено — повторяю': 'Not saved — retrying',
   // фильтр
   'Фильтр и поиск': 'Filter and search',
   'Поиск': 'Search',

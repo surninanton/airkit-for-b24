@@ -127,3 +127,16 @@
   .b24-stages--fold .b24-stages__item:not(.is-current) { min-width: 0; width: 30px; padding: 0; font-size: 0; }
   .b24-stages--fold .b24-stages__item.is-current { flex: 1 0 auto; }
 }
+
+/* ── Индикатор автосохранения ─────────────────────────────
+ * <span class="b24-savestatus" data-state="saving|saved|error"><span class="b24-savestatus__icon"></span><span class="b24-savestatus__text">Сохранено · 14:32</span></span> */
+.b24-savestatus { display: inline-flex; align-items: center; gap: 6px; min-height: 20px; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); white-space: nowrap; }
+.b24-savestatus[hidden] { display: none; }
+.b24-savestatus__icon { display: inline-grid; place-items: center; width: 16px; height: 16px; }
+.b24-savestatus[data-state="saved"] .b24-savestatus__icon { color: var(--b24-color-success); }
+.b24-savestatus[data-state="error"] { color: var(--b24-color-danger); }
+.b24-savestatus--compact .b24-savestatus__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* на подложке Air */
+.b24-page-header:not(.b24-page-header--light) .b24-savestatus, .b24-sidepanel--air .b24-sidepanel__header .b24-savestatus { color: var(--b24-glass-text-secondary); }
+.b24-page-header:not(.b24-page-header--light) .b24-savestatus[data-state="error"], .b24-sidepanel--air .b24-sidepanel__header .b24-savestatus[data-state="error"] { color: #ffd2d0; }
+.b24-page-header:not(.b24-page-header--light) .b24-savestatus[data-state="saved"] .b24-savestatus__icon { color: inherit; }

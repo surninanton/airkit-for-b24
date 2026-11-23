@@ -171,15 +171,23 @@ export interface TreeProps extends Omit<TreeOptions, 'selected' | 'onSelect'> {
   onSelect: (ids: string[], item: TreeItem) => void;
   className?: string;
 }
-export function Tree({ selected, onSelect, items, className, values, onValueChange, ...options }: TreeProps) {
+export function Tree({ selected, onSelect, items, className, values, onValueChange, onMove, onAction, onRename, canDrop, ...options }: TreeProps) {
   const host = useRef<HTMLDivElement>(null);
   const tree = useRef<TreeHandle | null>(null);
   const cb = useRef(onSelect);
   cb.current = onSelect;
   const vcb = useRef(onValueChange);
   vcb.current = onValueChange;
+  const ev = useRef({ onMove, onAction, onRename, canDrop });
+  ev.current = { onMove, onAction, onRename, canDrop };
   useEffect(() => {
-    tree.current = createTree(host.current!, { ...options, items, selected, values, onSelect: (ids, item) => cb.current(ids, item), onValueChange: (id, v, item) => vcb.current?.(id, v, item) });
+    tree.current = createTree(host.current!, {
+      ...options,
+      onMove: onMove ? (m) => ev.current.onMove?.(m) : undefined,
+      onAction: onAction ? (a, i) => ev.current.onAction?.(a, i) : undefined,
+      onRename: onRename ? (id, l, i) => ev.current.onRename?.(id, l, i) : undefined,
+      canDrop: canDrop ? (i, p) => ev.current.canDrop?.(i, p) ?? true : undefined,
+      items, selected, values, onSelect: (ids, item) => cb.current(ids, item), onValueChange: (id, v, item) => vcb.current?.(id, v, item) });
     return () => tree.current?.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

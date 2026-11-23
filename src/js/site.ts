@@ -247,7 +247,7 @@ function initMegamenuPanes(menu: HTMLElement, mq: MediaQueryList): () => void {
 /* ── Подсветка текущего раздела (якорное меню, оглавление статьи) ──
  * Активен последний раздел, верх которого уже прошёл под шапкой (и якорным меню, если оно есть).
  */
-export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onActive?: (a: HTMLAnchorElement) => void, firstByDefault = false): () => void {
+export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onActive?: (a: HTMLAnchorElement) => void, firstByDefault = false, scroller?: HTMLElement | null): () => void {
   const pairs = links
     .map((a) => ({ a, t: document.getElementById(decodeURIComponent(a.hash.slice(1))) }))
     .filter((p): p is { a: HTMLAnchorElement; t: HTMLElement } => !!p.t);
@@ -271,7 +271,8 @@ export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onAc
     timer = undefined;
     if (picked) {
       const r = picked.t.getBoundingClientRect();
-      if (r.bottom > 0 && r.top < window.innerHeight) { setActive(picked.a); return; }
+      const box = scroller?.getBoundingClientRect();
+      if (r.bottom > (box?.top ?? 0) && r.top < (box?.bottom ?? window.innerHeight)) { setActive(picked.a); return; }
       picked = null;
     }
     const line = offset();
@@ -285,7 +286,8 @@ export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onAc
     // пока ни один раздел не дошёл до линии — первый видимый (для меню настроек; у лендинга над разделами герой)
     if (!active && firstByDefault) active = pairs.find((p) => p.t.getClientRects().length)?.a ?? null;
     const lastT = pairs[pairs.length - 1];
-    if (lastT.t.getClientRects().length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = lastT.a;
+    const atEnd = scroller ? scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2 : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+    if (lastT.t.getClientRects().length && atEnd) active = lastT.a;
     setActive(active);
   };
   // троттлинг таймером, а не кадрами: в фоновой вкладке кадры не приходят и пересчёт бы «залип»
@@ -293,21 +295,22 @@ export function scrollSpy(links: HTMLAnchorElement[], offset: () => number, onAc
   const onPick = (e: MouseEvent) => { const p = pairs.find((x) => x.a === (e.target as Element).closest?.('a')); if (p) { picked = p; setActive(p.a); } };
   const onUserScroll = () => { picked = null; };
   pairs.forEach((p) => p.a.addEventListener('click', onPick));
-  window.addEventListener('wheel', onUserScroll, { passive: true });
-  window.addEventListener('touchmove', onUserScroll, { passive: true });
+  const target: HTMLElement | Window = scroller ?? window;
+  target.addEventListener('wheel', onUserScroll, { passive: true });
+  target.addEventListener('touchmove', onUserScroll, { passive: true });
   window.addEventListener('keydown', onUserScroll);
-  window.addEventListener('scroll', onScroll, { passive: true });
+  target.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
   // высота страницы меняется и без прокрутки: открыли скрытую вкладку, догрузился контент
   const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(onScroll) : null;
-  ro?.observe(document.body);
+  ro?.observe(scroller ?? document.body);
   update();
   return () => {
     pairs.forEach((p) => p.a.removeEventListener('click', onPick));
-    window.removeEventListener('wheel', onUserScroll);
-    window.removeEventListener('touchmove', onUserScroll);
+    target.removeEventListener('wheel', onUserScroll);
+    target.removeEventListener('touchmove', onUserScroll);
     window.removeEventListener('keydown', onUserScroll);
-    window.removeEventListener('scroll', onScroll);
+    target.removeEventListener('scroll', onScroll);
     window.removeEventListener('resize', onScroll);
     ro?.disconnect();
     clearTimeout(timer);
@@ -336,8 +339,9 @@ export function initAnchorNav(nav: HTMLElement): () => void {
 /* ── Оглавление статьи ─────────────────────────────────────
  * <nav class="b24-toc" data-b24-toc [data-source="#article-body"]><p class="b24-toc__title">Содержание</p><ol>…</ol></nav>
  * Если <ol> пуст и задан data-source — оглавление собирается из h2/h3 текста (id проставляются).
+ * В теле openSidePanel (или с data-scroller="селектор" / options.scroller) следит за прокруткой этого контейнера, а не окна.
  */
-export function initToc(toc: HTMLElement): () => void {
+export function initToc(toc: HTMLElement, options: { scroller?: HTMLElement | string | null } = {}): () => void {
   let list = toc.querySelector<HTMLOListElement>('ol');
   const src = toc.dataset.source ? document.querySelector<HTMLElement>(toc.dataset.source) : null;
   if (src && (!list || !list.children.length)) {
@@ -351,6 +355,10 @@ export function initToc(toc: HTMLElement): () => void {
     });
   }
   const links = Array.from(toc.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
+  // контейнер прокрутки: опция, [data-scroller="селектор"] или тело боковой панели, в котором лежит оглавление
+  const sc = options.scroller ?? toc.dataset.scroller;
+  const scroller = typeof sc === 'string' ? (toc.closest<HTMLElement>(sc) ?? document.querySelector<HTMLElement>(sc)) : sc ?? toc.closest<HTMLElement>('.b24-sidepanel__body');
+  if (scroller) return scrollSpy(links, () => scroller.getBoundingClientRect().top + 24, undefined, true, scroller);
   return scrollSpy(links, headerBottom);
 }
 

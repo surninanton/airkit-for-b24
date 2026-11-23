@@ -27,6 +27,7 @@ export default defineConfig({
         receipt: resolve(__dirname, 'receipt.html'),
         phone: resolve(__dirname, 'phone.html'),
         cards: resolve(__dirname, 'cards.html'),
+        kb: resolve(__dirname, 'kb.html'),
       },
     },
   },

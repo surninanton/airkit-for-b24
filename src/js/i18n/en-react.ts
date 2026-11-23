@@ -69,6 +69,8 @@ export const enReact: Record<string, string> = {
   'Свой цвет': 'Custom color',
   'Сегодня': 'Today',
   'Скрыть значение': 'Hide value',
+  'Перетащить': 'Drag',
+  'Действия': 'Actions',
   'Скрыть подробности': 'Hide details',
   'Сменить': 'Change',
   'Снять выделение': 'Clear selection',

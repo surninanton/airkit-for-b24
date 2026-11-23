@@ -7,7 +7,7 @@ export {
   type FieldProps, type InputProps, type InputGroupProps, type SelectProps, type SelectOption, type CheckProps,
 } from './Form';
 export {
-  Card, SectionTitle, Props, Stat, EmptyState, Badge, Counter, Tag, Dot, Alert, Avatar, AvatarStack, User,
+  Card, SectionTitle, Props, Stat, EmptyState, SaveStatus, Badge, Counter, Tag, Dot, Alert, Avatar, AvatarStack, User,
   Spinner, Loader, Skeleton, Progress, Stages, StageMini, initials, DiffValue, Chip,
   type CardProps, type BadgeProps, type CounterProps, type AlertProps, type AvatarProps, type Stage, type StagesProps, type Tone,
 } from './Display';

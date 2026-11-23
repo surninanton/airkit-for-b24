@@ -201,6 +201,21 @@ export function User({ name, meta, src, href, size = 'sm', onClick }: { name: st
 export function Spinner({ size = 'md', label = t('Загрузка') }: { size?: 'sm' | 'md' | 'lg'; label?: string }) {
   return <span className={cx('b24-spinner', size !== 'md' && `b24-spinner--${size}`)} role="status" aria-label={label} />;
 }
+/** Индикатор автосохранения: «Сохраняю… / Сохранено · 14:32 / Не сохранено — повторяю». */
+export function SaveStatus({ state, time, text, compact, className }: { state: 'idle' | 'saving' | 'saved' | 'error'; time?: Date; text?: string; compact?: boolean; className?: string }) {
+  const d = time ?? new Date();
+  const label = text ?? (state === 'saving' ? t('Сохраняю…') : state === 'saved' ? t('Сохранено · {time}', { time: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }) : state === 'error' ? t('Не сохранено — повторяю') : '');
+  return (
+    <span className={cx('b24-savestatus', compact && 'b24-savestatus--compact', className)} data-state={state} hidden={state === 'idle'} role="status" aria-live="polite" title={label}>
+      <span className="b24-savestatus__icon" aria-hidden="true">
+        {state === 'saving' && <span className="b24-spinner b24-spinner--sm" />}
+        {state === 'saved' && <Icon name="check" size={14} />}
+        {state === 'error' && <Icon name="warning" size={14} />}
+      </span>
+      <span className="b24-savestatus__text">{label}</span>
+    </span>
+  );
+}
 export function Loader({ children = t('Загрузка…') }: { children?: ReactNode }) {
   return <div className="b24-loader"><Spinner />{children}</div>;
 }

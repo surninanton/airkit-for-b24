@@ -29,6 +29,8 @@ export interface SidePanelHandle {
   element: HTMLElement;
   body: HTMLElement;
   setTitle(title: string): void;
+  /** заменить футер без пересоздания панели (null — убрать); сворачивание в «Ещё ▾» пересчитывается */
+  setFooter(content: Content | null): void;
   close(): Promise<void>;
 }
 
@@ -99,11 +101,20 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   panel.append(closeBtn);
   if (title !== undefined) panel.append(header);
   panel.append(body);
-  if (footer) {
+  let stopFooter: (() => void) | null = null;
+  const mountFooter = (content: Content | null) => {
+    stopFooter?.();
+    stopFooter = null;
+    footerEl?.remove();
+    footerEl = null;
+    if (content == null) return;
     footerEl = h('div', { class: 'b24-sidepanel__footer' });
-    append(footerEl, footer);
+    append(footerEl, content);
     panel.append(footerEl);
-  }
+    if (footerKeep > 0 && panel.isConnected) stopFooter = collapseFooter(footerEl, panel, footerKeep);
+    if (autoInit && panel.isConnected) runAutoInit(footerEl);
+  };
+  if (footer) mountFooter(footer);
   overlay.append(panel);
 
   const releaseScroll = lockScroll();
@@ -115,12 +126,14 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
     element: panel,
     body,
     setTitle(t) { titleEl.textContent = t; },
+    setFooter: mountFooter,
     async close() {
       if (closed) return;
       closed = true;
       releaseLayer();
       releaseTrap();
       stopFooter?.();
+      stopFooter = null;
       const i = openPanels.indexOf(handle);
       if (i >= 0) openPanels.splice(i, 1);
       await animateOut(overlay, 'is-closing', 450);
@@ -137,7 +150,7 @@ export function openSidePanel(options: SidePanelOptions): SidePanelHandle {
   overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) void handle.close(); });
 
   document.body.append(overlay);
-  const stopFooter = footerEl && footerKeep > 0 ? collapseFooter(footerEl, panel, footerKeep) : null;
+  if (footerEl && footerKeep > 0) stopFooter = collapseFooter(footerEl, panel, footerKeep);
   if (autoInit && !url) runAutoInit(panel);
   bringToFront(overlay);
   openPanels.push(handle);

@@ -3,6 +3,7 @@ export { modal, confirm, alert, type ModalOptions, type ModalHandle, type ModalB
 export { openSidePanel, closeAllSidePanels, type SidePanelOptions, type SidePanelHandle } from './sidepanel';
 export { dropdown, type DropdownOptions, type DropdownHandle } from './dropdown';
 export { initTabs } from './tabs';
+export { createSaveStatus, type SaveStatusOptions, type SaveStatusHandle, type SaveState } from './save-status';
 export { initEntityOpen } from './entity';
 export { initSortableTable, diffHtml, chipHtml, type DiffOptions } from './table';
 export { createCalendar, datepicker, type CalendarOptions, type CalendarHandle, type DatePickerOptions, type DatePickerHandle } from './calendar';
@@ -58,7 +59,7 @@ export { createChart, sparkline, chartColor, type ChartOptions, type ChartSeries
 export { initSettings, initWizard, type SettingsHandle, type WizardHandle } from './screens';
 export {
   initCheckGroup, initRange, initColors, createColors, createSegmented, initSecret, createTree, popover, startTour, plural, formatCount, crmEntityUrl, applyServerErrors, clearServerErrors,
-  type SegmentedItem, type SegmentedOptions, type SegmentedHandle, type ColorsOptions, type ColorsHandle, type TreeItem, type TreeBadge, type TreeValueOption, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
+  type SegmentedItem, type SegmentedOptions, type SegmentedHandle, type ColorsOptions, type ColorsHandle, type TreeItem, type TreeAction, type TreeMove, type TreeBadge, type TreeValueOption, type TreeOptions, type TreeHandle, type PopoverOptions, type PopoverAction, type PopoverHandle, type TourStep, type TourHandle, type CrmEntityType,
 } from './controls';
 export { createRating, getRating, type RatingOptions, type RatingHandle } from './rating';
 export { createLockScreen, openPinSetup, idleLock, type LockUser, type LockScreenOptions, type LockScreenHandle, type PinSetupOptions, type IdleLockOptions } from './lock-screen';

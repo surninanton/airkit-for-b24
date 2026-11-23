@@ -20,6 +20,7 @@
 @import "./components/selector.css";
 @import "./components/uploader.css";
 @import "./components/editor.css";
+@import "./components/blockeditor.css";
 @import "./components/timeline.css";
 @import "./components/chat.css";
 @import "./components/messenger.css";

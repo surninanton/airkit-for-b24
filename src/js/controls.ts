@@ -2,6 +2,7 @@ import { icon, type IconName } from '../icons';
 import { bringToFront, h, html, pushLayer } from './dom';
 import { intlLocale, t as tr } from './i18n';
 import { showFloat } from './float';
+import { openContextMenu, type ContextMenuItem } from './context-menu';
 import { readableTextColor } from './kanban';
 
 /* ── Группа чекбоксов ──────────────────────────────────────
@@ -224,6 +225,18 @@ export interface TreeItem {
   /** значки или чипы справа от названия: ['Кухня', { label: 'Упаковка', color: '#1bce7b' }] */
   badges?: Array<string | TreeBadge>;
 }
+/** Действие узла в меню «…» справа (переименовать, удалить, добавить вложенный). */
+export interface TreeAction {
+  id: string;
+  label: string;
+  icon?: IconName;
+  danger?: boolean;
+  disabled?: boolean;
+  /** линия-разделитель перед пунктом */
+  separatorBefore?: boolean;
+}
+/** Перенос узла: куда встал (новый родитель и позиция среди его детей). */
+export interface TreeMove { id: string; item: TreeItem; fromParentId: string | null; parentId: string | null; index: number }
 export interface TreeBadge { label: string; title?: string; color?: string }
 /** Значение узла — набор вариантов (зон, ролей, прав) с наследованием от родителя. */
 export interface TreeValueOption { value: string; label: string; color?: string }
@@ -246,6 +259,21 @@ export interface TreeOptions {
   onValueChange?: (id: string, value: string[] | null, item: TreeItem) => void;
   /** подпись унаследованного значения (по умолчанию «как у родителя») */
   inheritLabel?: string;
+  /**
+   * Перетаскивание узлов за ручку слева (мышь, перо, касание): сортировка среди соседей и перенос в другой раздел (на середину узла — внутрь).
+   * С клавиатуры на узле: Alt+↑ / Alt+↓ — вверх / вниз среди соседей, Alt+→ — внутрь предыдущего соседа, Alt+← — на уровень выше. Esc во время перетаскивания — отмена.
+   */
+  draggable?: boolean;
+  /** можно ли перенести узел `item` в `parent` (null — в корень); false — не даёт бросить */
+  canDrop?: (item: TreeItem, parent: TreeItem | null) => boolean;
+  /** узел перенесён: порядок в дереве уже изменён; вернуть false — откатить */
+  onMove?: (move: TreeMove) => void | boolean;
+  /** меню «…» у узла (по наведению и с клавиатуры): массив для всех узлов или функция для конкретного (пустой — без меню) */
+  actions?: TreeAction[] | ((item: TreeItem) => TreeAction[]);
+  /** выбран пункт меню «…» */
+  onAction?: (actionId: string, item: TreeItem) => void;
+  /** название изменено через handle.rename(id) / F2 (нужен onRename или просто F2 — тогда меняется только подпись) */
+  onRename?: (id: string, label: string, item: TreeItem) => void;
 }
 export interface TreeHandle {
   element: HTMLElement;
@@ -253,6 +281,10 @@ export interface TreeHandle {
   setSelected(ids: string[]): void;
   expand(id: string, open?: boolean): void;
   setItems(items: TreeItem[]): void;
+  /** текущее дерево (с учётом переносов и переименований) */
+  getItems(): TreeItem[];
+  /** название узла правится на месте: Enter — готово (onRename), Esc — отмена */
+  rename(id: string): void;
   /** только свои значения узлов (null — как у родителя) */
   getValues(): Record<string, string[] | null>;
   setValues(values: Record<string, string[] | null | undefined>): void;
@@ -264,7 +296,8 @@ export interface TreeHandle {
 export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle {
   const o = options;
   const mode = o.select ?? 'single';
-  let items = o.items;
+  const cloneItems = (l: TreeItem[]): TreeItem[] => l.map((i) => (i.children ? { ...i, children: cloneItems(i.children) } : { ...i }));
+  let items = cloneItems(o.items);
   const selected = new Set(o.selected ?? []);
   const expanded = new Set(o.expanded ?? []);
   const byId = new Map<string, TreeItem>();
@@ -351,6 +384,44 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     boxes.find((b) => !b.disabled)?.focus();
   };
 
+  const GRIP = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="3.5" r="1.3"/><circle cx="10.5" cy="3.5" r="1.3"/><circle cx="5.5" cy="8" r="1.3"/><circle cx="10.5" cy="8" r="1.3"/><circle cx="5.5" cy="12.5" r="1.3"/><circle cx="10.5" cy="12.5" r="1.3"/></svg>';
+  const actionsOf = (item: TreeItem): TreeAction[] => (typeof o.actions === 'function' ? o.actions(item) : o.actions) ?? [];
+  const locate = (id: string, list: TreeItem[] = items, parent: TreeItem | null = null): { list: TreeItem[]; index: number; parent: TreeItem | null } | null => {
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].id === id) return { list, index: i, parent };
+      const sub = list[i].children && locate(id, list[i].children!, list[i]);
+      if (sub) return sub;
+    }
+    return null;
+  };
+  const isInside = (item: TreeItem, id: string): boolean => item.id === id || !!item.children?.some((c) => isInside(c, id));
+  /** перенос узла `id` внутрь `parentId` (null — корень) на позицию `index`; false — запрещён или откатан */
+  const moveNode = (id: string, parentId: string | null, index: number): boolean => {
+    const from = locate(id);
+    if (!from) return false;
+    const item = from.list[from.index];
+    const target = parentId == null ? null : locate(parentId)?.list[locate(parentId)!.index] ?? null;
+    if (parentId != null && (!target || isInside(item, parentId))) return false;
+    if (o.canDrop && !o.canDrop(item, target)) return false;
+    const destList = target ? (target.children ??= []) : items;
+    const snapshot = JSON.stringify(items);
+    const same = destList === from.list;
+    from.list.splice(from.index, 1);
+    const at = Math.max(0, Math.min(destList.length, same && index > from.index ? index - 1 : index));
+    if (same && at === from.index) { from.list.splice(from.index, 0, item); return false; }
+    destList.splice(at, 0, item);
+    if (target) expanded.add(target.id);
+    if (from.parent && !from.parent.children?.length) delete from.parent.children;
+    focusId = id;
+    render();
+    if (o.onMove?.({ id, item, fromParentId: from.parent?.id ?? null, parentId, index: at }) === false) {
+      items = JSON.parse(snapshot) as TreeItem[];
+      render();
+      return false;
+    }
+    return true;
+  };
+
   const renderNode = (item: TreeItem, level: number): HTMLElement => {
     byId.set(item.id, item);
     const hasKids = !!item.children?.length;
@@ -361,6 +432,7 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
       'aria-disabled': item.disabled ? 'true' : undefined,
     });
     const node = h('div', { class: 'b24-tree__node', tabindex: '-1' });
+    if (o.draggable && !item.disabled) node.append(h('span', { class: 'b24-tree__grip', 'aria-hidden': 'true', title: tr('Перетащить') }, html(GRIP)));
     node.append(h('span', { class: `b24-tree__toggle${hasKids ? '' : ' is-leaf'}`, 'aria-hidden': 'true' }));
     if (mode === 'multiple') {
       const cb = h('label', { class: 'b24-check', 'aria-hidden': 'true' }, h('input', { type: 'checkbox', tabindex: '-1' }));
@@ -372,6 +444,7 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     if (item.count != null) node.append(h('span', { class: 'b24-tree__count' }, String(item.count)));
     if (item.badges?.length) node.append(h('span', { class: 'b24-tree__badges' }, ...item.badges.map((b) => (typeof b === 'string' ? chip(b) : chip(b.label, b.color, b.title)))));
     if (hasValues) node.append(renderValue(item));
+    if (actionsOf(item).length) node.append(h('button', { type: 'button', class: 'b24-tree__more', tabindex: '-1', 'aria-haspopup': 'menu', 'aria-label': `${tr('Действия')}: ${item.label}`, title: tr('Действия') }, html(icon('more', { size: 18 }))));
     li.append(node);
     if (hasKids) {
       const ul = h('ul', { role: 'group' });
@@ -423,10 +496,109 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     });
     o.onSelect?.([...selected], item);
   };
+  const openActions = (id: string, anchor: HTMLElement) => {
+    const item = byId.get(id);
+    if (!item) return;
+    const list: ContextMenuItem[] = [];
+    for (const a of actionsOf(item)) {
+      if (a.separatorBefore && list.length) list.push({ separator: true });
+      list.push({ label: a.label, icon: a.icon, danger: a.danger, disabled: a.disabled, onClick: () => o.onAction?.(a.id, item) });
+    }
+    if (!list.length) return;
+    const r = anchor.getBoundingClientRect();
+    openContextMenu(r.right, r.bottom + 4, list, { onClose: () => liOf(id)?.querySelector<HTMLElement>(':scope > .b24-tree__node')?.focus({ preventScroll: true }) });
+  };
+  const startRename = (id: string) => {
+    const item = byId.get(id);
+    const labelEl = liOf(id)?.querySelector<HTMLElement>(':scope > .b24-tree__node > .b24-tree__label');
+    if (!item || !labelEl) return;
+    const input = h('input', { type: 'text', class: 'b24-tree__rename b24-input b24-input--sm', value: item.label, 'aria-label': item.label });
+    labelEl.replaceChildren(input);
+    let done = false;
+    const finish = (commitIt: boolean) => {
+      if (done) return;
+      done = true;
+      const next = input.value.trim();
+      if (commitIt && next && next !== item.label) { item.label = next; labelEl.textContent = next; o.onRename?.(id, next, item); } else labelEl.textContent = item.label;
+      liOf(id)?.querySelector<HTMLElement>(':scope > .b24-tree__node')?.focus({ preventScroll: true });
+    };
+    input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.focus();
+    input.select();
+  };
+
+  /* перетаскивание за ручку */
+  type Drop = { li: HTMLElement; where: 'before' | 'after' | 'inside' };
+  const clearDrop = () => root.querySelectorAll('.is-drop-before, .is-drop-after, .is-drop-inside, .is-drop-denied').forEach((x) => x.classList.remove('is-drop-before', 'is-drop-after', 'is-drop-inside', 'is-drop-denied'));
+  const onGripDown = (e: PointerEvent) => {
+    const grip = (e.target as HTMLElement).closest<HTMLElement>('.b24-tree__grip');
+    if (!grip || e.button > 0) return;
+    const srcLi = grip.closest<HTMLElement>('[role="treeitem"]')!;
+    const id = srcLi.dataset.id!;
+    const x0 = e.clientX, y0 = e.clientY;
+    let active = false;
+    let drop: Drop | null = null;
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    const pick = (ev: PointerEvent) => {
+      clearDrop();
+      drop = null;
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>('.b24-tree__node');
+      const li = el?.parentElement;
+      if (!el || !li || !root.contains(li) || li === srcLi) return;
+      const r = el.getBoundingClientRect();
+      const f = (ev.clientY - r.top) / r.height;
+      const where: Drop['where'] = f < 0.28 ? 'before' : f > 0.72 ? 'after' : 'inside';
+      const item = byId.get(id)!;
+      const tid = li.dataset.id!;
+      const parentItem = where === 'inside' ? byId.get(tid)! : (locate(tid)?.parent ?? null);
+      const ok = !(parentItem && isInside(item, parentItem.id)) && !isInside(item, tid) && (!o.canDrop || o.canDrop(item, parentItem));
+      li.classList.add(ok ? `is-drop-${where}` : 'is-drop-denied');
+      if (ok) drop = { li, where };
+    };
+    const onMovePtr = (ev: PointerEvent) => {
+      if (!active) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4) return;
+        active = true;
+        srcLi.classList.add('is-dragging');
+        root.classList.add('is-sorting');
+      }
+      pick(ev);
+    };
+    const finish = (commitDrop: boolean) => {
+      grip.removeEventListener('pointermove', onMovePtr);
+      grip.removeEventListener('pointerup', onUp);
+      grip.removeEventListener('pointercancel', onCancel);
+      document.removeEventListener('keydown', onEsc, true);
+      srcLi.classList.remove('is-dragging');
+      root.classList.remove('is-sorting');
+      const d = drop as Drop | null;
+      clearDrop();
+      if (!active || !commitDrop || !d) return;
+      const tid = d.li.dataset.id!;
+      if (d.where === 'inside') { moveNode(id, tid, byId.get(tid)?.children?.length ?? 0); return; }
+      const at = locate(tid);
+      if (at) moveNode(id, at.parent?.id ?? null, at.index + (d.where === 'after' ? 1 : 0));
+    };
+    const onUp = () => finish(true);
+    const onCancel = () => finish(false);
+    const onEsc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') { ev.stopPropagation(); finish(false); } };
+    grip.addEventListener('pointermove', onMovePtr);
+    grip.addEventListener('pointerup', onUp);
+    grip.addEventListener('pointercancel', onCancel);
+    document.addEventListener('keydown', onEsc, true);
+  };
+  if (o.draggable) root.addEventListener('pointerdown', onGripDown);
+
   const onClick = (e: MouseEvent) => {
     const node = (e.target as HTMLElement).closest<HTMLElement>('.b24-tree__node');
     if (!node) return;
     const id = node.parentElement!.dataset.id!;
+    const moreBtn = (e.target as HTMLElement).closest<HTMLElement>('.b24-tree__more');
+    if (moreBtn) { setFocusable(id, false); openActions(id, moreBtn); return; }
+    if ((e.target as HTMLElement).closest('.b24-tree__grip')) return;
     const valueBtn = (e.target as HTMLElement).closest<HTMLElement>('.b24-tree__value');
     if (valueBtn) { setFocusable(id, false); openValueDialog(id, valueBtn); return; }
     if ((e.target as HTMLElement).closest('.b24-tree__reset')) { commit(id, null); return; }
@@ -435,8 +607,25 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
     else choose(id);
   };
   const onKey = (e: KeyboardEvent) => {
-    if ((e.target as HTMLElement).closest('.b24-tree__value, .b24-tree__reset')) return;   // у кнопок значения свои Enter / пробел
+    if ((e.target as HTMLElement).closest('.b24-tree__value, .b24-tree__reset, .b24-tree__rename, .b24-tree__more')) return;   // у кнопок значения свои Enter / пробел
     if (!focusId) return;
+    if (e.key === 'F2' && o.onRename) { e.preventDefault(); startRename(focusId); return; }
+    if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+      const more = liOf(focusId)?.querySelector<HTMLElement>(':scope > .b24-tree__node > .b24-tree__more');
+      if (more) { e.preventDefault(); openActions(focusId, more); return; }
+    }
+    if (o.draggable && e.altKey && e.key.startsWith('Arrow')) {
+      const at = locate(focusId);
+      if (!at) return;
+      e.preventDefault();
+      const parentId = at.parent?.id ?? null;
+      if (e.key === 'ArrowUp' && at.index > 0) moveNode(focusId, parentId, at.index - 1);
+      else if (e.key === 'ArrowDown' && at.index < at.list.length - 1) moveNode(focusId, parentId, at.index + 2);
+      else if (e.key === 'ArrowRight' && at.index > 0) { const prev = at.list[at.index - 1]; moveNode(focusId, prev.id, prev.children?.length ?? 0); }
+      else if (e.key === 'ArrowLeft' && at.parent) { const up = locate(at.parent.id); if (up) moveNode(focusId, up.parent?.id ?? null, up.index + 1); }
+      setFocusable(focusId);
+      return;
+    }
     const ids = visibleIds();
     const i = ids.indexOf(focusId);
     const li = liOf(focusId)!;
@@ -456,13 +645,19 @@ export function createTree(host: HTMLElement, options: TreeOptions): TreeHandle 
   };
   root.addEventListener('click', onClick);
   root.addEventListener('keydown', onKey);
+  root.addEventListener('focusin', (e) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('.b24-tree__node')?.parentElement?.dataset.id;
+    if (id && id !== focusId) setFocusable(id, false);
+  });
   render();
   return {
     element: root,
     getSelected: () => [...selected],
     setSelected(ids) { selected.clear(); ids.forEach((i) => selected.add(i)); render(); },
     expand(id, open = true) { toggle(id, open); },
-    setItems(next) { items = next; render(); },
+    setItems(next) { items = cloneItems(next); render(); },
+    getItems: () => items,
+    rename: startRename,
     getValues: () => Object.fromEntries(own),
     setValues(v) { own.clear(); Object.entries(v).forEach(([k, x]) => own.set(k, x ?? null)); render(); },
     getEffective: (id) => effective(id).value,

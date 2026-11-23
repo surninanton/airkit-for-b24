@@ -93,6 +93,7 @@
 .b24-toc a.is-active, .b24-toc a[aria-current="true"] { color: var(--b24-color-link); font-weight: var(--b24-font-weight-medium); border-left-color: var(--b24-color-primary); }
 @media (max-width: 1024px) { .b24-toc { position: static; max-height: none; order: -1; } }
 .b24-prose h2, .b24-prose h3 { scroll-margin-top: calc(var(--b24-site-header-h, 64px) + 24px); }
+.b24-sidepanel__body .b24-prose :is(h2, h3, h4) { scroll-margin-top: 12px; }
 
 /* ── Карточки статей и лента новостей ─────────────────── */
 .b24-posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--b24-posts-min, 300px), 1fr)); gap: var(--b24-space-md); margin: 0; padding: 0; list-style: none; }

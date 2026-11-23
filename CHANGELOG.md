@@ -2,6 +2,17 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### База знаний
+- `createTree`: `draggable` (перенос и сортировка за ручку, Alt+стрелки), `canDrop`, `onMove`; `actions` / `onAction` — меню «…» у узла; `rename(id)` / F2 и `onRename`; `getItems()`. React `<Tree>` принимает те же свойства.
+- `.b24-prose`: цитата, маркер, чек-лист, разделитель `.b24-delimiter`, выноска с заголовком.
+- `createSaveStatus` / `<SaveStatus>` — индикатор автосохранения.
+- `openSidePanel(...).setFooter(content | null)`.
+- `initToc` следит за прокруткой тела панели (авто в `.b24-sidepanel__body`, `data-scroller`, `options.scroller`); `scrollSpy` принимает контейнер.
+- `blockeditor.css`: тема Editor.js под токены кита (`.b24-blockeditor .ce-*`).
+- Демо `kb.html`.
+
 ## 0.20.1 — 2026-11-21
 
 ### Исправлено

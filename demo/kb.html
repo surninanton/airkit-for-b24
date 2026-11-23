@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>База знаний — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1200px">
+    <div id="header"></div>
+    <div class="b24-card">
+      <div class="b24-card__header"><h2 class="b24-card__title">Разделы</h2><span class="b24-card__subtitle">&nbsp;createTree({ draggable, actions, onMove, onRename })</span></div>
+      <div class="b24-card__body">
+        <p class="b24-text-sm b24-text-secondary" style="margin:0 0 12px">Перетащите узел за ручку слева: между соседями — порядок, на середину узла — внутрь раздела. Меню «…» справа: переименовать, добавить вложенный, удалить. С клавиатуры: Alt+стрелки, F2.</p>
+        <div id="tree"></div>
+        <p class="b24-text-sm b24-text-secondary" id="tree-out" style="margin:12px 0 0"></p>
+      </div>
+    </div>
+    <div class="b24-card" style="margin-top:16px">
+      <div class="b24-card__header"><h2 class="b24-card__title">Статья в панели</h2><span class="b24-card__subtitle">&nbsp;.b24-prose · initToc в теле панели · handle.setFooter · createSaveStatus</span></div>
+      <div class="b24-card__body"><button type="button" class="b24-btn b24-btn--primary" id="open-article">Открыть статью</button></div>
+    </div>
+    <div class="b24-card" style="margin-top:16px">
+      <div class="b24-card__header"><h2 class="b24-card__title">Блочный редактор</h2><span class="b24-card__subtitle">&nbsp;.b24-blockeditor .ce-* (Editor.js)</span></div>
+      <div class="b24-card__body">
+        <div class="b24-blockeditor" id="be">
+          <div class="codex-editor"><div class="codex-editor__redactor">
+            <div class="ce-block"><div class="ce-block__content"><h2 class="ce-header">Как принять заказ</h2></div></div>
+            <div class="ce-block"><div class="ce-block__content"><div class="ce-paragraph cdx-block">Откройте карточку заказа и нажмите <mark class="cdx-marker">«Принять»</mark>.</div></div></div>
+            <div class="ce-block ce-block--selected"><div class="ce-block__content"><div class="cdx-quote"><div class="cdx-input cdx-quote__text">Клиент всегда прав, если у него есть чек.</div><div class="cdx-input cdx-quote__caption">Правило кассы</div></div></div></div>
+            <div class="ce-block"><div class="ce-block__content"><div class="cdx-warning"><div class="cdx-input cdx-warning__title">Важно</div><div class="cdx-input cdx-warning__message">После пробития чека способ оплаты не меняется.</div></div></div></div>
+            <div class="ce-block"><div class="ce-block__content"><div class="ce-delimiter cdx-block"></div></div></div>
+          </div>
+          <div class="ce-toolbar ce-toolbar--opened" style="position:static"><div class="ce-toolbar__content"><div class="ce-toolbar__actions ce-toolbar__actions--opened" style="position:static;display:flex;gap:4px"><div class="ce-toolbar__plus">+</div><div class="ce-toolbar__settings-btn">⋮⋮</div></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  const saveHost = document.createElement('span');
+  const header = B24UI.createPageHeader(document.getElementById('header'), {
+    menu: [{ label: 'База знаний', href: '#', active: true }],
+    title: 'База знаний',
+    extra: [saveHost],
+  });
+  const status = B24UI.createSaveStatus(saveHost);
+  window.kbStatus = status;
+
+  const out = document.getElementById('tree-out');
+  let n = 0;
+  const tree = B24UI.createTree(document.getElementById('tree'), {
+    select: 'single', ariaLabel: 'Разделы базы знаний', expanded: ['start', 'orders'],
+    draggable: true,
+    items: [
+      { id: 'start', label: 'Начало работы', icon: 'folder', children: [{ id: 'login', label: 'Вход в кабинет' }, { id: 'roles', label: 'Роли и права' }] },
+      { id: 'orders', label: 'Заказы', icon: 'folder', children: [{ id: 'accept', label: 'Приём заказа' }, { id: 'refund', label: 'Возврат чека' }] },
+      { id: 'faq', label: 'Частые вопросы', icon: 'folder' },
+    ],
+    actions: [
+      { id: 'rename', label: 'Переименовать', icon: 'edit' },
+      { id: 'add', label: 'Добавить вложенный', icon: 'plus' },
+      { id: 'delete', label: 'Удалить', icon: 'trash', danger: true, separatorBefore: true },
+    ],
+    onAction: (id, item) => {
+      if (id === 'rename') tree.rename(item.id);
+      if (id === 'add') { const items = tree.getItems(); const find = (l) => { for (const i of l) { if (i.id === item.id) return i; const f = i.children && find(i.children); if (f) return f; } }; const t = find(items); (t.children ??= []).push({ id: `new-${++n}`, label: `Новый раздел ${n}` }); tree.setItems(items); tree.expand(item.id, true); out.textContent = `Добавлен вложенный в «${item.label}»`; }
+      if (id === 'delete') { const drop = (l) => l.filter((i) => i.id !== item.id).map((i) => (i.children ? { ...i, children: drop(i.children) } : i)); tree.setItems(drop(tree.getItems())); out.textContent = `Удалён «${item.label}»`; }
+    },
+    onRename: (id, label) => { out.textContent = `Переименован: ${label}`; status.setState('saved'); },
+    onMove: (m) => { out.textContent = `Перенос ${m.id}: родитель ${m.parentId ?? 'корень'}, позиция ${m.index}`; status.setState('saving'); setTimeout(() => status.setState('saved'), 400); },
+  });
+  window.kbTree = tree;
+
+  const article = (title) => `
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:24px">
+      <div class="b24-prose" id="kb-body">
+        <h2>Подготовка</h2>
+        <p>Проверьте <mark>права доступа</mark> и откройте раздел «Заказы».</p>
+        <blockquote><p>Сначала чек, потом возврат.</p><cite>Правило кассы</cite></blockquote>
+        <h2>Порядок действий</h2>
+        <ul class="b24-checklist"><li><input type="checkbox" disabled checked><span>Открыть заказ</span></li><li><input type="checkbox" disabled><span>Принять оплату</span></li></ul>
+        <div class="b24-callout b24-callout--warning"><div><p class="b24-callout__title">Важно</p><p>После пробития чека способ оплаты не меняется.</p></div></div>
+        <hr class="b24-delimiter">
+        ${'<p>Подробности порядка действий для кассира и менеджера, чтобы текст был достаточно длинным для прокрутки панели. </p>'.repeat(14)}
+        <h2>Итоги</h2>
+        <p>${title}: готово. ${'Ещё немного текста для итогового раздела. '.repeat(30)}</p>
+      </div>
+      <nav class="b24-toc" data-b24-toc data-source="#kb-body"><p class="b24-toc__title">Содержание</p><ol></ol></nav>
+    </div>`;
+  document.getElementById('open-article').addEventListener('click', () => {
+    const steps = [
+      { title: 'Приём заказа', footer: '<button type="button" class="b24-btn b24-btn--primary" data-act="1">Дальше: возврат чека</button>' },
+      { title: 'Возврат чека', footer: '<button type="button" class="b24-btn b24-btn--secondary" data-act="0">Назад: приём заказа</button>' },
+    ];
+    const panel = B24UI.openSidePanel({ title: steps[0].title, width: 900, content: B24UI.html(article(steps[0].title)), footer: B24UI.html(steps[0].footer) });
+    panel.element.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const st = steps[Number(b.dataset.act)];
+      panel.setTitle(st.title);
+      panel.body.replaceChildren(B24UI.html(article(st.title)));
+      B24UI.init(panel.body);
+      panel.body.scrollTop = 0;
+      panel.setFooter(B24UI.html(st.footer));
+    });
+  });
+</script>
+</body>
+</html>

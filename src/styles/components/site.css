@@ -38,6 +38,25 @@
 .b24-prose pre { margin: 0 0 12px; padding: 12px 14px; overflow-x: auto; background: var(--b24-bg-surface-2); border-radius: var(--b24-radius-sm); }
 .b24-prose pre code { padding: 0; background: none; }
 .b24-prose hr { height: 1px; margin: 20px 0; border: 0; background: var(--b24-divider); }
+/* цитата: <blockquote><p>…</p><cite>Автор</cite></blockquote> (или <footer>/<figcaption>) */
+.b24-prose blockquote { margin: 16px 0; padding: 4px 0 4px 16px; color: var(--b24-text-secondary); border-left: 3px solid var(--b24-color-primary); font-style: italic; }
+.b24-prose blockquote > :last-child { margin-bottom: 0; }
+.b24-prose blockquote :is(cite, footer, figcaption) { display: block; margin-top: 6px; font-size: var(--b24-font-size-sm); font-style: normal; color: var(--b24-text-subtle); }
+.b24-prose blockquote :is(cite, footer, figcaption)::before { content: "— "; }
+/* маркер */
+.b24-prose mark { padding: 0 3px; color: inherit; background: color-mix(in srgb, var(--b24-color-warning-strong) 30%, transparent); border-radius: 3px; }
+/* разделитель-звёздочки: <div class="b24-delimiter"></div> или <hr class="b24-delimiter"> */
+.b24-prose .b24-delimiter { height: auto; margin: 24px 0; border: 0; background: none; text-align: center; line-height: 1; letter-spacing: 0.5em; color: var(--b24-text-subtle); }
+.b24-prose .b24-delimiter::before { content: "***"; }
+/* чек-лист: <ul class="b24-checklist"><li><input type="checkbox" disabled checked><span>…</span></li></ul>; подойдёт и li > input[type=checkbox] без класса */
+.b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) { padding-left: 0; list-style: none; }
+.b24-prose :is(ul.b24-checklist, ul:has(> li > input[type="checkbox"])) > li { display: flex; align-items: flex-start; gap: 10px; }
+.b24-prose li > input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; margin: 0.2em 0 0; accent-color: var(--b24-color-primary); }
+.b24-prose li:has(> input[type="checkbox"]:checked) > :not(input) { color: var(--b24-text-subtle); text-decoration: line-through; }
+/* выноска внутри текста (.b24-callout): заголовок и абзацы без лишних отступов */
+.b24-prose .b24-callout p { margin: 0 0 6px; }
+.b24-prose .b24-callout > div { min-width: 0; }
+.b24-prose .b24-callout:not(:has(.b24-callout__icon)) { padding-left: 14px; }
 .b24-prose img { max-width: 100%; height: auto; border-radius: var(--b24-radius-sm); }
 
 .b24-document {
