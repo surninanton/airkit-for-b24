@@ -288,3 +288,67 @@ test('чаты: editable и «Изменить» у своей заметки; �
   await expect(dock.locator('.b24-chat-typing')).toBeHidden();
   await expect(dock.locator('.b24-chat-dock__meta')).not.toHaveText('печатает…');
 });
+
+test('чаты: видео во вложениях — плеер по клику, ссылка, неактивная плашка', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'probe3';
+    document.body.append(host);
+    B.createChatFeed(host, { messages: [{ id: 'v', dir: 'in', time: new Date(), attachments: [
+      { type: 'video', player: 'https://vk.com/video_ext.php?oid=1&id=2', thumb: '/proxy/t.jpg', name: 'Ролик', duration: 75 },
+      { type: 'video', url: 'https://example.com/v.mp4', thumb: '/proxy/t2.jpg' },
+      { type: 'video', name: 'Без адреса' },
+      { type: 'video', player: 'javascript:alert(1)', name: 'Плохой плеер' },
+    ] }] });
+  });
+  const atts = page.locator('#probe3 .b24-chat-msg__atts > *');
+  await expect(atts.nth(0).locator('.b24-chat-att__play')).toBeVisible();
+  await expect(atts.nth(0).locator('.b24-chat-att__dur')).toHaveText('1:15');
+  await expect(atts.nth(0).locator('iframe')).toHaveCount(0);
+  await atts.nth(0).locator('.b24-chat-att__poster').click();
+  const frame = page.locator('#probe3 .b24-chat-att--video iframe');
+  await expect(frame).toHaveAttribute('allow', /autoplay; encrypted-media; fullscreen; picture-in-picture/);
+  await expect(frame).toHaveAttribute('sandbox', /allow-scripts/);
+  const box = await page.locator('#probe3 .b24-chat-att--video.is-playing').boundingBox();
+  expect(Math.abs(box!.width / box!.height - 16 / 9)).toBeLessThan(0.05);
+  await expect(atts.nth(1)).toHaveAttribute('href', 'https://example.com/v.mp4');
+  await expect(atts.nth(1)).toHaveAttribute('target', '_blank');
+  await expect(atts.nth(2)).toHaveClass(/is-disabled/);
+  await expect(atts.nth(3)).toHaveClass(/is-disabled/);
+  await expect(page.locator('#probe3 a[href^="javascript"], #probe3 iframe[src^="javascript"]')).toHaveCount(0);
+});
+
+test('панель мессенджера: общая сетка отступов; рейл: unknown без точки; call-log: слот записи; значки назад/набор', async ({ page }) => {
+  await open(page, '/chat.html');
+  if (mobile(page)) return; // правая панель на телефоне скрыта
+  // сетка: шаг между соседними кнопками одинаков в группах и между ними
+  const gaps = await page.evaluate(() => {
+    const bar = document.querySelector('.b24-im-bar')!;
+    const btns = Array.from(bar.querySelectorAll('.b24-im-bar__btn')).map((b) => b.getBoundingClientRect());
+    return { sizes: btns.map((r) => Math.round(r.width)), margins: Array.from(bar.querySelectorAll('.b24-im-bar__btn')).map((b) => getComputedStyle(b).margin) };
+  });
+  expect(new Set(gaps.sizes)).toEqual(new Set([40]));
+  expect(new Set(gaps.margins)).toEqual(new Set(['0px']));
+  const res = await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'probe4';
+    document.body.append(host);
+    const a = document.createElement('div'); const b = document.createElement('div'); const c = document.createElement('div');
+    host.append(a, b, c);
+    B.createChatRail(a, { items: [{ id: 'p', label: 'Телефон', icon: 'phone', status: 'unknown' }, { id: 'q', label: 'Чаты', icon: 'chat', status: 'disconnected' }] });
+    let slot: HTMLElement | null = null;
+    B.createCallLog(b, { items: [{ id: 'c1', direction: 'in', title: 'Мария', time: new Date(), hasRecord: true }], renderRecord: (it: any, el: HTMLElement) => { slot = el; el.textContent = `плеер ${it.id}`; } });
+    c.innerHTML = '<div class="b24-chat"><button data-b24-chat-back></button><button data-b24-chat-open></button></div>';
+    B.initChatLayout(c.firstElementChild);
+    return { slot: !!slot };
+  });
+  expect(res.slot).toBe(true);
+  await expect(page.locator('#probe4 .b24-calllog__record')).toHaveText('плеер c1');
+  await expect(page.locator('#probe4 .b24-chat-rail__item').nth(0).locator('.b24-chat-rail__dot')).toHaveCount(0);
+  await expect(page.locator('#probe4 .b24-chat-rail__item').nth(1).locator('.b24-chat-rail__dot.is-disconnected')).toHaveCount(1);
+  await expect(page.locator('#probe4 [data-b24-chat-back] svg')).toHaveCount(1);
+  await expect(page.locator('#probe4 [data-b24-chat-open] svg')).toHaveCount(1);
+});

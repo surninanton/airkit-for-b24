@@ -39,6 +39,8 @@ export interface CallLogItem {
   actions?: CallLogAction[];
   /** запись разговора: под строкой встаёт компактный плеер (createAudioPlayer; метаданные грузятся по нажатию) */
   record?: { src: string; duration?: number; label?: string; download?: boolean | string };
+  /** запись есть, но плеер ваш: под строкой встаёт пустой слот, он отдаётся в CallLogOptions.renderRecord (при record без renderRecord — штатный плеер) */
+  hasRecord?: boolean;
   data?: unknown;
 }
 /** Метка бренда / линии у звонка: значок или картинка и подпись цветом бренда. */
@@ -64,6 +66,8 @@ export interface CallLogOptions {
   onAction?: (actionId: string, item: CallLogItem) => void;
   /** число непросмотренных пропущенных изменилось */
   onMissedChange?: (count: number) => void;
+  /** свой плеер записи: вызывается для строк с record или hasRecord; el — слот под строкой (.b24-calllog__record). Штатный плеер при этом не создаётся */
+  renderRecord?: (item: CallLogItem, el: HTMLElement) => void;
   label?: string;
 }
 export interface CallLogHandle {
@@ -157,10 +161,11 @@ export function createCallLog(host: HTMLElement, options: CallLogOptions): CallL
       if (!acts) out.push(row);
       else if (!interactive) { row.append(acts); out.push(row); }
       else out.push(h('div', { class: 'b24-calllog__rowwrap', role: 'presentation' }, row, acts));
-      if (it.record) {
-        const rec = h('div', { class: 'b24-calllog__record', role: 'presentation' });
+      if (it.record || it.hasRecord) {
+        const rec = h('div', { class: 'b24-calllog__record', role: 'presentation', 'data-id': it.id });
         out.push(rec);
-        createAudioPlayer(rec, { compact: true, preload: 'none', label: t('Запись разговора'), ...it.record });
+        if (options.renderRecord) options.renderRecord(it, rec);
+        else if (it.record) createAudioPlayer(rec, { compact: true, preload: 'none', label: t('Запись разговора'), ...it.record });
       }
     }
     root.replaceChildren(...out);

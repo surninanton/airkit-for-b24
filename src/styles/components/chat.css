@@ -333,3 +333,13 @@
 .b24-chat-composer__editing-x:hover { background: var(--b24-bg-hover); }
 .b24-chat-composer__editing-x:focus-visible { outline: 2px solid var(--b24-focus-color); }
 .b24-chat-composer.is-editing .b24-chat-composer__attach, .b24-chat-composer.is-editing .b24-chat-composer__attachments { display: none; }
+
+/* видео во вложениях: превью с ▶, по клику — плеер 16:9 */
+.b24-chat-att--video { position: relative; display: block; width: min(320px, 100%); aspect-ratio: 16 / 9; margin: -3px -6px 0; overflow: hidden; padding: 0; color: #fff; background: #1b1f26; border: 0; border-radius: 10px; }
+.b24-chat-att--video.is-playing { margin: -3px -6px 0; background: #000; }
+.b24-chat-att--video img, .b24-chat-att--video iframe { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; object-fit: cover; }
+.b24-chat-att__poster { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; margin: 0; color: inherit; background: none; border: 0; cursor: pointer; }
+.b24-chat-att__play { position: absolute; top: 50%; left: 50%; display: grid; place-items: center; width: 52px; height: 52px; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.55); border-radius: 50%; transition: background var(--b24-duration-fast); }
+.b24-chat-att--video:hover .b24-chat-att__play { background: rgba(0, 0, 0, 0.75); }
+.b24-chat-att__poster:focus-visible, .b24-chat-att--video:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-chat-att__dur { position: absolute; right: 8px; bottom: 8px; padding: 2px 6px; font-size: var(--b24-font-size-2xs, 11px); font-variant-numeric: tabular-nums; background: rgba(0, 0, 0, 0.6); border-radius: 6px; }

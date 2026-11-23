@@ -1,4 +1,5 @@
-import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react';
+import { initStages } from '../js/stages';
 import { Icon } from './Icon';
 import type { IconName } from '../icons';
 import { cx } from './utils';
@@ -248,10 +249,10 @@ export interface StagesProps {
 /** Шкала стадий сделки. Стадии до текущей закрашиваются цветом текущей. */
 export function Stages({ stages, current, onChange, size = 'md' }: StagesProps) {
   const index = stages.findIndex((s) => s.id === current);
-  const currentStage = stages[index];
-  const color = currentStage?.color ?? 'var(--b24-color-primary)';
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (ref.current) initStages(ref.current); }, [stages, current]);
   return (
-    <div className={cx('b24-stages', size === 'sm' && 'b24-stages--sm')} role="list">
+    <div ref={ref} className={cx('b24-stages', size === 'sm' && 'b24-stages--sm')} role="list">
       {stages.map((s, i) => {
         const failed = s.semantic === 'fail' && s.id === current;
         return (
@@ -262,7 +263,7 @@ export function Stages({ stages, current, onChange, size = 'md' }: StagesProps) 
             title={s.name}
             aria-current={s.id === current ? 'step' : undefined}
             className={cx('b24-stages__item', failed ? 'is-fail' : i < index ? 'is-done' : i === index && 'is-current')}
-            style={{ '--stage-color': color } as CSSProperties}
+            style={{ '--stage-color': s.color ?? 'var(--b24-color-primary)' } as CSSProperties}
             onClick={() => onChange?.(s.id)}
           >
             {s.name}

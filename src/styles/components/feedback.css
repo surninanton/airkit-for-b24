@@ -107,6 +107,9 @@
 .b24-stages__item.is-current { background: var(--stage-color); color: #fff; }
 .b24-stages__item.is-current { font-weight: var(--b24-font-weight-semibold); }
 .b24-stages__item.is-fail { background: var(--b24-color-danger); color: #fff; }
+/* initStages(): пройденная часть до текущего (или до наведённого) этапа — одним цветом, остальные серые */
+.b24-stages[data-b24-stages] .b24-stages__item { background: var(--b24-bg-surface-3); color: var(--b24-text-subtle); }
+.b24-stages[data-b24-stages] .b24-stages__item.is-lit { background: var(--stages-lit, var(--stage-color)); color: #fff; }
 .b24-stages--sm .b24-stages__item { height: 24px; font-size: var(--b24-font-size-xs); --_notch: 7px; }
 
 /* Мини-индикатор стадии (как в колонке «Стадия» грида) */

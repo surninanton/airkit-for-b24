@@ -218,6 +218,8 @@ export type ChatAttachment =
   | { type: 'photo'; url: string; thumb?: string; name?: string; width?: number; height?: number }
   | { type: 'file'; url: string; name: string; size?: number }
   | { type: 'voice'; url: string; duration?: number }
+  /** video: player — адрес встроенного плеера (iframe, VK video_ext.php): превью с ▶, по клику плеер в пузыре 16:9; без player — превью-ссылка на url; без обоих — неактивная плашка */
+  | { type: 'video'; player?: string; url?: string; thumb?: string; name?: string; duration?: number }
   | { type: 'geo'; lat: number; lng: number; label?: string; url?: string };
 
 export interface ChatReaction {
@@ -355,6 +357,32 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
         if (!a.url) return h('div', { class: 'b24-chat-att b24-chat-att--voice is-disabled', title: t('Запись недоступна') }, html(icon('mic')), h('span', { class: 'b24-chat-att__name' }, t('Голосовое сообщение')), a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
         const audio = h('audio', { src: a.url, controls: true, preload: 'none' });
         return h('div', { class: 'b24-chat-att b24-chat-att--voice' }, html(icon('mic')), audio, a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
+      }
+      case 'video': {
+        const label = a.name ?? t('Видео');
+        const poster = (): HTMLElement[] => [
+          ...(a.thumb ? [h('img', { src: a.thumb, alt: label, loading: 'lazy' })] : []),
+          h('span', { class: 'b24-chat-att__play', 'aria-hidden': 'true' }, html(icon('play', { size: 28 }))),
+          ...(a.duration != null ? [h('span', { class: 'b24-chat-att__dur' }, fmtDur(a.duration))] : []),
+        ];
+        const frameUrl = (() => { try { const u = new URL(a.player ?? '', location.href); return a.player && /^https?:$/.test(u.protocol) ? u.href : ''; } catch { return ''; } })();
+        if (frameUrl) {
+          const box = h('div', { class: `b24-chat-att b24-chat-att--video${a.thumb ? '' : ' is-nothumb'}` });
+          const btn = h('button', { type: 'button', class: 'b24-chat-att__poster', 'aria-label': `${t('Смотреть')}: ${label}`, title: label }, ...poster());
+          btn.addEventListener('click', () => {
+            const frame = h('iframe', {
+              src: frameUrl, title: label, allow: 'autoplay; encrypted-media; fullscreen; picture-in-picture', allowfullscreen: '',
+              sandbox: 'allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox', referrerpolicy: 'strict-origin-when-cross-origin', loading: 'lazy',
+            });
+            box.classList.add('is-playing');
+            box.replaceChildren(frame);
+          });
+          box.append(btn);
+          return box;
+        }
+        const link = a.url && /^(https?:|\/|\.)/i.test(a.url) ? a.url : '';
+        if (link) return h('a', { class: `b24-chat-att b24-chat-att--video${a.thumb ? '' : ' is-nothumb'}`, href: link, target: '_blank', rel: 'noopener', title: label, 'aria-label': `${t('Смотреть')}: ${label}` }, ...poster());
+        return h('div', { class: 'b24-chat-att b24-chat-att--file is-disabled', title: t('Видео недоступно') }, html(icon('play')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, label), a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : ''));
       }
       case 'geo': {
         const url = a.url ?? `https://yandex.ru/maps/?pt=${a.lng},${a.lat}&z=16&l=map`;
@@ -943,7 +971,8 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
 
 /* ── Вертикальная навигация слева от списка ──────────────── */
 
-export type ChatRailStatus = 'online' | 'away' | 'busy' | 'offline' | 'disconnected' | 'ringing';
+/** unknown — первого статуса ещё не было: точки и подписи нет (не «нет связи») */
+export type ChatRailStatus = 'online' | 'away' | 'busy' | 'offline' | 'disconnected' | 'ringing' | 'unknown';
 export interface ChatRailItem {
   id: string;
   label: string;
@@ -1035,10 +1064,10 @@ export function createChatRail(host: HTMLElement, options: ChatRailOptions): Cha
       sig.set(it.id, s);
       const ico = h('span', { class: 'b24-chat-rail__icon' }, html(icon(it.icon, { size: 24 })));
       if (it.counter) ico.append(h('span', { class: 'b24-counter b24-chat-rail__counter' }, it.counter > 99 ? '99+' : String(it.counter)));
-      if (it.status) ico.append(h('span', { class: `b24-chat-rail__dot is-${it.status}`, 'aria-hidden': 'true' }));
+      if (it.status && it.status !== 'unknown') ico.append(h('span', { class: `b24-chat-rail__dot is-${it.status}`, 'aria-hidden': 'true' }));
       el.replaceChildren(ico, h('span', { class: 'b24-chat-rail__label' }, it.label));
     }
-    const parts = [it.counter ? t('непрочитанных: {n}', { n: it.counter }) : '', it.status ? ({ online: t('на линии'), away: t('перерыв'), busy: t('занят'), offline: t('не на линии'), disconnected: t('нет связи'), ringing: t('звонит') } as const)[it.status] : ''].filter(Boolean);
+    const parts = [it.counter ? t('непрочитанных: {n}', { n: it.counter }) : '', it.status && it.status !== 'unknown' ? ({ online: t('на линии'), away: t('перерыв'), busy: t('занят'), offline: t('не на линии'), disconnected: t('нет связи'), ringing: t('звонит') } as const)[it.status] : ''].filter(Boolean);
     if (parts.length) el.setAttribute('aria-label', `${it.label}, ${parts.join(', ')}`); else el.removeAttribute('aria-label');
   };
 
@@ -1101,6 +1130,12 @@ export interface ChatLayoutHandle {
 
 /** .b24-chat: кнопки [data-b24-chat-back] — назад к списку, [data-b24-chat-aside] — карточка. Подключается и через init() ([data-b24-chat]). */
 export function initChatLayout(el: HTMLElement): ChatLayoutHandle {
+  // пустые кнопки «назад» и «набор» получают значок сами (свой — data-b24-icon="имя"); с содержимым не трогаем
+  el.querySelectorAll<HTMLElement>('[data-b24-chat-back], [data-b24-chat-open]').forEach((b) => {
+    if (b.childElementCount || b.textContent?.trim()) return;
+    const name = (b.dataset.b24Icon as IconName | undefined) ?? (b.hasAttribute('data-b24-chat-back') ? 'arrowLeft' : 'phone');
+    b.innerHTML = icon(name, { size: b.hasAttribute('data-b24-chat-open') ? 24 : 20 });
+  });
   // фаза захвата: список перерисовывает строку в своём обработчике, и цель клика к всплытию уже не в документе
   const onClick = (e: MouseEvent) => {
     const target = e.target as HTMLElement;

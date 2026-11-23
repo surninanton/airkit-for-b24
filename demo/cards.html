@@ -68,7 +68,14 @@
   const channels = `<div class="b24-msgrs">
       <span class="b24-msgr">${round('b24-btn--channel', 'Написать в Telegram', 'send', '#2aabee')}<span class="b24-msgr__id">@stepan_g</span></span>
       <span class="b24-msgr">${round('b24-btn--channel', 'Написать во ВКонтакте', 'chat', '#0077ff')}<span class="b24-msgr__id">id000000</span></span>
-      <span class="b24-msgr">${round('b24-btn--channel', 'Написать в WhatsApp', 'comment', '#25d366')}<span class="b24-msgr__id">+7 900 000-00-00</span></span></div>`;
+      <span class="b24-msgr">${round('b24-btn--channel', 'Написать в MAX', 'comment', '#7b4dff')}<span class="b24-msgr__id">+7 900 000-00-00</span></span></div>`;
+  // все контакты одной колонкой: значки одного размера слева от значения
+  const contacts = `<span class="b24-prop__value"><div class="b24-contact-list">
+      <span class="b24-contact">${round('b24-btn--success', 'Позвонить', 'phone')}<span class="b24-contact__value">+7 900 000-00-00</span></span>
+      <span class="b24-contact">${round('b24-btn--secondary', 'Написать на почту', 'mail')}<span class="b24-contact__value">stepan@example.com</span></span>
+      <span class="b24-contact">${round('b24-btn--channel', 'Написать в Telegram', 'send', '#2aabee')}<span class="b24-contact__value">@stepan_g</span></span>
+      <span class="b24-contact">${round('b24-btn--channel', 'Написать во ВКонтакте', 'chat', '#0077ff')}<span class="b24-contact__value">id000000</span></span>
+      <span class="b24-contact">${round('b24-btn--channel', 'Написать в MAX', 'comment', '#7b4dff')}<span class="b24-contact__value">+7 900 000-00-00</span></span></div></span>`;
   const propHtml = (l, v) => `<div class="b24-prop"><span class="b24-prop__label">${l}</span>${v}</div>`;
   const mailRow = `<span class="b24-prop__value b24-prop__value--row"><span>stepan@example.com</span>${round('b24-btn--secondary', 'Написать на почту', 'mail')}</span>`;
   const badgeOk = (t) => `<span class="b24-badge b24-badge--success b24-badge--sm">${t}</span>`;
@@ -97,9 +104,7 @@
       <div class="b24-entity__main">
         ${card('Клиент и доставка', `<div class="b24-props b24-props--rows">
           ${propHtml('Клиент', `<span class="b24-prop__value">${clientLink()}</span>`)}
-          ${propHtml('Телефон', phoneRow('+7 900 000-00-00'))}
-          ${propHtml('Мессенджеры', `<span class="b24-prop__value">${channels}</span>`)}
-          ${propHtml('Почта', mailRow)}
+          ${propHtml('Контакты', contacts)}
           ${prop('Доставка', 'Доставка курьером')}
           ${prop('Адрес', 'ул. Образцовая, 12, кв. 34')}
           ${prop('Комментарий', 'Проверка промокодов')}</div>`)}
@@ -157,9 +162,7 @@
     <div class="b24-entity__cols">
       <div class="b24-entity__main">
         ${card('О клиенте', `<div class="b24-props b24-props--rows">
-          ${propHtml('Телефон', phoneRow('+7 900 000-00-00'))}
-          ${propHtml('Мессенджеры', `<span class="b24-prop__value">${channels}</span>`)}
-          ${propHtml('Почта', mailRow)}
+          ${propHtml('Контакты', contacts)}
           ${prop('Дата рождения', '30.10.1986 <span class="b24-text-secondary">· скидка в день рождения</span>')}
           ${prop('Источник', 'Магазин VK')}
           ${prop('Ответственный', '<span class="b24-user"><span class="b24-avatar b24-avatar--xs">АО</span><span class="b24-user__name">Анна Образцова</span></span>')}</div>`,
@@ -278,7 +281,7 @@
     <div class="b24-entity__cols">
       <div class="b24-entity__main">
         ${card('Клиент', `<div class="b24-props b24-props--rows">
-          ${propHtml('Телефон', phoneRow('+7 900 000-00-00'))}
+          ${propHtml('Контакты', `<span class="b24-prop__value"><div class="b24-contact-list"><span class="b24-contact">${round('b24-btn--success', 'Позвонить', 'phone')}<span class="b24-contact__value">+7 900 000-00-00</span></span></div></span>`)}
           ${prop('Заказов', '4 на 3 555 ₽')}${prop('Последний заказ', '20.11.2026 · 1 399 ₽')}
           ${propHtml('Карточка', `<span class="b24-prop__value">${clientLink('Карточка клиента', false)}</span>`)}</div>`)}
         ${card('Активный заказ', `<div class="b24-row" style="justify-content:space-between;gap:8px"><a href="#" data-b24-entity-open="order:7275"><b>№7275</b></a><span class="b24-badge b24-badge--warning">Готовится</span><span>1 399 ₽</span></div>

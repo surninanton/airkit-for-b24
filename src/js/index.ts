@@ -3,6 +3,7 @@ export { modal, confirm, alert, type ModalOptions, type ModalHandle, type ModalB
 export { openSidePanel, closeAllSidePanels, type SidePanelOptions, type SidePanelHandle } from './sidepanel';
 export { dropdown, type DropdownOptions, type DropdownHandle } from './dropdown';
 export { initTabs } from './tabs';
+export { initStages } from './stages';
 export { createSaveStatus, type SaveStatusOptions, type SaveStatusHandle, type SaveState } from './save-status';
 export { initEntityOpen } from './entity';
 export { initSortableTable, diffHtml, chipHtml, type DiffOptions } from './table';

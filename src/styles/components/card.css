@@ -104,6 +104,18 @@
 .b24-entity__cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--b24-space-md); align-items: start; }
 .b24-entity__main, .b24-entity__side { display: flex; flex-direction: column; gap: var(--b24-space-md); min-width: 0; }
 @media (max-width: 860px) { .b24-entity__cols { grid-template-columns: minmax(0, 1fr); } .b24-entity__amount { margin-left: 0; } }
+/* В панели колонки — по высоте панели, у каждой своя прокрутка (таймлайн не уезжает вместе с данными).
+   Ниже 861px колонки друг под другом — прокручивается сама панель. Ниже 560px высоты панель прокручивается целиком. */
+@media (min-width: 861px) {
+  .b24-sidepanel__body:has(> .b24-entity:not(.b24-entity--compact)) { display: flex; flex-direction: column; }
+  .b24-sidepanel__body > .b24-entity:not(.b24-entity--compact) { flex: 1 1 auto; min-height: 560px; }
+  .b24-sidepanel__body > .b24-entity:not(.b24-entity--compact) > .b24-entity__cols { flex: 1 1 0; min-height: 0; align-items: stretch; }
+  .b24-sidepanel__body > .b24-entity:not(.b24-entity--compact) .b24-entity__main,
+  .b24-sidepanel__body > .b24-entity:not(.b24-entity--compact) .b24-entity__side { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px 6px 2px 2px; margin: -2px -6px -2px -2px; }
+  /* дети колонки не сжимаются под высоту — колонка прокручивается */
+  .b24-sidepanel__body > .b24-entity:not(.b24-entity--compact) .b24-entity__main > *,
+  .b24-sidepanel__body > .b24-entity:not(.b24-entity--compact) .b24-entity__side > * { flex-shrink: 0; }
+}
 
 /* Свойства строками «название — значение» */
 .b24-props--rows { gap: 8px; }
@@ -137,9 +149,12 @@
   --_bg: var(--_c, var(--b24-color-primary)); --_bg-hover: color-mix(in srgb, var(--_c, var(--b24-color-primary)) 85%, #000); --_bg-active: color-mix(in srgb, var(--_c, var(--b24-color-primary)) 70%, #000);
   --_border: transparent; --_color: #fff;
 }
-.b24-msgrs { display: flex; flex-wrap: wrap; gap: 8px 14px; }
-.b24-msgr { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.b24-msgr__id { color: var(--b24-text-primary); word-break: break-all; }
+/* Контакты колонкой: значок-кнопка одного размера слева (телефон, почта, ВК, Telegram, MAX…), значение справа. .b24-msgrs — то же для одних мессенджеров */
+.b24-contact-list, .b24-msgrs { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.b24-contact, .b24-msgr { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 10px; min-width: 0; }
+.b24-contact > .b24-btn, .b24-msgr > .b24-btn { width: 32px; height: 32px; min-width: 32px; padding: 0; justify-self: center; }
+.b24-contact > .b24-btn svg, .b24-msgr > .b24-btn svg { width: 16px; height: 16px; }
+.b24-contact__value, .b24-msgr__id { min-width: 0; color: var(--b24-text-primary); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 
 /* Способ оплаты: меняется, пока нет фискального чека */
 .b24-pay { display: flex; flex-direction: column; gap: 10px; }

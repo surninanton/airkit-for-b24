@@ -11,6 +11,7 @@ import { createTagSelector, type TagSelectorOptions } from './tag-selector';
 import { createUploader } from './uploader';
 import { createEntityEditor, type EntityEditorOptions } from './editor';
 import { initComposer, initTimelinePin } from './timeline';
+import { initStages } from './stages';
 import { timepicker } from './timepicker';
 import { multiValue, type MultiValueOptions } from './multi-value';
 import { createVendor, type VendorOptions } from './vendor';
@@ -100,6 +101,7 @@ export function init(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>('[data-b24-tabs]').forEach((el) => initTabs(el));
   root.querySelectorAll<HTMLElement>('.b24-timeline').forEach((el) => initTimelinePin(el));
   initEntityOpen();
+  initStages(root);
   root.querySelectorAll<HTMLElement>('.b24-stages').forEach((el) => {
     const cur = el.querySelector<HTMLElement>('.is-current');
     if (cur && el.scrollWidth > el.clientWidth) el.scrollLeft = cur.offsetLeft - (el.clientWidth - cur.offsetWidth) / 2;

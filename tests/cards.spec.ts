@@ -14,8 +14,8 @@ test('карточка заказа: имя клиента — кнопка в �
 
 test('заказ: круглая «Позвонить», мессенджеры, почта, «изменил» в шапке', async ({ page }) => {
   await open(page, '/cards.html?card=order');
-  await expect(page.locator('.b24-prop__value--row .b24-btn--round.b24-btn--success[aria-label="Позвонить"]')).toBeVisible();
-  await expect(page.locator('.b24-msgr .b24-btn--channel')).toHaveCount(3);
+  await expect(page.locator('.b24-contact .b24-btn--round.b24-btn--success[aria-label="Позвонить"]')).toBeVisible();
+  await expect(page.locator('.b24-contact .b24-btn--channel')).toHaveCount(3);
   await expect(page.locator('.b24-btn--round[aria-label="Написать на почту"]')).toBeVisible();
   await expect(page.locator('.b24-entity__editor')).toContainText('изменил');
 });
@@ -100,5 +100,44 @@ test('стадии на узком экране: текущая крупно, о
   if (((await page.locator('.b24-sidepanel').boundingBox())!.width) < 600) {
     const w = await page.locator('.b24-stages__item:not(.is-current)').first().evaluate((e) => e.getBoundingClientRect().width);
     expect(w).toBeLessThanOrEqual(31);
+  }
+});
+
+test('карточка клиента: контакты колонкой, значки одного размера и выравнивания', async ({ page }) => {
+  await open(page, '/cards.html?card=contact');
+  const rows = page.locator('.b24-contact-list .b24-contact');
+  await expect(rows).toHaveCount(5);
+  const boxes = await rows.evaluateAll((els) => els.map((e) => { const b = e.firstElementChild!.getBoundingClientRect(); const v = e.lastElementChild!.getBoundingClientRect(); return { x: Math.round(b.x), w: Math.round(b.width), h: Math.round(b.height), vx: Math.round(v.x) }; }));
+  for (const b of boxes) { expect(b.w).toBe(32); expect(b.h).toBe(32); expect(b.x).toBe(boxes[0].x); expect(b.vx).toBe(boxes[0].vx); }
+});
+
+test('карточка заказа: полоска этапов — цвет текущего, наведение перекрашивает до этапа', async ({ page }) => {
+  await open(page, '/cards.html?card=order');
+  const stages = page.locator('.b24-stages').first();
+  await expect(stages).toHaveAttribute('data-b24-stages', '');
+  const items = stages.locator('.b24-stages__item');
+  const lit = () => items.evaluateAll((els) => els.map((e) => (e.classList.contains('is-lit') ? getComputedStyle(e).backgroundColor : '')));
+  // у фона есть transition — ждём, пока цвета устоятся
+  await expect.poll(async () => new Set((await lit()).filter(Boolean)).size).toBe(1);
+  const base = await lit();
+  expect(base.filter(Boolean).length).toBeGreaterThan(0);
+  // наведение на первый этап: окрашен только он, цвет — его собственный
+  await items.first().hover();
+  await expect.poll(async () => (await lit()).filter(Boolean).length).toBe(1);
+  await page.mouse.move(2, 2);
+  await expect.poll(async () => (await lit()).filter(Boolean).length).toBe(base.filter(Boolean).length);
+});
+
+test('карточка: колонки прокручиваются независимо, на узком экране — без своей прокрутки', async ({ page }) => {
+  await open(page, '/cards.html?card=order');
+  const wide = (page.viewportSize()?.width ?? 1280) > 860;
+  const side = page.locator('.b24-entity__side').first();
+  const oy = await side.evaluate((e) => getComputedStyle(e).overflowY);
+  expect(oy).toBe(wide ? 'auto' : 'visible');
+  if (wide) {
+    expect(await side.evaluate((e) => e.scrollHeight > e.clientHeight)).toBe(true);
+    const before = await page.locator('.b24-entity__main').first().evaluate((e) => e.scrollTop);
+    await side.evaluate((e) => { e.scrollTop = 200; });
+    expect(await page.locator('.b24-entity__main').first().evaluate((e) => e.scrollTop)).toBe(before);
   }
 });

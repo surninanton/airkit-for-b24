@@ -5,6 +5,8 @@
  */
 :root {
   --b24-im-bar-width: 64px;
+  /* сетка панели: кнопки 40 px, шаг между ними и отступы групп — один (без margin у кнопок) */
+  --b24-im-bar-gap: 8px;
   --b24-im-bar-top: 0px;
   --b24-chat-dock-width: 360px;
   --b24-chat-dock-height: min(520px, calc(100vh - 96px));
@@ -13,21 +15,21 @@ html:has(.b24-shell) .b24-im-bar { --b24-im-bar-top: var(--b24-header-height); }
 
 .b24-im-bar {
   position: fixed; z-index: calc(var(--b24-z-panel) - 10); top: var(--b24-im-bar-top); right: 0; bottom: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  width: var(--b24-im-bar-width); padding: 8px 0; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; gap: var(--b24-im-bar-gap);
+  width: var(--b24-im-bar-width); padding: var(--b24-im-bar-gap) 0; box-sizing: border-box;
   background: rgba(10, 20, 45, 0.16); backdrop-filter: blur(8px); border-top-left-radius: var(--b24-radius-lg);
 }
-.b24-im-bar__top, .b24-im-bar__bottom { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.b24-im-bar__top, .b24-im-bar__bottom { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: var(--b24-im-bar-gap); width: 100%; }
 .b24-im-bar__top:empty, .b24-im-bar__bottom:empty { display: none; }
-.b24-im-bar__top { padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.18); }
-.b24-im-bar__bottom { padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.18); }
+.b24-im-bar__top { padding-bottom: var(--b24-im-bar-gap); border-bottom: 1px solid rgba(255, 255, 255, 0.18); }
+.b24-im-bar__bottom { padding-top: var(--b24-im-bar-gap); border-top: 1px solid rgba(255, 255, 255, 0.18); }
 .b24-im-bar__list {
-  flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--b24-im-bar-gap);
   padding: 4px 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain;
 }
 .b24-im-bar__list::-webkit-scrollbar { display: none; }
 .b24-im-bar__btn {
-  position: relative; flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; margin: 2px;
+  position: relative; flex: 0 0 auto; display: grid; place-items: center; box-sizing: border-box; width: 40px; height: 40px; padding: 0; margin: 0;
   color: #fff; background: transparent; border: 0; border-radius: 50%; cursor: pointer;
   transition: background-color var(--b24-duration-fast), box-shadow var(--b24-duration-fast);
 }
