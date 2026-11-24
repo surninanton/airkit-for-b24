@@ -40,3 +40,26 @@ test('setStorage: состояние грида, размер страницы �
   expect(r.logged).toBe(true);
   expect(errors()).toEqual([]);
 });
+
+test('автоинит при <script defer>: хранилище из B24UI_CONFIG, data-b24-storage и setStorage из следующего defer-скрипта', async ({ page }) => {
+  const fs = await import('node:fs');
+  const kit = fs.readFileSync('dist/b24ui.js', 'utf8');
+  const table = '<table data-b24-grid="g1" class="b24-table"><thead><tr><th data-key="a">A</th><th data-key="b">B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>';
+  const saved = JSON.stringify({ hidden: ['b'] });
+  const pages: Record<string, string> = {
+    cfg: `<script>window.B24UI_CONFIG={storage:{get:function(k){return k==='b24-grid:g1'?${JSON.stringify(saved)}:null},set:function(){}}}</script><script defer src="/kit.js"></script>`,
+    attr: `<script>window.Prefs={storage:{get:function(k){return k==='b24-grid:g1'?${JSON.stringify(saved)}:null},set:function(){}}}</script><script defer src="/kit.js" data-b24-storage="Prefs.storage"></script>`,
+    later: `<script defer src="/kit.js"></script><script defer src="/later.js"></script>`,
+  };
+  const later = `B24UI.setStorage({get:function(k){return k==='b24-grid:g1'?${JSON.stringify(saved)}:null},set:function(){}})`;
+  await page.route('http://kit.test/**', (route) => {
+    const u = new URL(route.request().url());
+    if (u.pathname === '/kit.js') return route.fulfill({ contentType: 'text/javascript', body: kit });
+    if (u.pathname === '/later.js') return route.fulfill({ contentType: 'text/javascript', body: later });
+    return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head>${pages[u.pathname.slice(1)]}</head><body>${table}</body></html>` });
+  });
+  for (const name of ['cfg', 'attr', 'later']) {
+    await page.goto(`http://kit.test/${name}`);
+    await expect.poll(() => page.evaluate(() => (window as any).B24UI?.getGrid?.(document.querySelector('table'))?.getState().hidden), name).toEqual(['b']);
+  }
+});
