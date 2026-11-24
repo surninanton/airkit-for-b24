@@ -19,9 +19,9 @@ let started = false;
 const start = () => { if (!started) { started = true; init(); } };
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', start);
-} else if (document.readyState === 'interactive') {
-  // <script defer> / type=module: DOMContentLoaded ещё впереди, и следующие defer-скрипты (с setStorage) успеют выполниться;
-  // если он уже прошёл — сработает load
+} else if (document.readyState === 'interactive' && (document.currentScript as HTMLScriptElement | null)?.defer) {
+  // классический <script defer>: DOMContentLoaded ещё впереди, и следующие defer-скрипты (с setStorage) успеют выполниться
+  // (модули инициализируются сразу, как раньше: их код часто рассчитывает на готовые компоненты)
   document.addEventListener('DOMContentLoaded', start);
   window.addEventListener('load', start);
 } else {
