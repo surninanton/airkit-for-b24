@@ -283,3 +283,17 @@ test.describe('блок разработчика', () => {
     expect(r).toEqual({ support: '', contacts: '_blank' });
   });
 });
+
+test('планировщик: шапка и угол покрывают всю ширину прокрутки (при прокрутке вправо угол остаётся слева)', async ({ page }) => {
+  await open(page, '/scheduler.html');
+  const vp = page.locator('.b24-scheduler__viewport').first();
+  await vp.evaluate((v) => { v.scrollLeft = v.scrollWidth; });
+  const r = await page.evaluate(() => {
+    const q = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+    const v = q('.b24-scheduler__viewport'); const head = q('.b24-scheduler__head'); const corner = q('.b24-scheduler__corner');
+    const scale = q('.b24-scheduler__scale');
+    return { cornerLeft: Math.round(corner.left - v.left), headRight: Math.round(head.right), scaleRight: Math.round(scale.right) };
+  });
+  expect(r.cornerLeft).toBe(0);
+  expect(r.headRight).toBeGreaterThanOrEqual(r.scaleRight);
+});

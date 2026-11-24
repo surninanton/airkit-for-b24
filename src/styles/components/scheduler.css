@@ -30,7 +30,8 @@
 .b24-scheduler__legend small { font-size: inherit; color: var(--b24-text-subtle); opacity: 0.75; font-variant-numeric: tabular-nums; }
 
 .b24-scheduler__viewport { position: relative; flex: 1 1 auto; overflow: auto; height: var(--b24-scheduler-height, 560px); overscroll-behavior: contain; }
-.b24-scheduler__canvas { position: relative; }
+/* на всю ширину прокрутки: иначе липкие шапка и угол ограничены шириной вьюпорта и уезжают при прокрутке вправо */
+.b24-scheduler__canvas { position: relative; width: max-content; min-width: 100%; }
 
 /* шапка шкалы — липкая сверху; угол — липкий и сверху, и слева */
 .b24-scheduler__head { position: sticky; top: 0; z-index: 4; display: flex; height: var(--_head-h); background: var(--b24-bg-surface); box-shadow: 0 1px 0 var(--b24-divider); }
