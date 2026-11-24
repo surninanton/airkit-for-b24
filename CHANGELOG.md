@@ -2,6 +2,11 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### Добавлено
+- Поиск по сообщениям: `feed.scrollTo(id, { highlight?, smooth? })` (по центру, подсветка `.is-flash`), `feed.jumpTo(id, loader?)` и `onLoadAround` — загрузка окна вокруг сообщения, `hasNewer` / `onLoadNewer` / `setHasNewer` («Показать новее»), `ChatListItem.highlight` (строка, строки или диапазоны), `dialogId`, `messageId`; в React — `feedRef`, `hasNewer`, `onLoadNewer`, `onLoadAround` у `<ChatFeed>`.
+
 ## 0.22.1 — 2026-11-24
 
 ### Добавлено и исправлено

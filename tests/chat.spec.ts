@@ -373,3 +373,49 @@ test('чаты: brand в списке отдельной меткой; виде�
   expect(w).toBeGreaterThanOrEqual(235);
   expect(await page.locator('.b24-chat__aside > *').first().evaluate((e) => getComputedStyle(e).flexShrink)).toBe('0');
 });
+
+test('чаты: scrollTo, jumpTo (окно вокруг сообщения), подсветка найденного в списке', async ({ page }) => {
+  await open(page, '/chat.html');
+  if (mobile(page)) await page.locator('#chat .b24-chat-list__item').first().click();
+  const feed = page.locator('#chat .b24-chat-feed');
+  await expect.poll(() => feed.evaluate((f) => f.scrollHeight - f.scrollTop - f.clientHeight)).toBeLessThan(5);
+  // сообщение есть в ленте: по центру и подсвечено
+  const found = await page.evaluate(() => (window as any).__feed.scrollTo('m2'));
+  expect(found).toBe(true);
+  await expect(feed.locator('.b24-chat-msg[data-id="m2"]')).toHaveClass(/is-flash/);
+  await expect.poll(() => feed.evaluate((f) => {
+    const m = f.querySelector('.b24-chat-msg[data-id="m2"]')!.getBoundingClientRect();
+    const r = f.getBoundingClientRect();
+    return Math.abs((m.top + m.height / 2) - (r.top + r.height / 2));
+  })).toBeLessThan(40);
+  expect(await page.evaluate(() => (window as any).__feed.scrollTo('нет-такого'))).toBe(false);
+  // без подсветки
+  await page.evaluate(() => (window as any).__feed.scrollTo('m5', { highlight: false }));
+  await expect(feed.locator('.is-flash')).toHaveCount(0);
+  // сообщения нет в ленте: окно вокруг него, «Показать новее»
+  const ok = await page.evaluate(async () => {
+    const t = new Date(2024, 0, 5, 10, 0).getTime();
+    const mk = (i: number) => ({ id: `f${i}`, dir: i % 2 ? 'out' : 'in', time: t + i * 60000, text: `Давнее сообщение ${i}` });
+    return (window as any).__feed.jumpTo('f5', async () => ({ before: [1, 2, 3, 4].map(mk), message: mk(5), after: [6, 7, 8].map(mk), hasNewer: true, hasMore: false }));
+  });
+  expect(ok).toBe(true);
+  await expect(feed.locator('.b24-chat-msg[data-id="f5"]')).toHaveClass(/is-flash/);
+  await expect(feed.locator('.b24-chat-msg[data-id="m2"]')).toHaveCount(0);
+  await expect(feed.locator('.b24-chat-feed__newer')).toBeVisible();
+  await expect(feed.locator('.b24-chat-feed__more')).toBeHidden();
+  // loader вернул окно без сообщения — false, лента не тронута
+  expect(await page.evaluate(() => (window as any).__feed.jumpTo('zzz', async () => []))).toBe(false);
+  await expect(feed.locator('.b24-chat-msg[data-id="f5"]')).toHaveCount(1);
+  // список: найденное сообщение с подсветкой
+  await page.evaluate(() => (window as any).__list.setItems([
+    { id: 's1', name: 'Мария Образцова', time: Date.now() - 3600000, channel: 'Telegram', group: 'Сообщения', highlight: 'доставка', dialogId: 'd1', messageId: 'm9',
+      preview: 'Подскажите, пожалуйста, когда будет вечером Доставка до Кутлинки и сколько она стоит, и можно ли оплатить картой курьеру? Доставка' },
+    { id: 's2', name: 'Иван Примеров', group: 'Сообщения', highlight: [[0, 4]], preview: 'Спасибо, всё получили!' },
+  ]));
+  const row = page.locator('#chat .b24-chat-list__item[data-id="s1"]');
+  await expect(row).toHaveClass(/is-found/);
+  await expect(row.locator('mark.b24-chat-list__mark').first()).toHaveText('Доставка');
+  await expect(row.locator('.b24-chat-list__preview')).toContainText('…');
+  await expect(page.locator('#chat .b24-chat-list__item[data-id="s2"] mark')).toHaveText('Спас');
+  await expect(page.locator('#chat .b24-chat-list__group')).toHaveText('Сообщения');
+});

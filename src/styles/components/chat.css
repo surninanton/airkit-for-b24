@@ -62,6 +62,9 @@
 .b24-chat-list__subtitle { color: var(--b24-text-subtle); }
 .b24-chat-list__item.is-unread .b24-chat-list__subtitle { color: var(--b24-text-subtle); }
 .b24-chat-list__item.is-unread .b24-chat-list__name { font-weight: var(--b24-font-weight-semibold); }
+/* результат поиска по сообщениям: до двух строк, совпадение подсвечено */
+.b24-chat-list__item.is-found .b24-chat-list__preview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow-wrap: anywhere; }
+.b24-chat-list__mark { padding: 0 1px; color: inherit; background: color-mix(in srgb, var(--b24-color-warning) 38%, transparent); border-radius: 2px; }
 .b24-chat-list__item.is-unread .b24-chat-list__preview { color: var(--b24-text-primary); }
 .b24-chat-list__item.is-unread .b24-chat-list__time { color: var(--b24-color-primary); }
 .b24-chat-list__item.is-muted .b24-counter { background: var(--b24-text-disabled); }
@@ -80,6 +83,13 @@
 .b24-chat-feed__list { display: flex; flex-direction: column; gap: 6px; }
 .b24-chat-feed__more { display: flex; margin: 0 auto 8px; }
 .b24-chat-feed__more[hidden] { display: none; }
+.b24-chat-feed__newer { display: flex; margin: 8px auto 0; }
+.b24-chat-feed__newer[hidden] { display: none; }
+/* feed.scrollTo / jumpTo: короткая подсветка найденного сообщения */
+@keyframes b24-chat-flash { 0%, 55% { box-shadow: 0 0 0 3px var(--b24-color-primary); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.b24-chat-msg.is-flash .b24-chat-msg__bubble { animation: b24-chat-flash 1.8s ease-out; }
+.b24-chat-system.is-flash > span { animation: b24-chat-flash 1.8s ease-out; }
+@media (prefers-reduced-motion: reduce) { .b24-chat-msg.is-flash .b24-chat-msg__bubble, .b24-chat-system.is-flash > span { animation: none; outline: 2px solid var(--b24-color-primary); } }
 .b24-chat-feed__empty { padding: 48px 16px; text-align: center; color: var(--b24-text-subtle); }
 .b24-chat-date, .b24-chat-system { display: flex; justify-content: center; margin: 8px 0 4px; }
 .b24-chat-date > span, .b24-chat-system > span {

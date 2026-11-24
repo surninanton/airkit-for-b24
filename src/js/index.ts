@@ -28,7 +28,7 @@ export { initTopnavMore } from './topnav-more';
 export {
   createChatList, createChatRail, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
   type ChatRailItem, type ChatRailStatus, type ChatRailOptions, type ChatRailHandle, type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
-  type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle,
+  type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle, type ChatAroundResult, type ChatScrollOptions,
   type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
 } from './chat';
 export {

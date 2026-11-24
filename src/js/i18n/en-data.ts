@@ -185,6 +185,7 @@ export const enData: Record<string, string> = {
   'непрочитанных: {n}': 'unread: {n}',
   'Сообщения': 'Messages',
   'Показать раньше': 'Show earlier',
+  'Показать новее': 'Show newer',
   'Сообщений пока нет': 'No messages yet',
   'Фото': 'Photo',
   'Геоточка': 'Location',

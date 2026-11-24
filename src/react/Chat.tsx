@@ -138,35 +138,43 @@ export function ChatList({ items, value, onSelect, emptyText, label, className }
   return <div ref={host} className={cx('b24-chat-list-host', className)} style={{ display: 'contents' }} />;
 }
 
-export interface ChatFeedProps extends Omit<ChatFeedOptions, 'messages'> { messages: ChatMessage[] }
+export interface ChatFeedProps extends Omit<ChatFeedOptions, 'messages'> {
+  messages: ChatMessage[];
+  /** хэндл ленты: scrollTo(id), jumpTo(id), scrollToBottom… */
+  feedRef?: MutableRefObject<ChatFeedHandle | null>;
+}
 /**
  * Лента: передавайте весь список messages — кит сам поймёт, что пришло сверху («Показать раньше», позиция сохраняется)
  * или снизу (прокрутка вниз, если пользователь был у низа или сообщение наше).
  */
-export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, noteLabel, reactionsHint, onReact, quickReactions, onReply, onEdit, copy, actions, decorate }: ChatFeedProps) {
+export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, noteLabel, reactionsHint, onReact, quickReactions, onReply, onEdit, copy, actions, decorate, hasNewer, onLoadNewer, onLoadAround, feedRef }: ChatFeedProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatFeedHandle | null>(null);
-  const cbs = useRef({ onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate });
-  cbs.current = { onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate };
+  const cbs = useRef({ onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround });
+  cbs.current = { onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround };
   useEffect(() => {
     h.current = createChatFeed(host.current!, {
-      messages, hasMore, showAvatars, emptyText, quickReactions, copy, noteLabel, reactionsHint,
+      messages, hasMore, hasNewer, showAvatars, emptyText, quickReactions, copy, noteLabel, reactionsHint,
       onReact: onReact ? (id, e, m) => cbs.current.onReact?.(id, e, m) : undefined,
       onReply: onReply ? (m) => cbs.current.onReply?.(m) : undefined,
       onEdit: onEdit ? (m) => cbs.current.onEdit?.(m) : undefined,
       actions: actions ? (m) => cbs.current.actions?.(m) ?? [] : undefined,
       decorate: decorate ? (m, el) => cbs.current.decorate?.(m, el) : undefined,
       onLoadMore: onLoadMore ? () => cbs.current.onLoadMore?.() : undefined,
+      onLoadNewer: onLoadNewer ? () => cbs.current.onLoadNewer?.() : undefined,
+      onLoadAround: onLoadAround ? (id) => cbs.current.onLoadAround!(id) : undefined,
       onRetry: onRetry ? (m) => cbs.current.onRetry?.(m) : undefined,
       onPhotoClick: onPhotoClick ? (a, m) => cbs.current.onPhotoClick?.(a, m) : undefined,
     });
-    return () => h.current?.destroy();
+    if (feedRef) feedRef.current = h.current;
+    return () => { h.current?.destroy(); if (feedRef) feedRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const first = useRef(true);
   const key = JSON.stringify(messages);
   useEffect(() => { if (first.current) { first.current = false; return; } h.current?.setMessages(messages); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { h.current?.setHasMore(!!hasMore); }, [hasMore]);
+  useEffect(() => { h.current?.setHasNewer(!!hasNewer); }, [hasNewer]);
   return <div ref={host} style={{ display: 'contents' }} />;
 }
 

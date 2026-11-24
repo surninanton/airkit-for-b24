@@ -89,6 +89,15 @@ export interface ChatListItem {
   group?: string;
   /** собеседник печатает: вместо превью курсивом «печатает…»; строка — свой текст («Анна печатает…») */
   typing?: boolean | string;
+  /**
+   * Результат поиска по сообщениям: что подсветить в preview — строка (все вхождения без учёта регистра), список строк
+   * или диапазоны [[с, по)] в символах preview. Строка получает до 2 строк текста, превью обрезается так, чтобы совпадение было видно.
+   */
+  highlight?: string | string[] | Array<[number, number]>;
+  /** диалог, к которому относится найденное сообщение (id строки при поиске по сообщениям — уникален, например id сообщения) */
+  dialogId?: string;
+  /** найденное сообщение: после открытия диалога — feed.jumpTo(messageId) */
+  messageId?: string;
 }
 export interface ChatListOptions {
   items: ChatListItem[];
@@ -105,6 +114,39 @@ export interface ChatListHandle {
   setActive(id: string | null): void;
   getActive(): string | null;
   destroy(): void;
+}
+
+/** Превью с подсветкой найденного: <mark class="b24-chat-list__mark">; начало обрезается, чтобы первое совпадение было видно. */
+function highlightNodes(text: string, hl: NonNullable<ChatListItem['highlight']>): Array<string | HTMLElement> {
+  let ranges: Array<[number, number]> = [];
+  if (typeof hl === 'string' || (Array.isArray(hl) && typeof hl[0] === 'string')) {
+    const low = text.toLowerCase();
+    for (const q of (typeof hl === 'string' ? [hl] : (hl as string[]))) {
+      const needle = q.toLowerCase();
+      if (!needle) continue;
+      for (let i = low.indexOf(needle); i >= 0; i = low.indexOf(needle, i + needle.length)) ranges.push([i, i + needle.length]);
+    }
+  } else ranges = (hl as Array<[number, number]>).map(([a, b]) => [Math.max(0, a), Math.min(text.length, b)] as [number, number]).filter(([a, b]) => b > a);
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]); else merged.push([r[0], r[1]]);
+  }
+  if (!merged.length) return [text];
+  const cut = merged[0][0] > 32 ? merged[0][0] - 24 : 0;
+  const out: Array<string | HTMLElement> = [];
+  if (cut) out.push('…');
+  let pos = cut;
+  for (const [a, b] of merged) {
+    if (b <= cut) continue;
+    const from = Math.max(a, cut);
+    if (from > pos) out.push(text.slice(pos, from));
+    out.push(h('mark', { class: 'b24-chat-list__mark' }, text.slice(from, b)));
+    pos = b;
+  }
+  if (pos < text.length) out.push(text.slice(pos));
+  return out;
 }
 
 /** Бейдж канала: «Telegram» — фирменным цветом, если известен. */
@@ -125,14 +167,14 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
   const rows = new Map<string, HTMLElement>();
 
   const fill = (row: HTMLElement, it: ChatListItem) => {
-    row.className = `b24-chat-list__item${it.id === active ? ' is-active' : ''}${it.unread ? ' is-unread' : ''}${it.muted ? ' is-muted' : ''}`;
+    row.className = `b24-chat-list__item${it.id === active ? ' is-active' : ''}${it.unread ? ' is-unread' : ''}${it.muted ? ' is-muted' : ''}${it.highlight && it.preview ? ' is-found' : ''}`;
     row.setAttribute('aria-selected', String(it.id === active));
     const av = html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })).firstElementChild!;
     const top = h('span', { class: 'b24-chat-list__top' }, h('span', { class: 'b24-chat-list__name' }, it.name), it.time != null ? h('span', { class: 'b24-chat-list__time' }, formatChatListTime(it.time)) : '');
     const preview = it.typing
       ? h('span', { class: 'b24-chat-list__preview b24-chat-list__typing' }, typeof it.typing === 'string' ? it.typing : t('печатает…'))
       : it.preview || !it.subtitle
-      ? h('span', { class: 'b24-chat-list__preview' }, it.previewOut ? h('span', { class: 'b24-chat-list__you' }, `${t('Вы')}: `) : '', it.preview ?? '')
+      ? h('span', { class: 'b24-chat-list__preview' }, it.previewOut ? h('span', { class: 'b24-chat-list__you' }, `${t('Вы')}: `) : '', ...(it.highlight && it.preview ? highlightNodes(it.preview, it.highlight) : [it.preview ?? '']))
       : h('span', { class: 'b24-chat-list__preview b24-chat-list__subtitle' }, it.subtitle);
     const bottom = h('span', { class: 'b24-chat-list__bottom' }, preview);
     if (it.channel) bottom.append(channelBadge(it.channel));
@@ -262,12 +304,31 @@ export interface ChatMessage {
   /** false — «Изменить» из onEdit для этого сообщения не показывается (чужое, старше срока правки); по умолчанию — у своих (out и своя заметка) с текстом */
   editable?: boolean;
 }
+export type ChatAroundResult =
+  | ChatMessage[]
+  | { messages: ChatMessage[]; hasMore?: boolean; hasNewer?: boolean }
+  | { before?: ChatMessage[]; message: ChatMessage; after?: ChatMessage[]; hasMore?: boolean; hasNewer?: boolean };
+export interface ChatScrollOptions {
+  /** коротко подсветить сообщение (по умолчанию да) */
+  highlight?: boolean;
+  /** плавная прокрутка (по умолчанию нет) */
+  smooth?: boolean;
+}
 export interface ChatFeedOptions {
   messages?: ChatMessage[];
   /** есть сообщения раньше — кнопка «Показать раньше» */
   hasMore?: boolean;
   /** подгрузить раньше; позиция прокрутки сохраняется, когда придут новые сообщения (setMessages / prepend) */
   onLoadMore?: () => void | Promise<unknown>;
+  /** лента показывает окно вокруг найденного сообщения, свежее — ниже (после jumpTo): кнопка «Показать новее» и подгрузка у низа */
+  hasNewer?: boolean;
+  /** подгрузить новее последнего показанного: передайте их в append() */
+  onLoadNewer?: () => void | Promise<unknown>;
+  /**
+   * Окно вокруг сообщения для jumpTo(id), когда его нет в ленте: вернуть сообщения вокруг id (включая его) —
+   * массивом или { messages, hasMore (есть раньше), hasNewer (есть новее) }, либо { before, after, message } .
+   */
+  onLoadAround?: (id: string) => ChatAroundResult | Promise<ChatAroundResult>;
   /** аватары у входящих (групповой чат) */
   showAvatars?: boolean;
   /** повторить отправку («не доставлено» → «Повторить») */
@@ -307,6 +368,14 @@ export interface ChatFeedHandle {
   /** индикатор набора внизу ленты («Анна печатает…» с анимированными точками); null — скрыть. Прокрутка не сдвигается, если пользователь не у низа */
   setTyping(text: string | null): void;
   scrollToBottom(smooth?: boolean): void;
+  /** прокрутить к сообщению (по центру) и коротко подсветить (.is-flash); false — такого сообщения в ленте нет */
+  scrollTo(id: string, options?: ChatScrollOptions): boolean;
+  /**
+   * Перейти к сообщению, даже если оно не загружено: есть в ленте — как scrollTo; нет — вызывается loader (или options.onLoadAround),
+   * лента заменяется окном вокруг сообщения и прокручивается к нему. true — перешли.
+   */
+  jumpTo(id: string, loader?: (id: string) => ChatAroundResult | Promise<ChatAroundResult>, options?: ChatScrollOptions): Promise<boolean>;
+  setHasNewer(value: boolean): void;
   /** пользователь у низа ленты */
   isAtBottom(): boolean;
   destroy(): void;
@@ -333,7 +402,11 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   const list = h('div', { class: 'b24-chat-feed__list' });
   const more = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm b24-chat-feed__more' }, t('Показать раньше'));
   const typing = h('div', { class: 'b24-chat-typing', hidden: '', role: 'status' });
-  root.append(more, list, typing);
+  let hasNewer = !!options.hasNewer;
+  let loadingNewer = false;
+  const newer = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm b24-chat-feed__newer' }, t('Показать новее'));
+  newer.hidden = !hasNewer;
+  root.append(more, list, typing, newer);
   host.append(root);
 
   const nearBottom = () => root.scrollHeight - root.scrollTop - root.clientHeight < 80;
@@ -563,14 +636,34 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     }
   };
   more.addEventListener('click', () => void loadMore());
+  const loadNewer = async () => {
+    if (loadingNewer || !hasNewer || !options.onLoadNewer) return;
+    loadingNewer = true;
+    newer.disabled = true;
+    newer.classList.add('b24-btn--loading');
+    try { await options.onLoadNewer(); } finally {
+      loadingNewer = false;
+      newer.disabled = false;
+      newer.classList.remove('b24-btn--loading');
+    }
+  };
+  newer.addEventListener('click', () => void loadNewer());
   // у верха ленты — подгружаем сами
   root.addEventListener('scroll', () => {
     // у низа — прилипаем; ушёл вверх сам (не наша прокрутка) — отлипаем
     if (nearBottom()) stick = true;
     else if (!programmatic) stick = false;
     if (root.scrollTop < 40 && hasMore && options.onLoadMore) void loadMore();
+    if (hasNewer && !programmatic && nearBottom()) void loadNewer();
   }, { passive: true });
-  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (stick) handle.scrollToBottom(); }) : null;
+  const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (stick && !hasNewer) handle.scrollToBottom(); }) : null;
+  let flashTimer = 0;
+  const findEl = (id: string) => Array.from(list.children).find((c) => (c as HTMLElement).dataset.id === id) as HTMLElement | undefined;
+  const around = (r: ChatAroundResult): { messages: ChatMessage[]; hasMore?: boolean; hasNewer?: boolean } => {
+    if (Array.isArray(r)) return { messages: r };
+    if ('message' in r) return { messages: [...(r.before ?? []), r.message, ...(r.after ?? [])], hasMore: r.hasMore, hasNewer: r.hasNewer };
+    return r;
+  };
   ro?.observe(list);
 
   render();
@@ -597,6 +690,39 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       typing.hidden = !text;
       if (at) handle.scrollToBottom(); else root.scrollTop = top;
     },
+    scrollTo(id, opts = {}) {
+      const el = findEl(id);
+      if (!el) return false;
+      stick = false;
+      programmatic = true;
+      const rr = root.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      const top = Math.max(0, root.scrollTop + (er.top - rr.top) - (root.clientHeight - er.height) / 2);
+      root.scrollTo({ top, behavior: opts.smooth ? 'smooth' : 'auto' });
+      const done = () => requestAnimationFrame(() => requestAnimationFrame(() => { programmatic = false; }));
+      if (opts.smooth) setTimeout(done, 500); else done();
+      if (opts.highlight !== false) {
+        list.querySelectorAll('.is-flash').forEach((x) => x.classList.remove('is-flash'));
+        void el.offsetWidth;
+        el.classList.add('is-flash');
+        clearTimeout(flashTimer);
+        flashTimer = window.setTimeout(() => el.classList.remove('is-flash'), 2000);
+      }
+      return true;
+    },
+    async jumpTo(id, loader, opts) {
+      if (handle.scrollTo(id, opts)) return true;
+      const load = loader ?? options.onLoadAround;
+      if (!load) return false;
+      const r = around(await load(id));
+      if (!r.messages.some((m) => m.id === id)) return false;
+      messages = r.messages;
+      if (r.hasMore !== undefined) handle.setHasMore(r.hasMore);
+      if (r.hasNewer !== undefined) handle.setHasNewer(r.hasNewer);
+      render();
+      return handle.scrollTo(id, opts);
+    },
+    setHasNewer(v) { hasNewer = v; newer.hidden = !v; if (!v) stick = nearBottom(); },
     scrollToBottom(smooth = false) {
       stick = true;
       programmatic = true;
