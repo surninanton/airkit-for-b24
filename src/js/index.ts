@@ -55,6 +55,7 @@ export { createPageHeader, checkLayout, warnLayout, type PageHeaderOptions, type
 export { createVendor, checkVendor, getVendor, type VendorOptions, type VendorHandle, type VendorLink } from './vendor';
 export { initGallery, openLightbox, initTopnav, initSiteHeader, initAnchorNav, initVideo, initToc, initCookieNotice, initThemeSwitch, applyStoredTheme, type GalleryItem, type GalleryHandle, type LightboxOptions } from './site';
 export { initGrid, getGrid, type GridOptions, type GridHandle, type GridRowAction, type GridGroupAction, type GridPagination } from './grid';
+export { setStorage, getStorage, type B24Storage } from './storage';
 export { loadGridState, saveGridState, clearGridState, normalizeGridState, moveColumn, measureColumn, startColumnResize, enableColumnReorder, type GridState } from './grid-core';
 export { createChart, sparkline, chartColor, type ChartOptions, type ChartSeries, type ChartType, type ChartHandle } from './chart';
 export { initSettings, initWizard, type SettingsHandle, type WizardHandle } from './screens';

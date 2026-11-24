@@ -1,5 +1,6 @@
 import { icon } from '../icons';
 import { h, html } from './dom';
+import { storageGet, storageSet } from './storage';
 import { dropdown, type DropdownHandle } from './dropdown';
 import { modal, type ModalHandle } from './modal';
 import { t } from './i18n';
@@ -378,12 +379,12 @@ const COOKIE_KEY = 'b24-cookie-accepted';
 export function initCookieNotice(el: HTMLElement): () => void {
   const key = el.dataset.b24Cookie || COOKIE_KEY;
   let accepted = false;
-  try { accepted = localStorage.getItem(key) === '1'; } catch { /* приватный режим */ }
+  accepted = storageGet(key) === '1';
   if (accepted) { el.hidden = true; return () => {}; }
   el.hidden = false;
   const onClick = (e: MouseEvent) => {
     if (!(e.target as HTMLElement).closest('[data-b24-cookie-accept]')) return;
-    try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
+    storageSet(key, '1');
     el.hidden = true;
   };
   el.addEventListener('click', onClick);
@@ -398,7 +399,8 @@ export function initCookieNotice(el: HTMLElement): () => void {
  */
 const THEME_KEY = 'b24-theme';
 export function applyStoredTheme(): void {
-  try { const t = localStorage.getItem(THEME_KEY); if (t) document.documentElement.dataset.b24Theme = t; } catch { /* ignore */ }
+  const t = storageGet(THEME_KEY);
+  if (t) document.documentElement.dataset.b24Theme = t;
 }
 export function initThemeSwitch(btn: HTMLElement): () => void {
   applyStoredTheme();
@@ -411,7 +413,7 @@ export function initThemeSwitch(btn: HTMLElement): () => void {
   const onClick = () => {
     const next = isDark() ? 'light' : 'dark';
     root.dataset.b24Theme = next;
-    try { localStorage.setItem(THEME_KEY, next); } catch { /* ignore */ }
+    storageSet(THEME_KEY, next);
     sync();
   };
   btn.addEventListener('click', onClick);

@@ -41,10 +41,12 @@ export function layoutWidths(visibleKeys: string[], widths: Record<string, numbe
 }
 export const MAX_AUTOFIT_WIDTH = 600;
 
+import { storageGet, storageSet } from './storage';
+
 export function loadGridState(key: string | undefined): Partial<GridState> | null {
   if (!key) return null;
   try {
-    const raw = localStorage.getItem(PREFIX + key);
+    const raw = storageGet(PREFIX + key);
     return raw ? (JSON.parse(raw) as Partial<GridState>) : null;
   } catch {
     return null;
@@ -53,12 +55,12 @@ export function loadGridState(key: string | undefined): Partial<GridState> | nul
 
 export function saveGridState(key: string | undefined, state: GridState): void {
   if (!key) return;
-  try { localStorage.setItem(PREFIX + key, JSON.stringify(state)); } catch { /* приватный режим и т.п. */ }
+  storageSet(PREFIX + key, JSON.stringify(state));
 }
 
 export function clearGridState(key: string | undefined): void {
   if (!key) return;
-  try { localStorage.removeItem(PREFIX + key); } catch { /* ignore */ }
+  storageSet(PREFIX + key, null);
 }
 
 /** Сводит сохранённое состояние с актуальным набором столбцов: новые — в конец, удалённые — выбрасываются. */

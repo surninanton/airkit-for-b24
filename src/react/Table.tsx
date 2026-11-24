@@ -72,8 +72,10 @@ export interface DataTableProps<T> {
   maxHeight?: number | string;
   className?: string;
   /* ── грид ── */
-  /** ключ для сохранения ширины/порядка/видимости столбцов в localStorage */
+  /** ключ для сохранения ширины/порядка/видимости столбцов (localStorage или свой — setStorage) */
   stateKey?: string;
+  /** начальное состояние столбцов: главнее сохранённого в хранилище */
+  initialGridState?: Partial<GridState>;
   /** менять ширину столбцов (двойной клик по ручке — по содержимому) */
   resizable?: boolean;
   /** перетаскивать столбцы */
@@ -99,7 +101,7 @@ export interface DataTableProps<T> {
 export function DataTable<T>({
   columns, rows, rowKey, selectable, selected = [], onSelectionChange,
   sort: sortProp, onSortChange, onRowClick, loading, empty, footer, compact, striped, maxHeight, className,
-  stateKey, resizable, reorderable, columnSettings, rowActions, groupActions, onGridStateChange, onCellEdit,
+  stateKey, initialGridState, resizable, reorderable, columnSettings, rowActions, groupActions, onGridStateChange, onCellEdit,
   rowTone, renderExpanded, expanded: expandedProp, onExpandedChange,
 }: DataTableProps<T>) {
   const [innerExpanded, setInnerExpanded] = useState<Array<string | number>>([]);
@@ -129,7 +131,7 @@ export function DataTable<T>({
   const colKeys = columns.map((c) => c.key);
   const defaultHidden = columns.filter((c) => c.hidden).map((c) => c.key);
   const defaultPinned = columns.filter((c) => c.pinned).map((c) => c.key);
-  const [grid, setGrid] = useState<GridState>(() => normalizeGridState(colKeys, loadGridState(stateKey), defaultHidden, defaultPinned));
+  const [grid, setGrid] = useState<GridState>(() => normalizeGridState(colKeys, initialGridState ?? loadGridState(stateKey), defaultHidden, defaultPinned));
   const keysSig = colKeys.join('|');
   useEffect(() => { setGrid((g) => normalizeGridState(colKeys, g, defaultHidden, defaultPinned)); }, [keysSig]); // eslint-disable-line react-hooks/exhaustive-deps
   const gridCb = useRef(onGridStateChange);

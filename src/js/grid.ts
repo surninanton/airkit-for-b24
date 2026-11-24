@@ -1,4 +1,5 @@
 import { icon, type IconName } from '../icons';
+import { storageGet, storageSet } from './storage';
 import { h, html } from './dom';
 import { dropdown, type DropdownHandle } from './dropdown';
 import {
@@ -77,8 +78,10 @@ export interface CellEditContext {
 }
 
 export interface GridOptions {
-  /** ключ для localStorage; без него состояние не сохраняется */
+  /** ключ состояния (по умолчанию localStorage, свой — B24UI.setStorage); без него состояние не сохраняется */
   id?: string;
+  /** начальное состояние (ширины, порядок, скрытые, закреплённые): главнее сохранённого в хранилище */
+  state?: Partial<GridState>;
   resizable?: boolean;
   reorderable?: boolean;
   /** меню ⚙ с видимостью столбцов */
@@ -161,7 +164,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   const keys = keyedTh().map((th) => th.dataset.key!);
   const defaultHidden = options.hidden ?? keyedTh().filter((th) => th.hasAttribute('data-hidden')).map((th) => th.dataset.key!);
   const defaultPinned = options.pinned ?? keyedTh().filter((th) => th.hasAttribute('data-pinned')).map((th) => th.dataset.key!);
-  let state = normalizeGridState(keys, loadGridState(storageKey), defaultHidden, defaultPinned);
+  let state = normalizeGridState(keys, options.state ?? loadGridState(storageKey), defaultHidden, defaultPinned);
   const cleanups: Array<() => void> = [];
 
   /* ── Меню строки: служебный столбец после чекбокса ── */
@@ -426,7 +429,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
   let pagination: GridPagination | null = options.pagination ? { ...options.pagination } : null;
   const pageSizeKey = storageKey ? `${storageKey}:pageSize` : null;
   if (pagination && pageSizeKey) {
-    try { const saved = Number(localStorage.getItem(pageSizeKey)); if (saved && saved !== pagination.pageSize) {
+    try { const saved = Number(storageGet(pageSizeKey)); if (saved && saved !== pagination.pageSize) {
       pagination.pageSize = saved;
       // сервер отрисовал страницу другого размера — сообщаем приложению (колбэком и событием для серверных шаблонов)
       setTimeout(() => {
@@ -528,7 +531,7 @@ export function initGrid(table: HTMLTableElement, options: GridOptions = {}): Gr
       sel.addEventListener('change', () => {
         p.pageSize = Number(sel.value);
         p.page = 1;
-        if (pageSizeKey) { try { localStorage.setItem(pageSizeKey, sel.value); } catch { /* нет доступа */ } }
+        if (pageSizeKey) storageSet(pageSizeKey, sel.value);
         options.onPageSizeChange?.(p.pageSize);
         table.dispatchEvent(new CustomEvent('b24:page-size-change', { detail: { pageSize: p.pageSize }, bubbles: true }));
         renderPager();

@@ -8,6 +8,7 @@
 import { icon } from '../icons';
 import { h, html } from './dom';
 import { t } from './i18n';
+import { storageGet, storageSet } from './storage';
 import { showFloat, type FloatHandle } from './float';
 import type { ChatComposerHandle } from './chat';
 
@@ -42,10 +43,10 @@ export function searchEmoji(query: string): string[] {
 const KEY = 'b24-emoji-recent';
 const MAX_RECENT = 24;
 export function getRecentEmoji(): string[] {
-  try { const v = JSON.parse(localStorage.getItem(KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, MAX_RECENT) : []; } catch { return []; }
+  try { const v = JSON.parse(storageGet(KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, MAX_RECENT) : []; } catch { return []; }
 }
 export function rememberEmoji(e: string): void {
-  try { localStorage.setItem(KEY, JSON.stringify([e, ...getRecentEmoji().filter((x) => x !== e)].slice(0, MAX_RECENT))); } catch { /* без localStorage — без «Частых» */ }
+  storageSet(KEY, JSON.stringify([e, ...getRecentEmoji().filter((x) => x !== e)].slice(0, MAX_RECENT)));
 }
 
 export interface EmojiPickerOptions {
