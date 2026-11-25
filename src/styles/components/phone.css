@@ -93,16 +93,17 @@ html.b24-has-im-bar .b24-callcard--floating.is-top-right { right: calc(var(--b24
 /* перетащенная карточка (draggable): позиция в --_x / --_y; свёрнутая полоска остаётся внизу */
 @media (min-width: 769px) {
   .b24-callcard--floating.is-moved:not(.is-minimized) { left: var(--_x); top: var(--_y); right: auto; bottom: auto; }
+  .b24-callcard--floating.is-minimized.is-moved { left: var(--_x); top: var(--_y); right: auto; bottom: auto; border-radius: 12px; }
   html.b24-has-im-bar .b24-callcard--floating.is-moved.is-top-right:not(.is-minimized) { right: auto; }
 }
-.b24-callcard--floating:not(.is-minimized) .b24-callcard__grip { cursor: move; touch-action: none; }
+.b24-callcard--floating .b24-callcard__grip { cursor: move; touch-action: none; }
+.b24-callcard--floating.is-minimized .b24-callcard__mini button { cursor: pointer; }
 .b24-callcard__grip:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; border-radius: 6px; }
 .b24-callcard.is-dragging { user-select: none; box-shadow: var(--b24-shadow-popup, var(--b24-shadow-3xl)); }
 .b24-callcard--floating.is-bottom-right { top: auto; bottom: 16px; }
-.b24-callcard__min { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; margin: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.b24-callcard__min { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; margin: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; }
 .b24-callcard__min:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
 .b24-callcard__min[hidden] { display: none; }
-.b24-callcard--floating .b24-callcard__who { padding-right: 28px; }
 .b24-callcard__customer:empty { display: none; }
 .b24-callcard__customer { padding: 10px 12px; background: var(--b24-bg-surface-2, #f1f4f7); border-radius: var(--b24-radius-md); }
 .b24-callcard__mini { display: none; }
@@ -222,8 +223,27 @@ button.b24-calllog__item:focus-visible { outline: 2px solid var(--b24-focus-colo
 .b24-callcard.has-accent { border-top: 4px solid var(--_accent); }
 .b24-callcard--floating.has-accent { border-top-width: 4px; }
 .b24-callcard.has-accent .b24-callcard__status.is-timer { color: var(--_accent); }
-.b24-callcard__brand { --_brand: var(--b24-text-secondary); display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; max-width: calc(100% - 36px); padding: 2px 10px 2px 6px; font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-medium); color: var(--_brand); background: color-mix(in srgb, var(--_brand) 12%, transparent); border-radius: 12px; }
+.b24-callcard__brand { --_brand: var(--b24-text-secondary); display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; padding: 2px 10px 2px 6px; font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-medium); color: var(--_brand); background: color-mix(in srgb, var(--_brand) 12%, transparent); border-radius: 12px; }
 .b24-callcard__brand:empty, .b24-callcard__brand[hidden] { display: none; }
 .b24-callcard__brand > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .b24-callcard__brand-logo { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; }
 .b24-calllog__record { padding: 0 12px 8px 56px; }
+
+/* верхняя строка: метка бренда · пустое место · таймер · «–» (за неё карточку и тянут) */
+.b24-callcard__head { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 28px; }
+.b24-callcard__head[hidden] { display: none; }
+.b24-callcard__head-fill { flex: 1 1 auto; align-self: stretch; min-width: 8px; }
+.b24-callcard__head-timer { flex: 0 0 auto; font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-semibold); font-variant-numeric: tabular-nums; color: var(--_accent, var(--b24-color-primary)); }
+.b24-callcard__head-timer[hidden] { display: none; }
+.b24-callcard__status[hidden] { display: none; }
+.b24-callcard__ctimer { font-variant-numeric: tabular-nums; }
+/* блок клиента как кнопка (onContactClick) */
+.b24-callcard__who.is-button {
+  padding: 8px 8px 8px 10px; margin: 0 -4px; cursor: pointer; border-radius: var(--b24-radius-md, 12px);
+  background: color-mix(in srgb, var(--b24-text-primary) 3%, transparent); transition: background-color var(--b24-duration-fast);
+}
+.b24-callcard__who.is-button:hover { background: color-mix(in srgb, var(--b24-text-primary) 8%, transparent); }
+.b24-callcard__who.is-button:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
+.b24-callcard__text { flex: 1 1 auto; min-width: 0; }
+.b24-callcard__chev { flex: 0 0 auto; display: inline-grid; color: var(--b24-text-subtle); }
+.b24-callcard__who.is-button:hover .b24-callcard__chev { color: var(--b24-text-primary); }

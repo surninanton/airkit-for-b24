@@ -1,0 +1,21 @@
+/* Раскрытие: .b24-disclosure > __btn (__label, __count, __chev) + __panel; --overlay — панель поверх содержимого */
+.b24-disclosure { position: relative; min-width: 0; }
+.b24-disclosure__btn {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 36px; padding: 6px 10px; margin: 0; font: inherit; font-size: var(--b24-font-size-md); font-weight: var(--b24-font-weight-medium);
+  text-align: left; color: var(--b24-text-primary); background: color-mix(in srgb, var(--b24-text-primary) 3%, transparent); border: 0; border-radius: var(--b24-radius-md, 10px); cursor: pointer;
+  transition: background-color var(--b24-duration-fast);
+}
+.b24-disclosure__btn:hover { background: color-mix(in srgb, var(--b24-text-primary) 8%, transparent); }
+.b24-disclosure__btn:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 1px; }
+.b24-disclosure__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-disclosure__count { flex: 0 0 auto; color: var(--b24-text-secondary); font-variant-numeric: tabular-nums; }
+.b24-disclosure__count[hidden] { display: none; }
+.b24-disclosure__chev { display: inline-grid; margin-left: auto; color: var(--b24-text-subtle); transition: transform var(--b24-duration-fast); }
+.b24-disclosure.is-open > .b24-disclosure__btn .b24-disclosure__chev { transform: rotate(180deg); }
+.b24-disclosure__panel { padding-top: 6px; }
+.b24-disclosure__panel[hidden] { display: none; }
+.b24-disclosure--overlay > .b24-disclosure__panel {
+  position: absolute; z-index: var(--b24-z-dropdown, 1000); top: calc(100% + 4px); left: 0; right: 0; max-height: min(60vh, 420px); overflow: auto; padding: 6px;
+  background: var(--b24-bg-surface); border-radius: var(--b24-radius-md, 10px); box-shadow: var(--b24-shadow-3xl);
+}
+@media (prefers-reduced-motion: reduce) { .b24-disclosure__chev, .b24-disclosure__btn { transition: none; } }

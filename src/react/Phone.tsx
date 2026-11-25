@@ -33,15 +33,16 @@ export interface CallCardProps extends CallCardOptions {
   /** свой текст итога под именем («Ответил коллега»); сбрасывается при смене состояния */
   statusText?: string | null;
   handleRef?: MutableRefObject<CallCardHandle | null> }
-export function CallCard({ state, name, number, avatar, meta, startedAt, actions, floating, draggable, storageKey, onMove, minimized, onMinimize, onClose, closeLabel, statusText, accent, brand, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
+export function CallCard({ state, name, number, avatar, meta, startedAt, actions, floating, draggable, storageKey, onMove, onContactClick, timerPlacement, minimized, onMinimize, onClose, closeLabel, statusText, accent, brand, onAnswer, onDecline, onHangup, onAction, handleRef }: CallCardProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<CallCardHandle | null>(null);
-  const cbs = useRef({ onAnswer, onDecline, onHangup, onAction, onMinimize, onClose, onMove });
-  cbs.current = { onAnswer, onDecline, onHangup, onAction, onMinimize, onClose, onMove };
+  const cbs = useRef({ onAnswer, onDecline, onHangup, onAction, onMinimize, onClose, onMove, onContactClick });
+  cbs.current = { onAnswer, onDecline, onHangup, onAction, onMinimize, onClose, onMove, onContactClick };
   useEffect(() => {
     h.current = createCallCard(host.current!, {
       state, name, number, avatar, meta, startedAt, actions, floating, draggable, storageKey, minimized, closeLabel, accent, brand,
       onMove: (p) => cbs.current.onMove?.(p),
+      timerPlacement, onContactClick: onContactClick ? () => cbs.current.onContactClick?.() : undefined,
       onClose: onClose ? () => cbs.current.onClose?.() : undefined,
       onMinimize: (m) => cbs.current.onMinimize?.(m),
       onAnswer: () => cbs.current.onAnswer?.(), onDecline: () => cbs.current.onDecline?.(), onHangup: () => cbs.current.onHangup?.(),

@@ -263,13 +263,20 @@ export interface CallCardOptions {
   /**
    * Перетаскивание плавающей карточки за шапку (имя, номер, метка бренда — не за кнопки и поля): мышь, палец, Alt + стрелки
    * (Shift — крупнее), двойной щелчок по шапке — на место по умолчанию. Карточка не выходит за окно, при изменении окна и высоты
-   * возвращается в видимую область. По умолчанию включено для floating; на ≤768px карточка на всю ширину и не двигается. Свёрнутая полоска не двигается.
+   * возвращается в видимую область. По умолчанию включено для floating; на ≤768px карточка на всю ширину и не двигается. Тянуть можно за всю верхнюю строку (метка бренда, пустое место, таймер — не за кнопки) и за свёрнутую полоску (её позиция — отдельно, storageKey + ':min').
    */
   draggable?: boolean;
-  /** где запомнить позицию (B24UI.setStorage / localStorage); по умолчанию 'b24-callcard:pos', false — не запоминать */
+  /** где запомнить позицию (B24UI.setStorage / localStorage); по умолчанию 'b24-callcard:pos' (свёрнутая полоска — ':min'), false — не запоминать */
   storageKey?: string | false;
   /** позиция изменилась (в px от левого верхнего угла окна); null — вернули на место по умолчанию */
   onMove?: (pos: { x: number; y: number } | null) => void;
+  /** блок клиента (аватар, имя, номер) — кнопка: клик, Enter и Space вызывают onContactClick, справа шеврон «›», aria-label «Карточка клиента: {name}». Без обработчика блок обычный */
+  onContactClick?: () => void;
+  /**
+   * Где показывать таймер: 'body' — крупно под клиентом (по умолчанию); 'header' — в верхней строке справа перед «–», цветом акцента;
+   * 'contact' — во второй строке блока клиента после номера («+7 (909) 055-55-75 · 0:47»); там же статус: «Звонит…», «Завершён 2:03».
+   */
+  timerPlacement?: 'body' | 'header' | 'contact';
   /** свёрнута сразу (для floating) */
   minimized?: boolean;
   onMinimize?: (minimized: boolean) => void;
@@ -336,6 +343,13 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   const pos = typeof options.floating === 'object' ? options.floating.position ?? 'top-right' : 'top-right';
   const root = h('div', { class: 'b24-callcard', role: 'group' });
   const who = h('div', { class: 'b24-callcard__who' });
+  if (options.onContactClick) {
+    who.classList.add('is-button');
+    who.setAttribute('role', 'button');
+    who.tabIndex = 0;
+    who.addEventListener('click', () => options.onContactClick!());
+    who.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); options.onContactClick!(); } });
+  }
   const status = h('div', { class: 'b24-callcard__status', 'aria-live': 'off' });
   const customer = h('div', { class: 'b24-callcard__customer' });
   const brandSlot = h('div', { class: 'b24-callcard__brand' });
@@ -351,7 +365,10 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   const mini = h('div', { class: 'b24-callcard__mini' }, miniName, miniTime, miniRestore, miniAnswer, miniEnd);
   let customText: string | null = null;
   const minBtn = h('button', { type: 'button', class: 'b24-callcard__min', 'aria-label': t('Свернуть'), title: t('Свернуть') }, html(icon('minus', { size: 16 })));
-  root.append(minBtn, brandSlot, who, status, customer, buttons, foot, extra, mini);
+  const placement = options.timerPlacement ?? 'body';
+  const headTimer = h('span', { class: 'b24-callcard__head-timer', hidden: '' });
+  const head = h('div', { class: 'b24-callcard__head' }, brandSlot, h('span', { class: 'b24-callcard__head-fill' }), headTimer, minBtn);
+  root.append(head, who, status, customer, buttons, foot, extra, mini);
   if (floating) { root.classList.add('b24-callcard--floating', `is-${pos}`); root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'false'); }
   else minBtn.hidden = true;
   (floating && host === document.body ? document.body : host).append(root);
@@ -359,28 +376,68 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   let moved: { x: number; y: number } | null = null;
 
   const duration = () => (startedAt ? Math.max(0, Math.round((Date.now() - startedAt) / 1000)) : 0);
+  let contactTimer: HTMLElement | null = null;
+  const paintHead = () => {
+    head.hidden = brandSlot.hidden && minBtn.hidden && headTimer.hidden;
+  };
   const paintStatus = () => {
+    const live = state === 'active' || state === 'held';
+    const time = formatCallTime(duration());
     if (customText != null) {
-      status.textContent = customText;
+      status.textContent = placement === 'contact' ? '' : customText;
       status.classList.remove('is-timer');
+      status.hidden = placement === 'contact';
       miniTime.textContent = customText;
+      headTimer.hidden = true;
+      if (contactTimer) contactTimer.textContent = customText;
+      paintHead();
       return;
     }
-    const text = { incoming: t('Входящий звонок…'), dialing: t('Соединение…'), held: t('На удержании'), ended: t('Звонок завершён'), active: formatCallTime(duration()) }[state];
-    status.textContent = state === 'held' && startedAt ? `${text} · ${formatCallTime(duration())}` : state === 'ended' && startedAt ? `${text} · ${formatCallTime(duration())}` : text;
-    status.classList.toggle('is-timer', state === 'active');
-    miniTime.textContent = state === 'active' || state === 'held' ? formatCallTime(duration()) : status.textContent;
+    const text = { incoming: t('Входящий звонок…'), dialing: t('Соединение…'), held: t('На удержании'), ended: t('Звонок завершён'), active: time }[state];
+    const full = state === 'held' && startedAt ? `${text} · ${time}` : state === 'ended' && startedAt ? `${text} · ${time}` : text;
+    miniTime.textContent = live ? time : full;
+    if (placement === 'header') {
+      // таймер — в верхней строке; под клиентом остаются только состояния без времени
+      headTimer.textContent = time;
+      headTimer.hidden = !live;
+      status.hidden = state === 'active';
+      status.textContent = state === 'held' ? t('На удержании') : state === 'active' ? '' : full;
+      status.classList.remove('is-timer');
+    } else if (placement === 'contact') {
+      headTimer.hidden = true;
+      status.hidden = true;
+      status.classList.remove('is-timer');
+      if (contactTimer) contactTimer.textContent = { incoming: t('Звонит…'), dialing: t('Соединение…'), held: startedAt ? `${t('На удержании')} · ${time}` : t('На удержании'), ended: startedAt ? `${t('Завершён')} ${time}` : t('Завершён'), active: time }[state];
+    } else {
+      headTimer.hidden = true;
+      status.hidden = false;
+      status.textContent = full;
+      status.classList.toggle('is-timer', state === 'active');
+    }
+    paintHead();
   };
   const paintWho = () => {
+    contactTimer = null;
+    let line: HTMLElement | string = '';
+    if (placement === 'contact') {
+      // вторая строка: «+7 (909) 055-55-75 · 0:47» / «Звонит…» / «Завершён 2:03»
+      contactTimer = h('span', { class: 'b24-callcard__ctimer' });
+      line = h('div', { class: 'b24-callcard__number' }, ...(info.name && info.number ? [formatPhone(info.number), h('span', { class: 'b24-callcard__sep', 'aria-hidden': 'true' }, ' · ')] : []), contactTimer);
+    } else if (info.name && info.number) line = h('div', { class: 'b24-callcard__number' }, formatPhone(info.number));
     who.replaceChildren(
       html(avatarHtml(info.name || info.number || '?', info.avatar, 'lg')).firstElementChild!,
       h('div', { class: 'b24-callcard__text' },
         h('div', { class: 'b24-callcard__name' }, info.name || formatPhone(info.number)),
-        info.name && info.number ? h('div', { class: 'b24-callcard__number' }, formatPhone(info.number)) : '',
+        line,
         info.meta ? h('div', { class: 'b24-callcard__meta' }, info.meta) : ''),
     );
+    if (options.onContactClick) {
+      who.append(h('span', { class: 'b24-callcard__chev', 'aria-hidden': 'true' }, html(icon('chevronRight', { size: 18 }))));
+      who.setAttribute('aria-label', t('Карточка клиента: {name}', { name: info.name || formatPhone(info.number) }));
+    }
     root.setAttribute('aria-label', `${info.name || info.number}`);
     miniName.textContent = info.name || formatPhone(info.number);
+    paintStatus();
   };
   const paintButtons = () => {
     buttons.hidden = state === 'incoming' || state === 'ended';
@@ -412,8 +469,9 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   };
   const tick = () => { if (state === 'active' || state === 'held') paintStatus(); };
   const sync = () => {
-    root.className = `b24-callcard${floating ? ` b24-callcard--floating is-${pos}` : ''}${minimized ? ' is-minimized' : ''}${moved ? ' is-moved' : ''}${accentOn ? ' has-accent' : ''} is-${state}`;
+    root.className = `b24-callcard${floating ? ` b24-callcard--floating is-${pos}` : ''}${minimized ? ' is-minimized' : ''}${(minimized ? movedMin : moved) ? ' is-moved' : ''}${accentOn ? ' has-accent' : ''} is-${state}`;
     minBtn.hidden = !floating || state === 'ended';
+    paintHead();
     // в полоске: входящий — «Ответить» и «Отклонить», завершён — «Закрыть», иначе «Завершить»
     miniAnswer.hidden = state !== 'incoming';
     const endLabel = state === 'incoming' ? t('Отклонить') : state === 'ended' ? options.closeLabel ?? t('Закрыть') : t('Завершить');
@@ -430,8 +488,9 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
 
   const paintBrand = (b: CallCardOptions['brand'] | null | undefined) => {
     brandSlot.replaceChildren();
-    if (!b) { brandSlot.hidden = true; return; }
+    if (!b) { brandSlot.hidden = true; paintHead(); return; }
     brandSlot.hidden = false;
+    paintHead();
     if (b.color) brandSlot.style.setProperty('--_brand', b.color); else brandSlot.style.removeProperty('--_brand');
     if (b.src) brandSlot.append(h('img', { src: b.src, alt: '', class: 'b24-callcard__brand-logo' }));
     else if (b.icon) brandSlot.append(html(icon(b.icon, { size: 14 })));
@@ -449,6 +508,7 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
     if (!floating || min === minimized) return;
     minimized = min;
     root.classList.toggle('is-minimized', min);
+    afterMode();
     options.onMinimize?.(min);
   };
   minBtn.addEventListener('click', () => setMinimized(true));
@@ -457,82 +517,117 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
   miniEnd.addEventListener('click', () => { if (state === 'incoming') options.onDecline?.(); else if (state === 'ended') options.onClose?.(); else options.onHangup?.(); });
   miniAnswer.addEventListener('click', () => options.onAnswer?.());
 
-  // перетаскивание плавающей карточки
+  // перетаскивание плавающей карточки (за всю верхнюю строку) и свёрнутой полоски (позиции хранятся отдельно)
   const draggable = floating && options.draggable !== false;
   const posKey = options.storageKey === false ? null : options.storageKey ?? 'b24-callcard:pos';
+  let movedMin: { x: number; y: number } | null = null;
   let offDrag = () => {};
   let applyPos: (p: { x: number; y: number } | null) => void = () => {};
+  let afterMode = () => {};
+  let restoreTimer = 0;
+  let suppressClickUntil = 0;
   if (draggable) {
     const narrow = () => matchMedia('(max-width: 768px)').matches;
+    const cur = () => (minimized ? movedMin : moved);
+    const keyOf = () => (posKey ? (minimized ? `${posKey}:min` : posKey) : null);
     const clamp = (p: { x: number; y: number }) => {
       const r = root.getBoundingClientRect();
-      const w = r.width || 320;
-      const hh = r.height || 200;
+      const w = r.width || (minimized ? 420 : 320);
+      const hh = r.height || (minimized ? 48 : 200);
       return { x: Math.round(Math.min(Math.max(8, p.x), Math.max(8, innerWidth - w - 8))), y: Math.round(Math.min(Math.max(8, p.y), Math.max(8, innerHeight - hh - 8))) };
     };
     const paint = () => {
-      root.classList.toggle('is-moved', !!moved);
-      if (moved) { root.style.setProperty('--_x', `${moved.x}px`); root.style.setProperty('--_y', `${moved.y}px`); }
+      const p = cur();
+      root.classList.toggle('is-moved', !!p);
+      if (p) { root.style.setProperty('--_x', `${p.x}px`); root.style.setProperty('--_y', `${p.y}px`); }
       else { root.style.removeProperty('--_x'); root.style.removeProperty('--_y'); }
     };
-    const save = () => { if (posKey) storageSet(posKey, moved ? JSON.stringify(moved) : null); };
+    const save = () => { const k = keyOf(); if (k) { const p = cur(); storageSet(k, p ? JSON.stringify(p) : null); } };
     const place = (p: { x: number; y: number } | null, persist: boolean) => {
-      moved = p ? clamp(p) : null;
+      const v = p ? clamp(p) : null;
+      if (minimized) movedMin = v; else moved = v;
       paint();
-      if (persist) { save(); options.onMove?.(moved ? { ...moved } : null); }
+      if (persist) { save(); options.onMove?.(v ? { ...v } : null); }
     };
     applyPos = (p) => place(p, true);
     // начало — текущее место карточки на экране
     const current = () => { const r = root.getBoundingClientRect(); return { x: r.left, y: r.top }; };
-    const handles = [who, brandSlot, status];
+    // ручки: вся верхняя строка (бренд, пустое место, таймер), блок клиента без onContactClick, статус и свёрнутая полоска
+    const handles: HTMLElement[] = [head, brandSlot, status, mini];
+    if (!options.onContactClick) handles.push(who);
     handles.forEach((el) => el.classList.add('b24-callcard__grip'));
-    who.tabIndex = 0;
-    who.setAttribute('aria-keyshortcuts', 'Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown');
-    who.title = t('Перетащите, чтобы переместить; Alt + стрелки; двойной щелчок — на место');
-    let drag: { dx: number; dy: number; id: number } | null = null;
+    head.tabIndex = 0;
+    head.setAttribute('aria-keyshortcuts', 'Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown');
+    head.title = t('Перетащите, чтобы переместить; Alt + стрелки; двойной щелчок — на место');
+    let drag: { dx: number; dy: number; id: number; x0: number; y0: number; moved: boolean } | null = null;
     const onDown = (e: PointerEvent) => {
-      if (minimized || narrow() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const el = e.currentTarget as HTMLElement;
+      if (narrow() || (minimized !== (el === mini)) || (e.pointerType === 'mouse' && e.button !== 0)) return;
       if ((e.target as HTMLElement).closest('button, a, input, textarea, select, [contenteditable]')) return;
       const c = current();
-      drag = { dx: e.clientX - c.x, dy: e.clientY - c.y, id: e.pointerId };
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      drag = { dx: e.clientX - c.x, dy: e.clientY - c.y, id: e.pointerId, x0: e.clientX, y0: e.clientY, moved: false };
+      el.setPointerCapture?.(e.pointerId);
       root.classList.add('is-dragging');
       e.preventDefault();
     };
-    const onMovePtr = (e: PointerEvent) => { if (drag && e.pointerId === drag.id) place({ x: e.clientX - drag.dx, y: e.clientY - drag.dy }, false); };
+    const onMovePtr = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4) return;
+      drag.moved = true;
+      place({ x: e.clientX - drag.dx, y: e.clientY - drag.dy }, false);
+    };
     const onUp = (e: PointerEvent) => {
       if (!drag || e.pointerId !== drag.id) return;
+      const was = drag.moved;
       drag = null;
       root.classList.remove('is-dragging');
-      if (moved) { save(); options.onMove?.({ ...moved }); }
+      // после перетаскивания полоски click не должен её разворачивать
+      if (was) { suppressClickUntil = Date.now() + 350; save(); const p = cur(); options.onMove?.(p ? { ...p } : null); }
     };
     for (const el of handles) {
       el.addEventListener('pointerdown', onDown);
       el.addEventListener('pointermove', onMovePtr);
       el.addEventListener('pointerup', onUp);
       el.addEventListener('pointercancel', onUp);
-      el.addEventListener('dblclick', (e) => { if (!minimized && !(e.target as HTMLElement).closest('button, a, input')) place(null, true); });
+      el.addEventListener('dblclick', (e) => {
+        if ((e.target as HTMLElement).closest('button, a, input')) return;
+        if (el === mini) clearTimeout(restoreTimer);
+        if ((el === mini) === minimized) place(null, true);
+      });
     }
+    // клик по полоске разворачивает; с двойным щелчком (сброс позиции) — после короткой паузы
+    mini.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      e.stopImmediatePropagation();
+      if (Date.now() < suppressClickUntil) return;
+      clearTimeout(restoreTimer);
+      restoreTimer = window.setTimeout(() => setMinimized(false), 260);
+    }, true);
     const onKey = (e: KeyboardEvent) => {
-      if (!e.altKey || minimized || narrow()) return;
+      if (!e.altKey || narrow()) return;
       const step = e.shiftKey ? 64 : 16;
       const d = e.key === 'ArrowLeft' ? [-step, 0] : e.key === 'ArrowRight' ? [step, 0] : e.key === 'ArrowUp' ? [0, -step] : e.key === 'ArrowDown' ? [0, step] : null;
       if (!d) return;
       e.preventDefault();
-      const c = moved ?? current();
+      const c = cur() ?? current();
       place({ x: c.x + d[0], y: c.y + d[1] }, true);
     };
     root.addEventListener('keydown', onKey);
     // окно или высота карточки изменились — вернуть в видимую область
-    const reclamp = () => { if (moved) { const c = clamp(moved); if (c.x !== moved.x || c.y !== moved.y) place(c, true); } };
+    const reclamp = () => { const p = cur(); if (p) { const c = clamp(p); if (c.x !== p.x || c.y !== p.y) place(c, true); } };
     window.addEventListener('resize', reclamp);
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(reclamp) : null;
     ro?.observe(root);
-    offDrag = () => { window.removeEventListener('resize', reclamp); ro?.disconnect(); };
-    // запомненная позиция
-    if (posKey) {
-      try { const p = JSON.parse(storageGet(posKey) ?? 'null'); if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) place(p, false); } catch { /* повреждённое значение — позиция по умолчанию */ }
-    }
+    afterMode = () => { paint(); requestAnimationFrame(reclamp); };
+    offDrag = () => { window.removeEventListener('resize', reclamp); ro?.disconnect(); clearTimeout(restoreTimer); };
+    // запомненные позиции: карточка и полоска отдельно
+    const load = (k: string | null) => {
+      if (!k) return null;
+      try { const p = JSON.parse(storageGet(k) ?? 'null'); return p && Number.isFinite(p.x) && Number.isFinite(p.y) ? { x: Math.round(p.x), y: Math.round(p.y) } : null; } catch { return null; }
+    };
+    moved = load(posKey);
+    movedMin = load(posKey ? `${posKey}:min` : null);
+    if (moved) { place(moved, false); }
   }
   paintWho();
   if ((state === 'active' || state === 'held') && !startedAt) startedAt = Date.now();
@@ -547,7 +642,7 @@ export function createCallCard(host: HTMLElement, options: CallCardOptions = {})
     minimize: () => setMinimized(true),
     restore: () => setMinimized(false),
     isMinimized: () => minimized,
-    getPosition: () => (moved ? { ...moved } : null),
+    getPosition: () => { const p = minimized ? movedMin : moved; return p ? { ...p } : null; },
     setPosition(p) { applyPos(p); },
     setState(next, extra) {
       if (extra?.startedAt != null) startedAt = +new Date(extra.startedAt);

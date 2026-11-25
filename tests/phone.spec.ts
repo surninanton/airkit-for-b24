@@ -527,7 +527,7 @@ test('карточка звонка floating: перетаскивание за 
   expect(r2.x).toBe(8);
   expect(r2.y + r2.h).toBeLessThanOrEqual((page.viewportSize()!.height) - 8 + 1);
   // Alt + стрелки
-  await who.focus();
+  await card.locator('.b24-callcard__head').focus();
   await page.keyboard.press('Alt+ArrowRight');
   expect((await rect()).x).toBe(r2.x + 16);
   await page.keyboard.press('Alt+Shift+ArrowUp');
@@ -545,4 +545,144 @@ test('карточка звонка floating: перетаскивание за 
   await page.evaluate(() => { (window as any).__cc.setPosition({ x: 300, y: 200 }); (window as any).__cc.destroy(); (window as any).__cc = (window as any).B24UI.createCallCard(document.body, { floating: true, state: 'incoming', name: 'Иван' }); });
   const again = await page.locator('.b24-callcard--floating').last().evaluate((c) => { const r = c.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; });
   expect(again).toEqual([300, 200]);
+});
+
+test('карточка звонка: перетаскивание за всю верхнюю строку, блок клиента-кнопка, timerPlacement, перетаскиваемая полоска', async ({ page }) => {
+  await open(page, '/phone.html');
+  if ((page.viewportSize()?.width ?? 1280) <= 768) test.skip(true, 'на узком экране карточка не двигается');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    (window as any).__st = {};
+    B.setStorage({ get: (k: string) => (window as any).__st[k] ?? null, set: (k: string, v: string | null) => { if (v === null) delete (window as any).__st[k]; else (window as any).__st[k] = v; } });
+    (window as any).__log = [];
+    (window as any).__cc = B.createCallCard(document.body, {
+      floating: true, state: 'active', name: 'Мария Образцова', number: '89090555575', brand: { label: 'Пицц и Ролл · исходящий' },
+      timerPlacement: 'contact', onContactClick: () => (window as any).__log.push('contact'), startedAt: Date.now() - 47000,
+    });
+  });
+  const card = page.locator('.b24-callcard--floating').last();
+  const rect = () => card.evaluate((c) => { const r = c.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
+  // timerPlacement: contact — «номер · 0:47» во второй строке, внизу крупного таймера нет
+  await expect(card.locator('.b24-callcard__number')).toHaveText(/\+7.*055.*· 0:4\d/);
+  await expect(card.locator('.b24-callcard__status')).toBeHidden();
+  // блок клиента — кнопка
+  const who = card.locator('.b24-callcard__who');
+  await expect(who).toHaveAttribute('role', 'button');
+  await expect(who).toHaveAttribute('aria-label', 'Карточка клиента: Мария Образцова');
+  await expect(who.locator('.b24-callcard__chev svg')).toHaveCount(1);
+  await who.click();
+  await who.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
+  expect(await page.evaluate(() => (window as any).__log)).toEqual(['contact', 'contact', 'contact']);
+  // перетаскивание за пустое место верхней строки; за кнопку «–» не тянет; за блок клиента не тянет
+  const r0 = await rect();
+  const head = (await card.locator('.b24-callcard__head-fill').boundingBox())!;
+  await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(head.x + head.width / 2 - 150, head.y + head.height / 2 + 90, { steps: 5 });
+  await page.mouse.up();
+  const r1 = await rect();
+  expect(r1.x).toBe(r0.x - 150);
+  expect(r1.y).toBe(r0.y + 90);
+  const mb = (await card.locator('.b24-callcard__min').boundingBox())!;
+  await page.mouse.move(mb.x + 5, mb.y + 5);
+  await page.mouse.down();
+  await page.mouse.move(mb.x - 100, mb.y + 50, { steps: 4 });
+  await page.mouse.up();
+  expect((await rect()).x).toBe(r1.x);
+  const wb = (await who.boundingBox())!;
+  await page.mouse.move(wb.x + 30, wb.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(wb.x - 60, wb.y + 60, { steps: 4 });
+  await page.mouse.up();
+  expect((await rect()).x).toBe(r1.x);
+  // свёрнутая полоска: позиция отдельно
+  await page.locator('.b24-callcard--floating').last().locator('.b24-callcard__min').click();
+  await expect(card).toHaveClass(/is-minimized/);
+  await expect(card).not.toHaveClass(/is-moved/);
+  const m0 = await rect();
+  const name = (await card.locator('.b24-callcard__mini-name').boundingBox())!;
+  await page.mouse.move(name.x + 10, name.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(name.x + 210, name.y - 140, { steps: 6 });
+  await page.mouse.up();
+  const m1 = await rect();
+  expect(m1.x).toBe(m0.x + 200);
+  expect(m1.y).toBe(m0.y - 148);
+  await page.waitForTimeout(400);
+  await expect(card).toHaveClass(/is-minimized/);                          // перетаскивание не развернуло полоску
+  const st = await page.evaluate(() => (window as any).__st);
+  expect(JSON.parse(st['b24-callcard:pos'])).toEqual({ x: r1.x, y: r1.y });
+  expect(JSON.parse(st['b24-callcard:pos:min'])).toEqual({ x: m1.x, y: m1.y });
+  // двойной щелчок по полоске — на место, она остаётся свёрнутой
+  await card.locator('.b24-callcard__mini-name').dblclick();
+  await expect(card).not.toHaveClass(/is-moved/);
+  await page.waitForTimeout(400);
+  await expect(card).toHaveClass(/is-minimized/);
+  expect(await page.evaluate(() => (window as any).__st['b24-callcard:pos:min'])).toBeUndefined();
+  // клик по полоске разворачивает; позиция карточки сохранилась
+  await card.locator('.b24-callcard__mini-name').click();
+  await expect(card).not.toHaveClass(/is-minimized/);
+  expect(await rect()).toMatchObject({ x: r1.x, y: r1.y });
+  // timerPlacement: header
+  await page.evaluate(() => { (window as any).__cc.destroy(); (window as any).__st = {}; (window as any).__cc = (window as any).B24UI.createCallCard(document.body, { floating: true, state: 'active', name: 'Иван', number: '89091112233', timerPlacement: 'header', startedAt: Date.now() - 5000 }); });
+  const c2 = page.locator('.b24-callcard--floating').last();
+  await expect(c2.locator('.b24-callcard__head-timer')).toHaveText(/^0:0\d$/);
+  await expect(c2.locator('.b24-callcard__status')).toBeHidden();
+  const order = await c2.evaluate((c) => { const t = c.querySelector('.b24-callcard__head-timer')!.getBoundingClientRect(); const m = c.querySelector('.b24-callcard__min')!.getBoundingClientRect(); return t.right <= m.left; });
+  expect(order).toBe(true);
+  // состояния в contact: Звонит… / Завершён
+  await page.evaluate(() => { (window as any).__cc.destroy(); (window as any).__cc = (window as any).B24UI.createCallCard(document.body, { floating: true, state: 'incoming', name: 'Пётр', number: '89093334455', timerPlacement: 'contact' }); });
+  const c3 = page.locator('.b24-callcard--floating').last();
+  await expect(c3.locator('.b24-callcard__number')).toContainText('Звонит…');
+  await page.evaluate(() => (window as any).__cc.setState('ended', { startedAt: Date.now() - 123000 }));
+  await expect(c3.locator('.b24-callcard__number')).toContainText(/Завершён 2:0\d/);
+  await page.evaluate(() => (window as any).__cc.destroy());
+});
+
+test('createDisclosure: сдвигающее и overlay-раскрытие, aria, Esc и клик мимо', async ({ page }) => {
+  await open(page, '/phone.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'dc-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 420 : 10}px;top:60px;width:300px;z-index:50;background:#fff;padding:8px`;
+    host.innerHTML = '<div id="dc-a"></div><div id="dc-after" style="margin-top:8px">Содержимое ниже</div><div id="dc-b" style="margin-top:8px"></div><div id="dc-after2" style="margin-top:8px">Ниже второй</div>';
+    document.body.append(host);
+    (window as any).__dlog = [];
+    let calls = 0;
+    (window as any).__da = B.createDisclosure(document.getElementById('dc-a'), { label: 'Последние заказы', count: 5, content: () => { calls++; const d = document.createElement('div'); d.textContent = 'заказ #' + calls; d.style.height = '60px'; return d; }, onToggle: (o: boolean) => (window as any).__dlog.push(o) });
+    (window as any).__db = B.createDisclosure(document.getElementById('dc-b'), { label: 'Оверлей', overlay: true, content: document.createTextNode ? (() => { const d = document.createElement('div'); d.style.height = '80px'; d.textContent = 'панель'; return d; })() : document.body });
+  });
+  const a = page.locator('#dc-a .b24-disclosure__btn');
+  await expect(a).toHaveText('Последние заказы· 5');
+  await expect(a).toHaveAttribute('aria-expanded', 'false');
+  const y0 = await page.locator('#dc-after').evaluate((e) => e.getBoundingClientRect().top);
+  await a.click();
+  await expect(a).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#dc-a .b24-disclosure__panel')).toHaveText('заказ #1');
+  expect(await page.locator('#dc-after').evaluate((e) => e.getBoundingClientRect().top)).toBeGreaterThan(y0 + 40);
+  await a.click();
+  await expect(page.locator('#dc-a .b24-disclosure__panel')).toBeHidden();
+  expect(await page.locator('#dc-after').evaluate((e) => e.getBoundingClientRect().top)).toBe(y0);
+  expect(await page.evaluate(() => (window as any).__dlog)).toEqual([true, false]);
+  // overlay: содержимое ниже не двигается, ширина с кнопку, Esc и клик мимо закрывают
+  const b = page.locator('#dc-b .b24-disclosure__btn');
+  const y1 = await page.locator('#dc-after2').evaluate((e) => e.getBoundingClientRect().top);
+  await b.click();
+  const panel = page.locator('#dc-b .b24-disclosure__panel');
+  await expect(panel).toBeVisible();
+  expect(await page.locator('#dc-after2').evaluate((e) => e.getBoundingClientRect().top)).toBe(y1);
+  const wb = (await b.boundingBox())!;
+  const wp = (await panel.boundingBox())!;
+  expect(Math.abs(wp.width - wb.width)).toBeLessThan(1);
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect(b).toBeFocused();
+  await b.click();
+  await expect(panel).toBeVisible();
+  await page.locator('#dc-after').click();
+  await expect(panel).toBeHidden();
+  await page.evaluate(() => { (window as any).__da.destroy(); (window as any).__db.destroy(); document.getElementById('dc-host')?.remove(); });
 });
