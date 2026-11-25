@@ -6,7 +6,7 @@ import {
 } from '../js/chat';
 import {
   createMessengerBar, openChatDock,
-  type MessengerBarHandle, type MessengerBarItem, type MessengerBarAction, type ChatDockHandle,
+  type MessengerBarHandle, type MessengerBarItem, type MessengerBarAction, type MessengerBarGroup, type ChatDockHandle,
 } from '../js/messenger';
 import { createMemberList, type Member, type MemberListHandle, type MemberListOptions } from '../js/members';
 import { Icon } from './Icon';
@@ -221,15 +221,17 @@ export interface MessengerBarProps {
   allLabel?: string;
   allCounter?: number;
   actions?: MessengerBarAction[];
+  /** группы аватаров («Линии» / «Сотрудники»): items[].group */
+  groups?: MessengerBarGroup[];
 }
 /** Правая панель мессенджера (fixed у правого края, под шапкой AppShell); сама ничего не рендерит на месте */
-export function MessengerBar({ items, value, onSelect, onAll, allLabel, allCounter, actions }: MessengerBarProps) {
+export function MessengerBar({ items, value, onSelect, onAll, allLabel, allCounter, actions, groups }: MessengerBarProps) {
   const h = useRef<MessengerBarHandle | null>(null);
   const cbs = useRef({ onSelect, onAll, actions });
   cbs.current = { onSelect, onAll, actions };
   useEffect(() => {
     h.current = createMessengerBar({
-      items, value, allLabel, allCounter,
+      items, value, allLabel, allCounter, groups,
       onSelect: (id, it) => cbs.current.onSelect?.(id, it),
       onAll: onAll ? () => cbs.current.onAll?.() : undefined,
       actions: wrapActions(actions),
@@ -243,6 +245,8 @@ export function MessengerBar({ items, value, onSelect, onAll, allLabel, allCount
   const aKey = JSON.stringify(actions?.map(({ onClick: _o, ...rest }) => rest) ?? []);
   useEffect(() => { if (first.current) return; h.current?.setItems(items); }, [iKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (first.current) return; h.current?.setActions(wrapActions(actions) ?? []); }, [aKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const gKey = JSON.stringify(groups ?? null);
+  useEffect(() => { if (first.current) return; h.current?.setGroups(groups); }, [gKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (first.current) return; h.current?.setAllCounter(allCounter ?? 0); }, [allCounter]);
   useEffect(() => { if (first.current) { first.current = false; return; } h.current?.setActive(value ?? null); }, [value]);
   return null;

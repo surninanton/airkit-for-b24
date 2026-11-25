@@ -28,6 +28,14 @@ html:has(.b24-shell) .b24-im-bar { --b24-im-bar-top: var(--b24-header-height); }
   padding: 4px 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain;
 }
 .b24-im-bar__list::-webkit-scrollbar { display: none; }
+/* группа аватаров: тонкая линия и значок группы (подсказка — название) */
+.b24-im-bar__group {
+  position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; width: 100%;
+  padding-top: var(--b24-im-bar-gap); color: rgba(255, 255, 255, 0.72); border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+.b24-im-bar__group.is-first { padding-top: 0; border-top: 0; }
+.b24-im-bar__group > svg { width: 16px; height: 16px; }
+.b24-im-bar__group > .b24-im-bar__counter { top: 0; right: calc(50% - 24px); transform: scale(0.85); transform-origin: top right; }
 .b24-im-bar__btn {
   position: relative; flex: 0 0 auto; display: grid; place-items: center; box-sizing: border-box; width: 40px; height: 40px; padding: 0; margin: 0;
   color: #fff; background: transparent; border: 0; border-radius: 50%; cursor: pointer;

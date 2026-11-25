@@ -33,7 +33,7 @@ export {
 } from './chat';
 export {
   createMessengerBar, openChatDock, getChatDocks,
-  type MessengerBarItem, type MessengerBarAction, type MessengerBarOptions, type MessengerBarHandle, type ChatDockOptions, type ChatDockHandle,
+  type MessengerBarItem, type MessengerBarAction, type MessengerBarGroup, type MessengerBarOptions, type MessengerBarHandle, type ChatDockOptions, type ChatDockHandle,
 } from './messenger';
 export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';

@@ -419,3 +419,35 @@ test('чаты: scrollTo, jumpTo (окно вокруг сообщения), п�
   await expect(page.locator('#chat .b24-chat-list__item[data-id="s2"] mark')).toHaveText('Спас');
   await expect(page.locator('#chat .b24-chat-list__group')).toHaveText('Сообщения');
 });
+
+test('панель мессенджера: группы «Линии» / «Сотрудники» — разделитель, значок, порядок, counter', async ({ page }) => {
+  await open(page, '/chat.html');
+  const r = await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const bar = B.createMessengerBar({
+      items: [
+        { id: 's1', name: 'Анна Сотрудникова', group: 'staff', counter: 2 },
+        { id: 'l1', name: 'Мария Образцова', group: 'lines', counter: 3 },
+        { id: 'l2', name: 'Иван Примеров', group: 'lines' },
+        { id: 's2', name: 'Пётр Тестов', group: 'staff' },
+        { id: 'x', name: 'Без группы' },
+      ],
+      groups: [{ id: 'lines', label: 'Линии', icon: 'headset', counter: true }, { id: 'staff', label: 'Сотрудники', icon: 'users' }, { id: 'empty', label: 'Пусто', icon: 'chat' }],
+    });
+    (window as any).__gbar = bar;
+    const kids = Array.from(bar.element.querySelector('.b24-im-bar__list').children) as HTMLElement[];
+    return kids.map((k) => (k.classList.contains('b24-im-bar__group') ? `#${k.dataset.group}:${k.textContent}` : k.dataset.id));
+  });
+  expect(r).toEqual(['#lines:3', 'l1', 'l2', '#staff:', 's1', 's2', 'x']);
+  const bar = page.locator('.b24-im-bar').last();
+  await expect(bar.locator('.b24-im-bar__group[data-group="lines"]')).toHaveAttribute('data-tip', 'Линии');
+  await expect(bar.locator('.b24-im-bar__group[data-group="lines"]')).toHaveClass(/is-first/);
+  await expect(bar.locator('.b24-im-bar__group[data-group="empty"]')).toHaveCount(0);
+  await expect(bar.locator('.b24-im-bar__group[data-group="staff"]')).toHaveCSS('border-top-width', '1px');
+  // update без смены группы и со сменой: группировка сохраняется
+  await page.evaluate(() => (window as any).__gbar.update('s1', { counter: 9 }));
+  await page.evaluate(() => (window as any).__gbar.update('x', { group: 'lines' }));
+  const after = await page.evaluate(() => Array.from((window as any).__gbar.element.querySelector('.b24-im-bar__list').children).map((k: any) => (k.classList.contains('b24-im-bar__group') ? `#${k.dataset.group}` : k.dataset.id)));
+  expect(after).toEqual(['#lines', 'l1', 'l2', 'x', '#staff', 's1', 's2']);
+  await page.evaluate(() => (window as any).__gbar.destroy());
+});

@@ -28,6 +28,17 @@ export interface MessengerBarItem {
   channel?: string;
   /** собеседник печатает: анимированные точки на аватаре, в подсказке «печатает…» (строка — свой текст) */
   typing?: boolean | string;
+  /** id группы из MessengerBarOptions.groups: перед первым элементом группы — разделитель со значком */
+  group?: string;
+}
+/** Группа аватаров в правой панели: «Линии» (покупатели) · «Сотрудники». */
+export interface MessengerBarGroup {
+  id: string;
+  /** подсказка значка группы и aria-label разделителя */
+  label: string;
+  icon?: IconName;
+  /** на значке группы — сумма непрочитанных её элементов */
+  counter?: boolean;
 }
 export interface MessengerBarAction {
   id: string;
@@ -49,6 +60,8 @@ export interface MessengerBarAction {
 }
 export interface MessengerBarOptions {
   items: MessengerBarItem[];
+  /** группы: порядок и подписи; элементы с group идут по порядку групп (внутри группы — как в items), без group / с неизвестной group — в конце без разделителя. Без groups — один список */
+  groups?: MessengerBarGroup[];
   value?: string | null;
   onSelect?: (id: string, item: MessengerBarItem) => void;
   /** кнопка «Все чаты» сверху; без обработчика — кнопки нет */
@@ -67,6 +80,7 @@ export interface MessengerBarHandle {
   update(id: string, patch: Partial<MessengerBarItem>): void;
   setActive(id: string | null): void;
   setActions(actions: MessengerBarAction[]): void;
+  setGroups(groups: MessengerBarGroup[] | undefined): void;
   setAllCounter(n: number): void;
   destroy(): void;
 }
@@ -87,6 +101,7 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
   let items = options.items;
   let active = options.value ?? null;
   let actions = options.actions ?? [];
+  let barGroups = options.groups;
   let allCounter = options.allCounter ?? 0;
   const root = h('nav', { class: 'b24-im-bar b24-root', 'aria-label': t('Мессенджер') });
   const top = h('div', { class: 'b24-im-bar__top' });
@@ -115,7 +130,25 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
     }, html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })), counterEl(it.counter), it.typing ? h('span', { class: 'b24-im-bar__typing', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')) : '');
     return b;
   };
-  const renderList = () => list.replaceChildren(...items.map(itemEl));
+  const groupEl = (g: MessengerBarGroup, first: boolean) => {
+    const n = g.counter ? items.filter((x) => x.group === g.id).reduce((s, x) => s + (x.counter ?? 0), 0) : 0;
+    return h('div', { class: `b24-im-bar__group${first ? ' is-first' : ''}`, role: 'separator', 'aria-label': g.label, 'data-group': g.id, 'data-tip': g.label }, g.icon ? html(icon(g.icon)) : '', counterEl(n));
+  };
+  const renderList = () => {
+    const groups = barGroups;
+    if (!groups?.length) { list.replaceChildren(...items.map(itemEl)); return; }
+    const rank = (it: MessengerBarItem) => { const i = groups.findIndex((g) => g.id === it.group); return i < 0 ? groups.length : i; };
+    const sorted = items.map((it, i) => ({ it, i })).sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i).map((x) => x.it);
+    const out: HTMLElement[] = [];
+    let prev: string | undefined;
+    for (const it of sorted) {
+      const g = groups.find((x) => x.id === it.group);
+      if (g && g.id !== prev) out.push(groupEl(g, !out.length));
+      prev = g?.id;
+      out.push(itemEl(it));
+    }
+    list.replaceChildren(...out);
+  };
   const renderBottom = () => {
     bottom.replaceChildren(...actions.map((a) => {
       const cls = ['b24-im-bar__btn', 'b24-im-bar__action', a.variant ? `b24-im-bar__action--${a.variant}` : '', a.pulse ? 'is-pulse' : '', a.active ? 'is-active' : '', a.className ?? ''].filter(Boolean).join(' ');
@@ -147,7 +180,9 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
     element: root,
     setItems(next) { items = next; renderList(); },
     update(id, patch) {
+      const regroup = 'group' in patch || (patch.counter !== undefined && !!barGroups?.some((g) => g.counter));
       items = items.map((x) => (x.id === id ? { ...x, ...patch } : x));
+      if (regroup) { renderList(); return; }
       const old = list.querySelector(`[data-id="${CSS.escape(id)}"]`);
       const it = items.find((x) => x.id === id);
       if (old && it) old.replaceWith(itemEl(it));
@@ -161,6 +196,7 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
       });
     },
     setActions(next) { actions = next; renderBottom(); },
+    setGroups(next) { barGroups = next; renderList(); },
     setAllCounter(n) { allCounter = n; renderTop(); },
     destroy() {
       hideTip();
