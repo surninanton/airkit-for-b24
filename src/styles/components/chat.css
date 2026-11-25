@@ -389,8 +389,14 @@
 .b24-chat-quote-pop__btn:hover { background: var(--b24-bg-hover); }
 .b24-chat-quote-pop__btn > svg { color: var(--b24-text-subtle); }
 /* панель ответа над полем */
+.b24-chat-composer__reply-bar { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; color: var(--b24-color-primary); background: var(--b24-color-soft-blue-3, #e5f4ff); border-left: 3px solid var(--b24-color-primary); border-radius: 6px; }
 .b24-chat-composer__reply-bar[hidden] { display: none; }
-.b24-chat-composer__reply-bar { color: var(--b24-color-primary); }
+.b24-chat-composer__reply-body { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.b24-chat-composer__reply-title { font-size: var(--b24-font-size-xs); font-weight: var(--b24-font-weight-semibold); }
+.b24-chat-composer__reply-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); }
+.b24-chat-composer__reply-x { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; color: var(--b24-text-secondary); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.b24-chat-composer__reply-x:hover { background: var(--b24-bg-hover); }
+.b24-chat-composer__reply-x:focus-visible { outline: 2px solid var(--b24-focus-color); }
 /* форматирование в поле */
 .b24-chat-composer__fmt { display: flex; align-items: center; gap: 2px; padding: 0 2px; }
 .b24-chat-composer__fmt[hidden] { display: none; }

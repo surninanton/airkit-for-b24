@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { open, isMobile, noHorizontalScroll } from './helpers';
 
 const mobile = (page: import('@playwright/test').Page) => (page.viewportSize()?.width ?? 1280) <= 768;
+const innerWidth768 = mobile;
 
 test('чаты: список, лента, отправка, «не доставлено», без ошибок', async ({ page }) => {
   const { errors } = await open(page, '/chat.html');
@@ -720,9 +721,12 @@ test('чаты: ответ (replyTo), пересылка, formatting в лент
   await feed.locator('.b24-chat-msg[data-id="d"] .b24-chat-msg__reply').click();
   expect(await page.evaluate(() => (window as any).__rplog)).toEqual(['missing:zzz']);
   // меню: Переслать и свой пункт «Копировать ссылку»
-  const msg = feed.locator('.b24-chat-msg[data-id="c"]');
-  await msg.hover();
-  await msg.getByRole('button', { name: 'Ещё' }).click({ force: true });
+  const more = async (id: string) => {
+    const m = feed.locator(`.b24-chat-msg[data-id="${id}"]`);
+    if (innerWidth768(page)) { await m.locator('.b24-chat-msg__bubble').dispatchEvent('pointerdown', { pointerType: 'touch' }); await page.waitForTimeout(550); } else await m.locator('.b24-chat-msg__bubble').hover();
+    await m.locator('.b24-chat-msg__tool[aria-label="Ещё"]').click();
+  };
+  await more('c');
   const menu = page.locator('.b24-chat-menu');
   await expect(menu.getByRole('menuitem', { name: 'Копировать ссылку на сообщение' })).toBeVisible();
   await menu.getByRole('menuitem', { name: 'Переслать' }).click();
@@ -730,9 +734,7 @@ test('чаты: ответ (replyTo), пересылка, formatting в лент
   // «Копировать» — выделенное / весь текст без маркеров
   await page.evaluate(() => { (window as any).__clip = []; Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (s: string) => (window as any).__clip.push(s) }, configurable: true }); });
   const copy = async (id: string) => {
-    const m = feed.locator(`.b24-chat-msg[data-id="${id}"]`);
-    await m.hover();
-    await m.getByRole('button', { name: 'Ещё' }).click({ force: true });
+    await more(id);
     await page.locator('.b24-chat-menu').getByRole('menuitem', { name: 'Копировать', exact: true }).click();
   };
   await copy('a');
@@ -744,8 +746,6 @@ test('чаты: ответ (replyTo), пересылка, formatting в лент
     const s = getSelection()!; s.removeAllRanges(); s.addRange(r);
   });
   await page.evaluate(() => (window as any).__clip.splice(0));
-  const m2 = feed.locator('.b24-chat-msg[data-id="c"]');
-  await m2.hover();
   // всплывающая кнопка у выделения
   const pop = page.locator('.b24-chat-quote-pop');
   await expect(pop).toBeVisible();

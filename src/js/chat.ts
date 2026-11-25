@@ -1148,7 +1148,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
 
   /* панель ответа над полем */
   let reply: ChatReplyDraft | null = null;
-  const replyBar = h('div', { class: 'b24-chat-composer__editing b24-chat-composer__reply-bar', hidden: '' });
+  const replyBar = h('div', { class: 'b24-chat-composer__reply-bar', hidden: '' });
   editBar.after(replyBar);
   const setReplyInner = (r: ChatReplyDraft | null) => {
     reply = r ? { ...r } : null;
@@ -1156,11 +1156,11 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     root.classList.toggle('is-replying', !!r);
     if (!r) { replyBar.replaceChildren(); return; }
     const cut = (r.text ?? '').replace(/\s+/g, ' ').trim();
-    const x = h('button', { type: 'button', class: 'b24-chat-composer__editing-x', 'aria-label': t('Отменить ответ'), title: t('Отменить ответ') }, html(icon('close', { size: 14 })));
+    const x = h('button', { type: 'button', class: 'b24-chat-composer__reply-x', 'aria-label': t('Отменить ответ'), title: t('Отменить ответ') }, html(icon('close', { size: 14 })));
     x.addEventListener('click', () => { handle.cancelReply(); });
     replyBar.replaceChildren(
       html(icon(r.quote ? 'quote' : 'reply', { size: 16 })),
-      h('span', { class: 'b24-chat-composer__editing-body' }, h('span', { class: 'b24-chat-composer__editing-title' }, r.author ? `${t('Ответ')}: ${r.author}` : t('Ответ')), h('span', { class: 'b24-chat-composer__editing-text' }, cut.length > 140 ? `${cut.slice(0, 140)}…` : cut)),
+      h('span', { class: 'b24-chat-composer__reply-body' }, h('span', { class: 'b24-chat-composer__reply-title' }, r.author ? `${t('Ответ')}: ${r.author}` : t('Ответ')), h('span', { class: 'b24-chat-composer__reply-text' }, cut.length > 140 ? `${cut.slice(0, 140)}…` : cut)),
       x,
     );
   };
