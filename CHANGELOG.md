@@ -2,7 +2,7 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
-## Не выпущено
+## 0.29.0 — 2026-11-26
 
 ### Добавлено
 - Ответ на сообщение: `ChatMessage.replyTo` (блок цитаты в пузыре, `onReplyClick`, переход к исходному), `composer.setReply` / `cancelReply` / `getReply`, `ChatSendContext.replyTo` и `reply`, `onReplyCancel`, Esc в пустом поле.
