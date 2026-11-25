@@ -2,6 +2,14 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### Добавлено
+- Голосовые сообщения в поле ввода (`voice`, `onVoice`, `maxVoiceSec`, `startVoice` / `cancelVoice`): запись, уровень, предпрослушивание. Вложение `voice` в ленте — компактный плеер.
+- @Упоминания: `mentions` у поля, маркер `@[Имя](user:ID)`, `ctx.mentions`, чип в ленте и `onMentionClick`.
+- Черновики: `draftKey`, `onDraftChange`, `getDraft` / `clearDraft`, `ChatListItem.draft`.
+- `B24UI.pickWallpaper` — выбор обоев; фон ленты `background` / `setBackground` и CSS-переменные `--b24-chat-bg*`. Иконка `stop`.
+
 ## 0.31.0 — 2026-11-26
 
 ### Добавлено

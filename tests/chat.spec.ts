@@ -1056,3 +1056,282 @@ test('композер: formattingButton: false, меню поля по прав
   await expect(input).toHaveValue('**первая**\nвторая строка');
   await page.evaluate(() => { (window as any).__fm.destroy(); document.getElementById('fm-host')?.remove(); });
 });
+
+const mkComposerHost = (id: string) => `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:${id === 'cv-host' ? 200 : 120}px;width:380px;max-width:calc(100vw - 20px);z-index:50;background:#fff`;
+
+test('голосовое: кнопка микрофона вместо «Отправить», запись → стоп → предпрослушивание → отправка, Esc, нет доступа, лимит', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const ac = new AudioContext();
+    (window as any).__deny = false;
+    // каждый вызов — новый поток: остановленные дорожки прежнего использовать нельзя
+    navigator.mediaDevices.getUserMedia = async () => {
+      if ((window as any).__deny) throw new Error('denied');
+      const dst = ac.createMediaStreamDestination();
+      const osc = ac.createOscillator();
+      osc.connect(dst); osc.start();
+      return dst.stream;
+    };
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'cv-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:200px;width:380px;max-width:calc(100vw - 20px);z-index:50;background:#fff`;
+    document.body.append(host);
+    (window as any).__voice = [];
+    (window as any).__vc = B.createChatComposer(host, {
+      voice: true, maxVoiceSec: 2, onSend: () => {},
+      onVoice: (blob: Blob, dur: number, mime: string) => { (window as any).__voice.push({ size: blob.size, dur, mime }); return true; },
+    });
+  });
+  const root = page.locator('#cv-host .b24-chat-composer');
+  const send = root.locator('.b24-chat-composer__send');
+  const input = root.locator('textarea');
+  await expect(send).toHaveClass(/is-mic/);
+  await expect(send).toBeEnabled();
+  await input.fill('текст');
+  await expect(send).not.toHaveClass(/is-mic/);
+  await input.fill('');
+  await expect(send).toHaveClass(/is-mic/);
+  // запись
+  await send.click();
+  const box = root.locator('.b24-chat-composer__voice');
+  await expect(box).toBeVisible();
+  await expect(root.locator('.b24-chat-composer__row')).toBeHidden();
+  await expect(box.locator('.b24-micmeter')).toBeVisible();
+  await expect(box.locator('.b24-chat-composer__voice-time')).toHaveText(/^0:0[1-9]$/, { timeout: 3000 });
+  expect(await page.evaluate(() => (window as any).__vc.isRecording())).toBe(true);
+  // Esc — отмена
+  await page.keyboard.press('Escape');
+  await expect(box).toBeHidden();
+  await expect(root.locator('.b24-chat-composer__row')).toBeVisible();
+  // запись → стоп → предпрослушивание → отправка
+  await send.click();
+  await expect(box.locator('.b24-chat-composer__voice-time')).toHaveText(/^0:01$/, { timeout: 3000 });
+  await box.getByRole('button', { name: 'Остановить запись' }).click();
+  await expect(box.locator('.b24-audio')).toBeVisible();
+  await expect(box.locator('audio')).toHaveCount(1);
+  await box.getByRole('button', { name: 'Отправить' }).click();
+  await expect(box).toBeHidden();
+  const sent = await page.evaluate(() => (window as any).__voice);
+  expect(sent.length).toBe(1);
+  expect(sent[0].size).toBeGreaterThan(100);
+  expect(sent[0].dur).toBeGreaterThanOrEqual(1);
+  expect(sent[0].mime).toMatch(/^audio\/(webm|mp4|ogg)/);
+  // удалить после предпрослушивания
+  await send.click();
+  await expect(box.locator('.b24-chat-composer__voice-time')).toHaveText(/^0:01$/, { timeout: 3000 });
+  await box.getByRole('button', { name: 'Остановить запись' }).click();
+  await box.getByRole('button', { name: 'Удалить' }).click();
+  await expect(box).toBeHidden();
+  expect((await page.evaluate(() => (window as any).__voice)).length).toBe(1);
+  // лимит: через maxVoiceSec запись останавливается и открывается предпрослушивание
+  await send.click();
+  await expect(box.locator('.b24-audio')).toBeVisible({ timeout: 5000 });
+  await box.getByRole('button', { name: 'Удалить' }).click();
+  // нет доступа — тост
+  await page.evaluate(() => ((window as any).__deny = true));
+  await send.click();
+  await expect(page.locator('.b24-toast').filter({ hasText: 'Нет доступа к микрофону' })).toBeVisible();
+  await expect(box).toBeHidden();
+  await page.evaluate(() => { (window as any).__vc.destroy(); document.getElementById('cv-host')?.remove(); });
+});
+
+test('@упоминания: список, выбор с клавиатуры, маркер в тексте и ctx.mentions, чип в ленте, onMentionClick', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'mn-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:260px;width:380px;max-width:calc(100vw - 20px);z-index:50;background:#fff`;
+    document.body.append(host);
+    (window as any).__mn = [];
+    const people = [{ id: '7', name: 'Иван Петров', caption: 'Курьер' }, { id: '8', name: 'Ирина Смирнова' }, { id: '9', name: 'Олег Новиков' }];
+    (window as any).__mc = B.createChatComposer(host, {
+      formatting: true,
+      mentions: { load: async (q: string) => people.filter((p) => p.name.toLowerCase().includes(q.toLowerCase())) },
+      onSend: (text: string, ctx: any) => { (window as any).__mn.push({ text, mentions: ctx.mentions }); },
+    });
+  });
+  const root = page.locator('#mn-host .b24-chat-composer');
+  const input = root.locator('textarea');
+  const list = root.locator('.b24-chat-mention-list');
+  await input.click();
+  await input.pressSequentially('привет @и');
+  await expect(list.getByRole('option')).toHaveCount(3);
+  await expect(list.getByRole('option').first()).toContainText('Иван Петров');
+  await expect(list.getByRole('option').first()).toContainText('Курьер');
+  await input.press('ArrowDown');
+  await expect(list.getByRole('option').nth(1)).toHaveClass(/is-active/);
+  await input.press('Escape');
+  await expect(list).toBeHidden();
+  // выбор Enter
+  await input.pressSequentially(' ');
+  await input.fill('привет ');
+  await input.pressSequentially('@ир');
+  await expect(list.getByRole('option')).toHaveCount(1);
+  await input.press('Enter');
+  await expect(input).toHaveValue('привет @Ирина Смирнова ');
+  await expect(list).toBeHidden();
+  // Tab и мышь
+  await input.pressSequentially('и @ол');
+  await expect(list.getByRole('option')).toHaveCount(1);
+  await list.getByRole('option').first().click();
+  await expect(input).toHaveValue('привет @Ирина Смирнова и @Олег Новиков ');
+  await input.pressSequentially('!');
+  await input.press('Enter');
+  const sent = await page.evaluate(() => (window as any).__mn);
+  expect(sent).toEqual([{ text: 'привет @[Ирина Смирнова](user:8) и @[Олег Новиков](user:9) !', mentions: ['8', '9'] }]);
+  // лента: чип и клик
+  await page.evaluate((text) => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'mf-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:20px;width:380px;max-width:calc(100vw - 20px);height:200px;z-index:50;background:#fff;display:flex;flex-direction:column`;
+    document.body.append(host);
+    (window as any).__mclick = [];
+    (window as any).__mf = B.createChatFeed(host, { formatting: true, onMentionClick: (id: string) => (window as any).__mclick.push(id), messages: [{ id: 'a', dir: 'in', time: new Date(), text }] });
+    (window as any).__plain = [B.chatMarkup.toPlain(text), B.chatMarkup.toHtml(text)];
+  }, sent[0].text);
+  const chip = page.locator('#mf-host .b24-chat-mention');
+  await expect(chip).toHaveCount(2);
+  await expect(chip.first()).toHaveText('@Ирина Смирнова');
+  await chip.first().click();
+  expect(await page.evaluate(() => (window as any).__mclick)).toEqual(['8']);
+  expect(await page.evaluate(() => (window as any).__plain)).toEqual(['привет @Ирина Смирнова и @Олег Новиков !', 'привет @Ирина Смирнова и @Олег Новиков !']);
+  await page.evaluate(() => { (window as any).__mc.destroy(); (window as any).__mf.destroy(); document.getElementById('mn-host')?.remove(); document.getElementById('mf-host')?.remove(); });
+});
+
+test('черновики: сохранение через хранилище кита, восстановление, очистка после отправки, onDraftChange, ChatListItem.draft', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    (window as any).__ds = {};
+    B.setStorage({ get: (k: string) => (window as any).__ds[k] ?? null, set: (k: string, v: string | null) => { if (v === null) delete (window as any).__ds[k]; else (window as any).__ds[k] = v; } });
+    const host = document.createElement('div');
+    host.id = 'dr-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:260px;width:380px;max-width:calc(100vw - 20px);z-index:50;background:#fff`;
+    document.body.append(host);
+    (window as any).__dlog = [];
+    (window as any).__mk = () => B.createChatComposer(host, { draftKey: 'dlg-1', onDraftChange: (t: string) => (window as any).__dlog.push(t), onSend: () => {} });
+    (window as any).__dc = (window as any).__mk();
+  });
+  const input = page.locator('#dr-host textarea');
+  await input.click();
+  await input.pressSequentially('недописанный текст');
+  // до 400 мс — ещё не сохранён
+  expect(await page.evaluate(() => (window as any).__ds['b24-draft:dlg-1'])).toBeUndefined();
+  await expect.poll(() => page.evaluate(() => (window as any).__ds['b24-draft:dlg-1'])).toBe('недописанный текст');
+  expect(await page.evaluate(() => (window as any).__dc.getDraft())).toBe('недописанный текст');
+  expect((await page.evaluate(() => (window as any).__dlog)).at(-1)).toBe('недописанный текст');
+  // новое поле с тем же ключом — текст восстановлен
+  await page.evaluate(() => { (window as any).__dc.destroy(); (window as any).__dlog.length = 0; (window as any).__dc = (window as any).__mk(); });
+  await expect(input).toHaveValue('недописанный текст');
+  expect(await page.evaluate(() => (window as any).__dlog)).toEqual(['недописанный текст']);
+  // отправка очищает
+  await input.press('Enter');
+  await expect(input).toHaveValue('');
+  expect(await page.evaluate(() => (window as any).__ds['b24-draft:dlg-1'])).toBeUndefined();
+  expect((await page.evaluate(() => (window as any).__dlog)).at(-1)).toBe('');
+  // пустое поле — ключ удаляется; clearDraft
+  await input.pressSequentially('ещё');
+  await expect.poll(() => page.evaluate(() => (window as any).__ds['b24-draft:dlg-1'])).toBe('ещё');
+  await page.evaluate(() => (window as any).__dc.clearDraft());
+  expect(await page.evaluate(() => (window as any).__ds['b24-draft:dlg-1'])).toBeUndefined();
+  // список: «Черновик: …» вместо превью
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'dl-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:20px;width:360px;max-width:calc(100vw - 20px);z-index:50;background:#fff`;
+    document.body.append(host);
+    (window as any).__dl = B.createChatList(host, { items: [{ id: '1', name: 'Мария', preview: 'Последнее сообщение', draft: 'недописанный\nтекст' }, { id: '2', name: 'Иван', preview: 'Привет' }] });
+  });
+  const row = page.locator('#dl-host .b24-chat-list__item[data-id="1"] .b24-chat-list__preview');
+  await expect(row.locator('.b24-chat-list__draft')).toHaveText('Черновик:');
+  await expect(row).toContainText('недописанный текст');
+  await expect(row).not.toContainText('Последнее сообщение');
+  await page.evaluate(() => { (window as any).__dc.destroy(); (window as any).__dl.destroy(); document.getElementById('dr-host')?.remove(); document.getElementById('dl-host')?.remove(); (window as any).B24UI.setStorage(null); });
+});
+
+test('pickWallpaper: категории, сетка, «Без обоев», onPreview, применить и отмена', async ({ page }) => {
+  await open(page, '/chat.html');
+  const grad = 'linear-gradient(135deg,#ffd89b,#19547b)';
+  const cats = [
+    { id: 'food', label: 'Еда', items: [{ id: 'pizza', thumb: '', css: grad, label: 'Пицца' }, { id: 'roll', css: '#e8590c', label: 'Роллы' }] },
+    { id: 'abs', label: 'Абстракция', items: [{ id: 'blue', css: '#2b6cb0', label: 'Синий' }] },
+  ];
+  await page.evaluate((c) => { (window as any).__pv = []; (window as any).__pw = (window as any).B24UI.pickWallpaper({ categories: c, value: 'roll', onPreview: (it: any) => (window as any).__pv.push(it ? it.id : null) }); }, cats);
+  const dlg = page.locator('.b24-modal');
+  await expect(dlg.getByRole('tab')).toHaveText(['Еда', 'Абстракция']);
+  await expect(dlg.getByRole('tab', { name: 'Еда' })).toHaveAttribute('aria-selected', 'true');
+  await expect(dlg.locator('.b24-wallpicker__tile')).toHaveCount(3);           // «Без обоев» + 2
+  await expect(dlg.locator('.b24-wallpicker__tile.is-selected')).toHaveAttribute('data-id', 'roll');
+  const ratio = await dlg.locator('.b24-wallpicker__thumb').nth(1).evaluate((e) => { const r = e.getBoundingClientRect(); return Math.round((r.width / r.height) * 10) / 10; });
+  expect(ratio).toBe(1.6);
+  await dlg.locator('.b24-wallpicker__tile[data-id="pizza"]').click();
+  await expect(dlg.locator('.b24-wallpicker__tile[data-id="pizza"]')).toHaveAttribute('aria-pressed', 'true');
+  await dlg.getByRole('tab', { name: 'Абстракция' }).click();
+  await expect(dlg.locator('.b24-wallpicker__tile')).toHaveCount(2);
+  await dlg.locator('.b24-wallpicker__tile.is-none').click();
+  await dlg.getByRole('button', { name: 'Отмена' }).click();
+  expect(await page.evaluate(() => (window as any).__pw)).toBeNull();
+  expect(await page.evaluate(() => (window as any).__pv)).toEqual(['pizza', null, 'roll']);   // при отмене — прежнее значение
+  // применить
+  await page.evaluate((c) => { (window as any).__pw = (window as any).B24UI.pickWallpaper({ categories: c, value: null }); }, cats);
+  await dlg.getByRole('tab', { name: 'Абстракция' }).click();
+  await dlg.locator('.b24-wallpicker__tile[data-id="blue"]').click();
+  await dlg.getByRole('button', { name: 'Применить' }).click();
+  expect((await page.evaluate(() => (window as any).__pw)).id).toBe('blue');
+  await page.evaluate((c) => { (window as any).__pw = (window as any).B24UI.pickWallpaper({ categories: c, value: 'blue' }); }, cats);
+  await dlg.locator('.b24-wallpicker__tile.is-none').click();
+  await dlg.getByRole('button', { name: 'Применить' }).click();
+  expect((await page.evaluate(() => (window as any).__pw)).id).toBe('');
+});
+
+test('фон ленты: тон, узор, tint, setBackground, затемнение в тёмной теме; голосовое во вложении — компактный плеер', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'bg-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:60px;width:380px;max-width:calc(100vw - 20px);height:360px;z-index:50;background:#fff;display:flex;flex-direction:column`;
+    document.body.append(host);
+    const msgs = Array.from({ length: 14 }, (_, i) => ({ id: 'b' + i, dir: i % 2 ? 'out' : 'in', time: new Date(), text: 'Сообщение ' + i }));
+    msgs.push({ id: 'vv', dir: 'in', time: new Date(), attachments: [{ type: 'voice', url: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=', duration: 12 }] } as any);
+    (window as any).__bf = B.createChatFeed(host, {
+      messages: msgs,
+      background: { css: 'linear-gradient(135deg,#ffd89b,#19547b)', pattern: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="6" fill="white"/></svg>', opacity: 0.3, tint: 'rgba(255,0,0,0.1)' },
+    });
+  });
+  const feed = page.locator('#bg-host .b24-chat-feed');
+  await expect(feed).toHaveClass(/has-bg/);
+  expect(await feed.evaluate((f) => getComputedStyle(f.querySelector('.b24-chat-feed__bg-tone')!).backgroundImage)).toContain('linear-gradient');
+  expect(await feed.evaluate((f) => getComputedStyle(f.querySelector('.b24-chat-feed__bg-pattern')!).backgroundImage)).toContain('svg');
+  expect(await feed.evaluate((f) => getComputedStyle(f.querySelector('.b24-chat-feed__bg-pattern')!).opacity)).toBe('0.3');
+  expect(await feed.evaluate((f) => getComputedStyle(f.querySelector('.b24-chat-feed__bg-tint')!).backgroundColor)).toContain('rgba(255, 0, 0');
+  // слой на высоту видимой области и не прокручивается вместе с сообщениями
+  await feed.evaluate((f) => { f.scrollTop = 0; });
+  const r0 = await feed.evaluate((f) => { const b = f.querySelector('.b24-chat-feed__bg-tone')!.getBoundingClientRect(); const fr = f.getBoundingClientRect(); return { top: Math.round(b.top - fr.top), h: Math.round(b.height), fh: Math.round(fr.height) }; });
+  await feed.evaluate((f) => { f.scrollTop = 200; });
+  const r1 = await feed.evaluate((f) => { const b = f.querySelector('.b24-chat-feed__bg-tone')!.getBoundingClientRect(); const fr = f.getBoundingClientRect(); return { top: Math.round(b.top - fr.top), h: Math.round(b.height) }; });
+  expect(r0.h).toBe(r0.fh);
+  expect(r1.top).toBe(r0.top);
+  // пузыри читаемы: непрозрачный фон
+  expect(await feed.locator('.b24-chat-msg__bubble').first().evaluate((b) => getComputedStyle(b).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+  // тёмная тема затемняет, setBackground(null) убирает
+  await page.evaluate(() => document.documentElement.setAttribute('data-b24-theme', 'dark'));
+  expect(await feed.evaluate((f) => getComputedStyle(f.querySelector('.b24-chat-feed__bg-tone')!).boxShadow)).toContain('rgba(0, 0, 0, 0.5)');
+  await page.evaluate(() => document.documentElement.removeAttribute('data-b24-theme'));
+  await page.evaluate(() => (window as any).__bf.setBackground({ image: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=' }));
+  expect(await feed.evaluate((f) => getComputedStyle(f.querySelector('.b24-chat-feed__bg-tone')!).backgroundImage)).toContain('url(');
+  await page.evaluate(() => (window as any).__bf.setBackground(null));
+  await expect(feed).not.toHaveClass(/has-bg/);
+  // голосовое во вложении: компактный плеер (play, полоса, время)
+  const voice = feed.locator('.b24-chat-att--voice');
+  await feed.evaluate((f) => { f.scrollTop = f.scrollHeight; });
+  await expect(voice.locator('.b24-audio.is-compact')).toBeVisible();
+  await expect(voice.locator('.b24-audio__play')).toBeVisible();
+  await expect(voice.locator('.b24-audio__total')).toHaveText('0:12');
+  await expect(voice.locator('audio')).toHaveCount(1);
+  await page.evaluate(() => { (window as any).__bf.destroy(); document.getElementById('bg-host')?.remove(); });
+});

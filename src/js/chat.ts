@@ -12,7 +12,10 @@ import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
 import { autoResize } from './timeline';
 import { bringToFront, h, html } from './dom';
-import { renderMarkup, toPlain, MARKERS } from './chat-markup';
+import { renderMarkup, toPlain, MARKERS, mentionMarker } from './chat-markup';
+import { createAudioPlayer } from './audio-player';
+import { createMicMeter } from './phone';
+import { storageGet, storageSet } from './storage';
 import { getLocale, intlLocale, t } from './i18n';
 import { attachEmojiPicker, openEmojiPicker } from './emoji';
 import { showFloat } from './float';
@@ -116,6 +119,8 @@ export interface ChatListItem {
   group?: string;
   /** собеседник печатает: вместо превью курсивом «печатает…»; строка — свой текст («Анна печатает…») */
   typing?: boolean | string;
+  /** черновик в поле ответа: в превью «Черновик: текст» (красная метка) вместо последнего сообщения; набор «печатает…» важнее */
+  draft?: string;
   /** закреплён: значок-булавка у времени; порядок («закреплённые первыми») задаёте вы в items, после последнего закреплённого — тонкий разделитель */
   pinned?: boolean;
   /**
@@ -204,6 +209,8 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
     const top = h('span', { class: 'b24-chat-list__top' }, h('span', { class: 'b24-chat-list__name' }, it.name), it.time != null ? h('span', { class: 'b24-chat-list__time' }, formatChatListTime(it.time)) : '', it.pinned ? h('span', { class: 'b24-chat-list__pin', title: t('Закреплён') }, html(icon('pin', { size: 12 }))) : '');
     const preview = it.typing
       ? h('span', { class: 'b24-chat-list__preview b24-chat-list__typing' }, typeof it.typing === 'string' ? it.typing : t('печатает…'))
+      : it.draft
+      ? h('span', { class: 'b24-chat-list__preview b24-chat-list__draftline' }, h('span', { class: 'b24-chat-list__draft' }, `${t('Черновик')}: `), it.draft.replace(/\s+/g, ' '))
       : it.preview || !it.subtitle
       ? h('span', { class: 'b24-chat-list__preview' }, it.previewOut ? h('span', { class: 'b24-chat-list__you' }, `${t('Вы')}: `) : '', ...(it.highlight && it.preview ? highlightNodes(it.preview, it.highlight) : [it.preview ?? '']))
       : h('span', { class: 'b24-chat-list__preview b24-chat-list__subtitle' }, it.subtitle);
@@ -383,6 +390,20 @@ export interface ChatSelectAction {
   onClick: (messages: ChatMessage[]) => void | boolean | Promise<void | boolean>;
 }
 export interface ChatPinnedMessage { id: string; author?: string; text?: string; canUnpin?: boolean }
+export interface ChatFeedBackground {
+  /** картинка фона (url): cover, по центру */
+  image?: string;
+  /** CSS-фон: цвет или градиент (linear-gradient(…)) */
+  css?: string;
+  /** узор поверх тона: url (SVG-«дудл») — повторяется плиткой */
+  pattern?: string;
+  /** прозрачность узора 0–1 (по умолчанию 0.14) */
+  opacity?: number;
+  /** цветной слой поверх тона и под узором (rgba(...)) */
+  tint?: string;
+  /** размер плитки узора, px (по умолчанию 320) */
+  patternSize?: number;
+}
 export interface ChatScrollOptions {
   /** коротко подсветить сообщение (по умолчанию да) */
   highlight?: boolean;
@@ -412,6 +433,14 @@ export interface ChatFeedOptions {
   onQuote?: (message: ChatMessage, selectedText: string) => void;
   /** «Переслать» в меню сообщения; без обработчика пункта нет */
   onForward?: (message: ChatMessage) => void;
+  /** клик по упоминанию @[Имя](user:ID) в тексте (при formatting) */
+  onMentionClick?: (id: string, message: ChatMessage) => void;
+  /**
+   * Фон ленты как в Telegram / MAX / WhatsApp: тон (image — картинка, css — цвет или градиент), поверх узор pattern (SVG и т. п., повторяется;
+   * opacity — его прозрачность, по умолчанию 0.14) и tint — цветной слой; в тёмной теме фон затемняется. Пузыри остаются читаемыми.
+   * То же — CSS-переменными на .b24-chat-feed: --b24-chat-bg, --b24-chat-bg-pattern, --b24-chat-bg-opacity.
+   */
+  background?: ChatFeedBackground | null;
   /** аватары у входящих (групповой чат) */
   showAvatars?: boolean;
   /** повторить отправку («не доставлено» → «Повторить») */
@@ -490,6 +519,8 @@ export interface ChatFeedHandle {
    */
   jumpTo(id: string, loader?: (id: string) => ChatAroundResult | Promise<ChatAroundResult>, options?: ChatScrollOptions): Promise<boolean>;
   setHasNewer(value: boolean): void;
+  /** фон ленты (см. options.background); null — убрать */
+  setBackground(background: ChatFeedBackground | null): void;
   /** пользователь у низа ленты */
   isAtBottom(): boolean;
   destroy(): void;
@@ -522,7 +553,21 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   newer.hidden = !hasNewer;
   const pinBar = h('div', { class: 'b24-chat-pinbar', hidden: '' });
   const selBar = h('div', { class: 'b24-chat-selbar', role: 'toolbar', 'aria-label': t('Выбранные сообщения'), hidden: '' });
-  root.append(pinBar, selBar, more, list, typing, newer);
+  // фон: тон, цветной слой и узор — липкий слой на высоту видимой области (прокручивается не с сообщениями, как в мессенджерах)
+  const bgBox = h('div', { class: 'b24-chat-feed__bg', 'aria-hidden': 'true' }, h('div', { class: 'b24-chat-feed__bg-tone' }), h('div', { class: 'b24-chat-feed__bg-tint' }), h('div', { class: 'b24-chat-feed__bg-pattern' }));
+  root.append(bgBox, pinBar, selBar, more, list, typing, newer);
+  const paintBg = (bg: ChatFeedBackground | null | undefined) => {
+    root.classList.toggle('has-bg', !!bg);
+    const set = (k: string, v: string | null) => { if (v == null) root.style.removeProperty(k); else root.style.setProperty(k, v); };
+    set('--b24-chat-bg', bg ? (bg.image ? `center / cover no-repeat url("${bg.image.replace(/"/g, '%22')}")` : bg.css ?? null) : null);
+    set('--b24-chat-bg-tint', bg?.tint ?? null);
+    set('--b24-chat-bg-pattern', bg?.pattern ? `url("${bg.pattern.replace(/"/g, '%22')}")` : null);
+    set('--b24-chat-bg-opacity', bg?.opacity != null ? String(bg.opacity) : null);
+    set('--b24-chat-bg-size', bg?.patternSize ? `${bg.patternSize}px` : null);
+  };
+  paintBg(options.background);
+  const bgRo = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => root.style.setProperty('--_h', `${root.clientHeight}px`)) : null;
+  bgRo?.observe(root);
   host.append(root);
 
   const nearBottom = () => root.scrollHeight - root.scrollTop - root.clientHeight < 80;
@@ -547,8 +592,10 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
           html(icon('file')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.name), a.size != null ? h('span', { class: 'b24-chat-att__meta' }, fmtSize(a.size)) : ''));
       case 'voice': {
         if (!a.url) return h('div', { class: 'b24-chat-att b24-chat-att--voice is-disabled', title: t('Запись недоступна') }, html(icon('mic')), h('span', { class: 'b24-chat-att__name' }, t('Голосовое сообщение')), a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
-        const audio = h('audio', { src: a.url, controls: true, preload: 'none' });
-        return h('div', { class: 'b24-chat-att b24-chat-att--voice' }, html(icon('mic')), audio, a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
+        // компактный плеер: play / pause, полоса, время (метаданные грузятся по нажатию)
+        const box = h('div', { class: 'b24-chat-att b24-chat-att--voice' });
+        createAudioPlayer(box, { src: a.url, duration: a.duration, compact: true, speeds: [1], preload: 'none', label: t('Голосовое сообщение') });
+        return box;
       }
       case 'video': {
         const label = a.name ?? t('Видео');
@@ -869,6 +916,14 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     });
   }
 
+  // клик по упоминанию
+  list.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-mention');
+    if (!a || selecting) return;
+    e.preventDefault();
+    const m = msgOf(a);
+    if (m && a.dataset.userId) options.onMentionClick?.(a.dataset.userId, m);
+  });
   // режим выбора
   const selectedMsgs = () => messages.filter((x) => selected.has(x.id));
   const paintSel = () => {
@@ -1094,6 +1149,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       render();
       return handle.scrollTo(id, opts);
     },
+    setBackground(bg) { paintBg(bg); },
     setHasNewer(v) { hasNewer = v; newer.hidden = !v; if (!v) stick = nearBottom(); },
     startSelect(firstId) {
       if (selecting) return;
@@ -1130,7 +1186,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       if (smooth) setTimeout(done, 400); else done();
     },
     isAtBottom: nearBottom,
-    destroy() { ro?.disconnect(); menuHandle?.destroy(); document.removeEventListener('keydown', onSelKey); document.removeEventListener('selectionchange', onSelectionChange); clearTimeout(selTimer); hideQuote(); root.remove(); },
+    destroy() { ro?.disconnect(); bgRo?.disconnect(); menuHandle?.destroy(); document.removeEventListener('keydown', onSelKey); document.removeEventListener('selectionchange', onSelectionChange); clearTimeout(selTimer); hideQuote(); root.remove(); },
   };
   return handle;
 }
@@ -1173,6 +1229,15 @@ export interface ChatSendContext {
   replyTo?: string;
   /** то же целиком: автор, текст, quote */
   reply?: ChatReplyDraft;
+  /** id упомянутых (опция mentions): в text они уже заменены маркерами @[Имя Фамилия](user:ID) */
+  mentions?: string[];
+}
+export interface ChatMentionCandidate { id: string; name: string; avatar?: string; caption?: string }
+export interface ChatMentionsOptions {
+  /** кандидаты по набранному после «@» запросу (пустая строка — сразу после «@») */
+  load: (query: string) => Promise<ChatMentionCandidate[]>;
+  /** символ вызова списка (по умолчанию «@») */
+  trigger?: string;
 }
 /** Ответ в поле ввода: «↩ Ответ: Автор — текст…» над полем. quote: true — цитата выделенного фрагмента. */
 export interface ChatReplyDraft { id: string; author?: string; text?: string; quote?: boolean }
@@ -1209,6 +1274,18 @@ export interface ChatComposerOptions {
   maxLength?: number;
   /** пользователь печатает: вызывается при вводе не чаще раза в 3 с — шлите «печатает» в канал */
   onTyping?: () => void;
+  /** голосовые сообщения: кнопка микрофона на месте «Отправить», пока поле пустое и нет вложений; запись (MediaRecorder: audio/webm;codecs=opus, в Safari audio/mp4) → «Стоп» → прослушивание → «Отправить» / «Удалить» */
+  voice?: boolean;
+  /** отправка записи: blob, длительность в секундах, mime (например «audio/webm;codecs=opus»); false или исключение — запись остаётся для повторной отправки */
+  onVoice?: (blob: Blob, durationSec: number, mime: string) => void | boolean | Promise<void | boolean>;
+  /** максимальная длина записи, с (по умолчанию 300): по достижении запись останавливается и открывается предпрослушивание */
+  maxVoiceSec?: number;
+  /** @упоминания: при вводе «@» и букв над полем всплывает список (стрелки, Enter / Tab, Esc); вставляется «@Имя Фамилия », при отправке — маркер @[Имя Фамилия](user:ID) и ctx.mentions */
+  mentions?: ChatMentionsOptions;
+  /** черновик: текст поля сохраняется через общее хранилище кита (B24UI.setStorage / localStorage) под ключом «b24-draft:» + draftKey с задержкой ~400 мс и восстанавливается при создании; после отправки ключ очищается */
+  draftKey?: string;
+  /** черновик сохранён / очищен (text — пустая строка): показать «Черновик: …» в списке диалогов (ChatListItem.draft) */
+  onDraftChange?: (text: string) => void;
   /** форматирование: Ctrl/⌘+B (**), +I (__), +Shift+X (~~), +E (`) оборачивают выделение маркерами (повторно — снимают); правый клик по выделению в поле — меню «Жирный / Курсив / Зачёркнутый / Код / Цитата» и «Вырезать / Копировать / Вставить»; кнопка «Aa» с панелью (formattingButton). Значение поля — с маркерами: для отправки используйте chatMarkup.toHtml / toPlain */
   formatting?: boolean;
   /** кнопка «Aa» с панелью форматирования рядом со скрепкой (по умолчанию да при formatting; false — только горячие клавиши и меню) */
@@ -1227,8 +1304,16 @@ export interface ChatComposerHandle {
   setValue(text: string): void;
   /** правка своего сообщения: плашка «Редактирование» над полем, текст в поле, курсор в конце; onSend получит mode: 'edit' и editId, вложения выключены */
   startEdit(message: { id: string; text: string }): void;
-  /** выйти из правки (Esc или ✕): поле очищается */
+  /** выйти из правки (Esc или ✕): поле очищается (с draftKey — возвращается набранный до правки текст) */
   cancelEdit(): void;
+  /** сохранённый черновик (после сброса отложенного сохранения); '' — нет */
+  getDraft(): string;
+  /** удалить сохранённый черновик (поле не трогает) */
+  clearDraft(): void;
+  /** голосовое: начать запись (как нажатие на микрофон) / отменить запись или предпрослушивание / идёт ли запись */
+  startVoice(): void;
+  cancelVoice(): void;
+  isRecording(): boolean;
   /** панель «Ответ: Автор — текст…» над полем (с ✕), фокус в поле; null — убрать. onSend получит ctx.replyTo / ctx.reply */
   setReply(reply: ChatReplyDraft | null): void;
   getReply(): ChatReplyDraft | null;
@@ -1303,10 +1388,19 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   const sending = new Set<string>();
   const uploading = (a: ComposerAttachment) => !a.error && a.progress != null && a.progress < 1;
   const ready = () => Array.from(files.values()).map((x) => x.a).filter((a) => !a.error && !uploading(a));
+  let micShown = false;
   const sync = () => {
     const can = editId != null ? !!input.value.trim() : !!input.value.trim() || ready().length > 0;
     const wait = Array.from(files.values()).some((x) => uploading(x.a));
-    send.disabled = !can || wait || root.classList.contains('is-busy') || root.classList.contains('is-disabled');
+    const mic = !!options.voice && !!options.onVoice && !can && editId == null && !vs;
+    if (mic !== micShown) {
+      micShown = mic;
+      send.classList.toggle('is-mic', mic);
+      send.replaceChildren(html(icon(mic ? 'mic' : 'send')));
+      send.setAttribute('aria-label', mic ? t('Записать голосовое сообщение') : t('Отправить'));
+      send.title = mic ? t('Записать голосовое сообщение') : t('Отправить');
+    }
+    send.disabled = mic ? root.classList.contains('is-busy') || root.classList.contains('is-disabled') : !can || wait || root.classList.contains('is-busy') || root.classList.contains('is-disabled');
   };
   const fit = () => input.dispatchEvent(new Event('input'));
   const paintChip = (rec: { a: ComposerAttachment; el: HTMLElement }) => {
@@ -1441,9 +1535,46 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     );
   };
 
+  /* упоминания: в поле — «@Имя Фамилия», при отправке — маркер @[Имя Фамилия](user:ID) */
+  const mentionCfg = options.mentions;
+  const trigger = mentionCfg?.trigger ?? '@';
+  const mentioned: Array<{ id: string; name: string }> = [];
+  const withMentions = (text: string): { text: string; ids: string[] } => {
+    const ids: string[] = [];
+    let out = text;
+    for (const mm of mentioned) {
+      const needle = trigger + mm.name;
+      const i = out.indexOf(needle);
+      const next = out[i + needle.length];
+      if (i >= 0 && (next === undefined || /[\s.,;:!?)\]]/.test(next))) { out = out.slice(0, i) + mentionMarker(mm.name, mm.id) + out.slice(i + needle.length); if (!ids.includes(mm.id)) ids.push(mm.id); }
+    }
+    return { text: out, ids };
+  };
+  /* черновик */
+  const dKey = options.draftKey ? `b24-draft:${options.draftKey}` : null;
+  let dTimer = 0;
+  let silent = false;
+  let stash = '';
+  const saveDraft = () => {
+    clearTimeout(dTimer);
+    dTimer = 0;
+    if (!dKey || editId != null) return;
+    const v = input.value;
+    if (v.trim()) { storageSet(dKey, v); storageSet(`${dKey}:m`, mentioned.length ? JSON.stringify(mentioned) : null); }
+    else { storageSet(dKey, null); storageSet(`${dKey}:m`, null); }
+    options.onDraftChange?.(v.trim() ? v : '');
+  };
+  const dropDraft = () => {
+    clearTimeout(dTimer);
+    dTimer = 0;
+    if (!dKey) return;
+    if (storageGet(dKey) != null || mentioned.length) { storageSet(dKey, null); storageSet(`${dKey}:m`, null); options.onDraftChange?.(''); }
+  };
+
   const submit = async () => {
     const text = input.value.trim();
     const atts = editId != null ? [] : ready();
+    const mm = mentionCfg ? withMentions(text) : { text, ids: [] as string[] };
     if ((!text && !atts.length) || root.classList.contains('is-busy') || root.classList.contains('is-disabled')) return;
     if (editId == null && Array.from(files.values()).some((x) => uploading(x.a))) return;
     root.classList.add('is-busy');
@@ -1452,11 +1583,13 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     sendingIds.forEach((id) => { sending.add(id); const rec = files.get(id); if (rec) paintChip(rec); });
     let ok = false;
     try {
-      const r = await options.onSend(text, editId != null ? { attachments: [], mode: 'edit', editId } : { attachments: atts, mode, ...(reply ? { replyTo: reply.id, reply: { ...reply } } : {}) });
+      const r = await options.onSend(mm.text, editId != null ? { attachments: [], mode: 'edit', editId, ...(mm.ids.length ? { mentions: mm.ids } : {}) } : { attachments: atts, mode, ...(reply ? { replyTo: reply.id, reply: { ...reply } } : {}), ...(mm.ids.length ? { mentions: mm.ids } : {}) });
       ok = r !== false;
       if (ok && editId != null) { handle.cancelEdit(); }
       else if (ok) {
         input.value = ''; fit();
+        mentioned.length = 0;
+        dropDraft();
         setReplyInner(null);
         atts.forEach((a) => handle.removeAttachment(a.id));
         if (options.clearFailedOnSend) Array.from(files.values()).filter((x) => x.a.error).forEach((x) => handle.removeAttachment(x.a.id));
@@ -1474,7 +1607,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   let lastTyping = 0;
   input.addEventListener('input', () => {
     sync();
-    if (!options.onTyping || !input.value) return;
+    if (silent || !options.onTyping || !input.value) return;
     const now = Date.now();
     if (now - lastTyping >= 3000) { lastTyping = now; try { options.onTyping(); } catch (err) { console.error('[airkit-for-b24] onTyping:', err); } }
   });
@@ -1485,7 +1618,189 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     const mod = e.ctrlKey || e.metaKey;
     if (enter ? !e.shiftKey && !mod : mod) { e.preventDefault(); void submit(); }
   });
-  send.addEventListener('click', () => void submit());
+  send.addEventListener('click', () => { if (send.classList.contains('is-mic')) void startVoice(); else void submit(); });
+
+  /* голосовые сообщения: микрофон вместо «Отправить», запись → предпрослушивание → отправка */
+  const voiceOn = !!options.voice && !!options.onVoice;
+  const voiceBox = h('div', { class: 'b24-chat-composer__voice', hidden: '', role: 'group', 'aria-label': t('Голосовое сообщение') });
+  row.after(voiceBox);
+  type VoiceState = { stream: MediaStream; rec: MediaRecorder; chunks: Blob[]; t0: number; timer: number; meter: ReturnType<typeof createMicMeter> | null; url: string | null; blob: Blob | null; dur: number; cancelled: boolean; mime: string };
+  let vs: VoiceState | null = null;
+  const pickMime = () => ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find((m) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(m)) ?? '';
+  const voiceCleanup = () => {
+    const v = vs;
+    vs = null;
+    if (v) {
+      clearInterval(v.timer);
+      v.meter?.destroy();
+      v.stream.getTracks().forEach((tr) => tr.stop());
+      if (v.url) URL.revokeObjectURL(v.url);
+    }
+    voiceBox.hidden = true;
+    voiceBox.replaceChildren();
+    root.classList.remove('is-voice');
+    sync();
+  };
+  const voiceBtn = (cls: string, ic: IconName, label: string, fn: () => void) => {
+    const b = h('button', { type: 'button', class: `b24-chat-composer__voice-btn ${cls}`, 'aria-label': label, title: label }, html(icon(ic, { size: 18 })));
+    b.addEventListener('click', fn);
+    return b;
+  };
+  const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const showPreview = () => {
+    const v = vs;
+    if (!v || !v.blob) return;
+    v.url = URL.createObjectURL(v.blob);
+    voiceBox.replaceChildren();
+    const trash = voiceBtn('is-danger', 'trash', t('Удалить'), () => handle.cancelVoice());
+    const player = h('div', { class: 'b24-chat-composer__voice-player' });
+    createAudioPlayer(player, { src: v.url, duration: v.dur, compact: true, speeds: [1], preload: 'auto', label: t('Голосовое сообщение') });
+    const sendBtn = h('button', { type: 'button', class: 'b24-btn b24-btn--primary b24-btn--icon b24-chat-composer__voice-send', 'aria-label': t('Отправить'), title: t('Отправить') }, html(icon('send')));
+    sendBtn.addEventListener('click', async () => {
+      if (!v.blob || sendBtn.disabled) return;
+      sendBtn.disabled = true;
+      trash.disabled = true;
+      let ok = false;
+      try { const r = await options.onVoice!(v.blob, Math.max(1, Math.round(v.dur)), v.blob.type || v.mime); ok = r !== false; } catch (err) { console.error('[airkit-for-b24] onVoice:', err); }
+      if (ok) voiceCleanup(); else { sendBtn.disabled = false; trash.disabled = false; }
+    });
+    voiceBox.append(trash, player, sendBtn);
+    sendBtn.focus();
+  };
+  const showRecording = () => {
+    const v = vs!;
+    voiceBox.hidden = false;
+    root.classList.add('is-voice');
+    voiceBox.replaceChildren();
+    const timerEl = h('span', { class: 'b24-chat-composer__voice-time', role: 'timer', 'aria-live': 'off' }, '0:00');
+    const meterHost = h('div', { class: 'b24-chat-composer__voice-meter' });
+    voiceBox.append(
+      voiceBtn('is-danger', 'trash', t('Отменить запись'), () => handle.cancelVoice()),
+      h('span', { class: 'b24-chat-composer__voice-dot', 'aria-hidden': 'true' }), timerEl, meterHost,
+      voiceBtn('is-stop', 'stop', t('Остановить запись'), () => stopVoice()),
+    );
+    voiceBox.querySelector<HTMLElement>('.is-stop')?.focus();
+    v.meter = createMicMeter(meterHost, { bars: 18, label: t('Уровень микрофона') });
+    v.meter.connect(v.stream);
+    const max = options.maxVoiceSec ?? 300;
+    v.timer = window.setInterval(() => {
+      const sec = (Date.now() - v.t0) / 1000;
+      timerEl.textContent = mmss(sec);
+      if (sec >= max) stopVoice();
+    }, 200);
+  };
+  const stopVoice = () => {
+    const v = vs;
+    if (!v || v.rec.state === 'inactive') return;
+    clearInterval(v.timer);
+    v.dur = Math.min((Date.now() - v.t0) / 1000, options.maxVoiceSec ?? 300);
+    v.rec.stop();
+  };
+  const startVoice = async () => {
+    if (!voiceOn || vs || root.classList.contains('is-busy') || root.classList.contains('is-disabled')) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { toast(t('Запись голоса недоступна в этом браузере'), { type: 'warning' }); return; }
+    let stream: MediaStream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { toast(t('Нет доступа к микрофону'), { type: 'danger' }); return; }
+    const mime = pickMime();
+    let rec: MediaRecorder;
+    try { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); } catch { stream.getTracks().forEach((tr) => tr.stop()); toast(t('Запись голоса недоступна в этом браузере'), { type: 'warning' }); return; }
+    const v: VoiceState = { stream, rec, chunks: [], t0: Date.now(), timer: 0, meter: null, url: null, blob: null, dur: 0, cancelled: false, mime: rec.mimeType || mime };
+    vs = v;
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) v.chunks.push(e.data); };
+    rec.onstop = () => {
+      v.meter?.destroy();
+      v.meter = null;
+      v.stream.getTracks().forEach((tr) => tr.stop());
+      if (v.cancelled || vs !== v) return;
+      if (v.dur < 0.6 || !v.chunks.length) { voiceCleanup(); return; }   // случайное нажатие
+      v.blob = new Blob(v.chunks, { type: rec.mimeType || v.mime || 'audio/webm' });
+      showPreview();
+    };
+    rec.start(250);
+    showRecording();
+    sync();
+  };
+  // Esc отменяет запись и предпрослушивание, где бы ни был фокус (кнопка «Отправить» при записи скрыта)
+  const onVoiceKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && vs && !e.defaultPrevented) { e.preventDefault(); handle.cancelVoice(); } };
+  document.addEventListener('keydown', onVoiceKey);
+
+  /* упоминания: список над полем */
+  const mList = h('div', { class: 'b24-chat-mention-list', role: 'listbox', 'aria-label': t('Упомянуть'), hidden: '' });
+  let mItems: Array<{ id: string; name: string; avatar?: string; caption?: string }> = [];
+  let mActive = 0;
+  let mToken: { start: number; end: number; query: string } | null = null;
+  let mSeq = 0;
+  let mTimer = 0;
+  const mClose = () => { mSeq++; clearTimeout(mTimer); mToken = null; mItems = []; mList.hidden = true; mList.replaceChildren(); };
+  const mPaint = () => {
+    mList.replaceChildren(...mItems.map((it, i) => {
+      const b = h('button', { type: 'button', role: 'option', class: `b24-chat-mention-list__item${i === mActive ? ' is-active' : ''}`, 'aria-selected': String(i === mActive), 'data-id': it.id },
+        html(avatarHtml(it.name, it.avatar, 'xs')), h('span', { class: 'b24-chat-mention-list__name' }, it.name), it.caption ? h('span', { class: 'b24-chat-mention-list__caption' }, it.caption) : '');
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      b.addEventListener('click', () => mPick(i));
+      return b;
+    }));
+    mList.hidden = !mItems.length;
+    mList.querySelector('.is-active')?.scrollIntoView({ block: 'nearest' });
+  };
+  const mPick = (i: number) => {
+    const it = mItems[i];
+    const tok = mToken;
+    if (!it || !tok) return;
+    const ins = `${trigger}${it.name} `;
+    input.focus();
+    input.setSelectionRange(tok.start, tok.end);
+    if (!document.execCommand('insertText', false, ins)) input.setRangeText(ins, tok.start, tok.end, 'end');
+    if (!mentioned.some((x) => x.id === it.id && x.name === it.name)) mentioned.push({ id: it.id, name: it.name });
+    mClose();
+    fit();
+  };
+  const mUpdate = () => {
+    if (!mentionCfg) return;
+    const pos = input.selectionStart;
+    if (input.selectionEnd !== pos) { mClose(); return; }
+    const esc = trigger.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const m = new RegExp(`(?:^|\\s)${esc}([^\\s]*(?: [^\\s]*)?)$`).exec(input.value.slice(0, pos));
+    if (!m) { mClose(); return; }
+    const query = m[1];
+    mToken = { start: pos - query.length - trigger.length, end: pos, query };
+    clearTimeout(mTimer);
+    const my = ++mSeq;
+    mTimer = window.setTimeout(async () => {
+      let list: typeof mItems = [];
+      try { list = await mentionCfg.load(query); } catch (err) { console.error('[airkit-for-b24] mentions.load:', err); }
+      if (my !== mSeq || !mToken) return;
+      mItems = list.slice(0, 8);
+      mActive = 0;
+      mPaint();
+    }, 120);
+  };
+  if (mentionCfg) {
+    root.append(mList);
+    input.addEventListener('input', () => { if (!silent) mUpdate(); });
+    input.addEventListener('click', mUpdate);
+    input.addEventListener('keyup', (e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') mUpdate(); });
+    input.addEventListener('blur', () => { window.setTimeout(mClose, 150); });
+    input.addEventListener('keydown', (e) => {
+      if (mList.hidden || !mItems.length) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopImmediatePropagation(); mActive = (mActive + (e.key === 'ArrowDown' ? 1 : -1) + mItems.length) % mItems.length; mPaint(); }
+      else if ((e.key === 'Enter' || e.key === 'Tab') && !e.isComposing) { e.preventDefault(); e.stopImmediatePropagation(); mPick(mActive); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); mClose(); }
+    }, true);
+  }
+  // черновик: сохраняется через 400 мс после ввода; восстанавливается при создании
+  if (dKey) {
+    input.addEventListener('input', () => { if (silent || editId != null) return; clearTimeout(dTimer); dTimer = window.setTimeout(saveDraft, 400); });
+    const d = storageGet(dKey);
+    if (d) {
+      silent = true;
+      input.value = d;
+      try { const ms = JSON.parse(storageGet(`${dKey}:m`) ?? '[]'); if (Array.isArray(ms)) for (const x of ms) if (x && typeof x.id === 'string' && typeof x.name === 'string') mentioned.push({ id: x.id, name: x.name }); } catch { /* повреждённые отметки — упоминания без id */ }
+      fit();
+      silent = false;
+      options.onDraftChange?.(d);
+    }
+  }
   const dropCleanup: Array<() => void> = [];
   if (options.onAttach) {
     const hasFiles = (e: DragEvent) => !!e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files');
@@ -1541,7 +1856,13 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
       x.addEventListener('click', () => { handle.cancelEdit(); });
       editBar.replaceChildren(html(icon('edit', { size: 16 })), h('span', { class: 'b24-chat-composer__editing-body' }, h('span', { class: 'b24-chat-composer__editing-title' }, t('Редактирование')), h('span', { class: 'b24-chat-composer__editing-text' }, cut.length > 140 ? `${cut.slice(0, 140)}…` : cut)), x);
       editBar.hidden = false;
-      input.value = m.text; fit();
+      stash = input.value;
+      silent = true;
+      // маркеры упоминаний @[Имя](user:ID) показываем как «@Имя» и запоминаем: при отправке они вернутся
+      mentioned.length = 0;
+      input.value = mentionCfg ? m.text.replace(/@\[([^\]\n]{1,80})\]\(user:([^)\s]{1,64})\)/g, (_all, name: string, id: string) => { mentioned.push({ id, name }); return `${trigger}${name}`; }) : m.text;
+      fit();
+      silent = false;
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
       sync();
@@ -1552,10 +1873,20 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
       root.classList.remove('is-editing');
       editBar.hidden = true;
       editBar.replaceChildren();
-      input.value = ''; fit();
+      silent = true;
+      mentioned.length = 0;
+      input.value = dKey ? stash : ''; fit();
+      stash = '';
+      silent = false;
+      if (dKey && input.value) { try { const ms = JSON.parse(storageGet(`${dKey}:m`) ?? '[]'); if (Array.isArray(ms)) for (const x of ms) if (x && typeof x.id === 'string') mentioned.push({ id: x.id, name: x.name }); } catch { /* ignore */ } }
       sync();
       input.focus();
     },
+    getDraft() { if (dTimer) saveDraft(); return dKey ? storageGet(dKey) ?? '' : ''; },
+    clearDraft() { dropDraft(); },
+    startVoice() { void startVoice(); },
+    cancelVoice() { if (!vs) return; vs.cancelled = true; if (vs.rec.state !== 'inactive') vs.rec.stop(); voiceCleanup(); input.focus(); },
+    isRecording: () => !!vs && vs.rec.state === 'recording',
     getEditing: () => editId,
     setReply(r) { if (r && editId != null) handle.cancelEdit(); setReplyInner(r); if (r) input.focus(); },
     getReply: () => (reply ? { ...reply } : null),
@@ -1613,7 +1944,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
       sync();
     },
     setQuickReplies: setQuick,
-    destroy() { unResize(); dropCleanup.forEach((fn) => fn()); root.remove(); },
+    destroy() { document.removeEventListener('keydown', onVoiceKey); if (dTimer) saveDraft(); if (vs) { vs.cancelled = true; if (vs.rec.state !== 'inactive') vs.rec.stop(); voiceCleanup(); } clearTimeout(mTimer); unResize(); dropCleanup.forEach((fn) => fn()); root.remove(); },
   };
   const emojiBtn = options.emoji ? attachEmojiPicker(handle) : null;
   if (emojiBtn) { const base = handle.destroy; handle.destroy = () => { emojiBtn.destroy(); base(); }; }

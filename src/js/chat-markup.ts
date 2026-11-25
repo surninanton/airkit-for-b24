@@ -2,6 +2,7 @@
  * Простая разметка сообщений чата (совпадает с серверным конвертером Telegram HTML / plain):
  *   **жирный**  __курсив__  ~~зачёркнутый~~  `код`  ```блок кода``` (можно в несколько строк)
  *   строка, начинающаяся с «> » — цитата;  ссылки http(s) — как есть.
+ * Упоминание: @[Имя Фамилия](user:ID) — чип-ссылка; toPlain → «@Имя Фамилия», toHtml → «@Имя Фамилия» (обычный текст).
  * Внутри `кода`, блока кода и ссылок маркеры не разбираются. Одиночное _ не трогаем (snake_case, ссылки).
  * Только безопасные узлы: DOM строится через createElement / textContent, HTML для отправки — с экранированием.
  *
@@ -15,7 +16,8 @@ export type InlineNode =
   | string
   | { t: 'b' | 'i' | 's'; c: InlineNode[] }
   | { t: 'code'; v: string }
-  | { t: 'a'; href: string };
+  | { t: 'a'; href: string }
+  | { t: 'mention'; name: string; id: string };
 export type BlockNode =
   | { t: 'p'; c: InlineNode[] }
   | { t: 'pre'; v: string }
@@ -59,6 +61,10 @@ export function parseInline(text: string): InlineNode[] {
     if (c === '`') {
       const j = text.indexOf('`', i + 1);
       if (j > i + 1 && !text.slice(i + 1, j).includes('\n')) { flush(); out.push({ t: 'code', v: text.slice(i + 1, j) }); i = j + 1; continue; }
+    }
+    if (c === '@') {
+      const m = /^@\[([^\]\n]{1,80})\]\(user:([^)\s]{1,64})\)/.exec(text.slice(i));
+      if (m) { flush(); out.push({ t: 'mention', name: m[1], id: m[2] }); i += m[0].length; continue; }
     }
     if (c === 'h') {
       const u = urlAt(text, i);
@@ -104,7 +110,7 @@ export function parseMarkup(text: string): BlockNode[] {
   return blocks;
 }
 
-const inlinePlain = (nodes: InlineNode[]): string => nodes.map((n) => (typeof n === 'string' ? n : n.t === 'code' ? n.v : n.t === 'a' ? n.href : inlinePlain(n.c))).join('');
+const inlinePlain = (nodes: InlineNode[]): string => nodes.map((n) => (typeof n === 'string' ? n : n.t === 'code' ? n.v : n.t === 'a' ? n.href : n.t === 'mention' ? `@${n.name}` : inlinePlain(n.c))).join('');
 /** Текст без маркеров разметки. */
 export function toPlain(text: string): string {
   return parseMarkup(text).map((b) => (b.t === 'pre' ? b.v : inlinePlain(b.c))).join('\n');
@@ -115,6 +121,7 @@ const inlineHtml = (nodes: InlineNode[]): string => nodes.map((n) => {
   if (typeof n === 'string') return esc(n);
   if (n.t === 'code') return `<code>${esc(n.v)}</code>`;
   if (n.t === 'a') return `<a href="${esc(n.href)}">${esc(n.href)}</a>`;
+  if (n.t === 'mention') return esc(`@${n.name}`);
   return `<${n.t}>${inlineHtml(n.c)}</${n.t}>`;
 }).join('');
 /** Безопасный HTML для Telegram parse_mode=HTML: b, i, s, code, pre, blockquote, a; остальной текст экранирован. */
@@ -126,6 +133,7 @@ const inlineDom = (nodes: InlineNode[]): Array<string | HTMLElement> => nodes.ma
   if (typeof n === 'string') return n;
   if (n.t === 'code') return h('code', { class: 'b24-chat-code-inline' }, n.v);
   if (n.t === 'a') return h('a', { href: n.href, target: '_blank', rel: 'noopener noreferrer' }, n.href);
+  if (n.t === 'mention') return h('a', { class: 'b24-chat-mention', href: '#', role: 'link', 'data-user-id': n.id }, `@${n.name}`);
   return h(n.t === 'b' ? 'strong' : n.t === 'i' ? 'em' : 's', {}, ...inlineDom(n.c));
 });
 /** Разметка → DOM (без innerHTML). */
@@ -138,6 +146,9 @@ export function renderMarkup(text: string): DocumentFragment {
   }
   return frag;
 }
+
+/** Упоминание в тексте: @[Имя Фамилия](user:ID). */
+export const mentionMarker = (name: string, id: string): string => `@[${name.replace(/[\]\n]/g, ' ')}](user:${id})`;
 
 /** Маркеры форматирования для полей ввода. */
 export const MARKERS = { bold: '**', italic: '__', strike: '~~', code: '`' } as const;
