@@ -494,3 +494,55 @@ test('круглые кнопки вызова: «Позвонить», «Пер
   expect(r.end.slice(0, 3)).toEqual([true, 'Завершить', true]);
   expect(r.end[3]).toMatch(/50%|^\d/);
 });
+
+test('карточка звонка floating: перетаскивание за шапку, clamp, запоминание, сброс, Alt+стрелки', async ({ page }) => {
+  await open(page, '/phone.html');
+  if ((page.viewportSize()?.width ?? 1280) <= 768) test.skip(true, 'на узком экране карточка на всю ширину и не двигается');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    (window as any).__store = {};
+    B.setStorage({ get: (k: string) => (window as any).__store[k] ?? null, set: (k: string, v: string | null) => { if (v === null) delete (window as any).__store[k]; else (window as any).__store[k] = v; } });
+    (window as any).__moves = [];
+    (window as any).__cc = B.createCallCard(document.body, { floating: true, state: 'active', name: 'Мария', number: '89991234567', onMove: (p: any) => (window as any).__moves.push(p) });
+  });
+  const card = page.locator('.b24-callcard--floating').last();
+  const who = card.locator('.b24-callcard__who');
+  const rect = () => card.evaluate((c) => { const r = c.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
+  const r0 = await rect();
+  const wb = (await who.boundingBox())!;
+  // мышь: тянем за имя
+  await page.mouse.move(wb.x + 10, wb.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(wb.x - 190, wb.y + 110, { steps: 5 });
+  await page.mouse.up();
+  const r1 = await rect();
+  expect(r1.x).toBe(r0.x - 200);
+  expect(r1.y).toBe(r0.y + 100);
+  expect(await page.evaluate(() => (window as any).__moves.length)).toBe(1);
+  expect(JSON.parse(await page.evaluate(() => (window as any).__store['b24-callcard:pos']))).toEqual({ x: r1.x, y: r1.y });
+  // не за кнопки: клик по кнопке карточки не двигает
+  // clamp: за пределы окна не уходит
+  await page.evaluate(() => (window as any).__cc.setPosition({ x: -500, y: 99999 }));
+  const r2 = await rect();
+  expect(r2.x).toBe(8);
+  expect(r2.y + r2.h).toBeLessThanOrEqual((page.viewportSize()!.height) - 8 + 1);
+  // Alt + стрелки
+  await who.focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  expect((await rect()).x).toBe(r2.x + 16);
+  await page.keyboard.press('Alt+Shift+ArrowUp');
+  expect((await rect()).y).toBe(r2.y - 64);
+  // resize: возвращается в видимую область
+  await page.evaluate(() => (window as any).__cc.setPosition({ x: 700, y: 100 }));
+  await page.setViewportSize({ width: 900, height: 700 });
+  await expect.poll(async () => (await rect()).x + (await rect()).w).toBeLessThanOrEqual(900);
+  // двойной щелчок — на место по умолчанию
+  await who.dblclick();
+  await expect(card).not.toHaveClass(/is-moved/);
+  expect(await page.evaluate(() => (window as any).__store['b24-callcard:pos'])).toBeUndefined();
+  expect(await page.evaluate(() => (window as any).__moves.at(-1))).toBeNull();
+  // запомненная позиция подхватывается новой карточкой
+  await page.evaluate(() => { (window as any).__cc.setPosition({ x: 300, y: 200 }); (window as any).__cc.destroy(); (window as any).__cc = (window as any).B24UI.createCallCard(document.body, { floating: true, state: 'incoming', name: 'Иван' }); });
+  const again = await page.locator('.b24-callcard--floating').last().evaluate((c) => { const r = c.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; });
+  expect(again).toEqual([300, 200]);
+});

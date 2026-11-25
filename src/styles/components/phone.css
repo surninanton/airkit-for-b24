@@ -90,6 +90,14 @@ button.b24-linestatus:disabled { cursor: default; }
 }
 html.b24-has-im-bar .b24-callcard--floating.is-top-right { right: calc(var(--b24-im-bar-width, 64px) + 12px); }
 .b24-callcard--floating.is-top-left { right: auto; left: 16px; }
+/* перетащенная карточка (draggable): позиция в --_x / --_y; свёрнутая полоска остаётся внизу */
+@media (min-width: 769px) {
+  .b24-callcard--floating.is-moved:not(.is-minimized) { left: var(--_x); top: var(--_y); right: auto; bottom: auto; }
+  html.b24-has-im-bar .b24-callcard--floating.is-moved.is-top-right:not(.is-minimized) { right: auto; }
+}
+.b24-callcard--floating:not(.is-minimized) .b24-callcard__grip { cursor: move; touch-action: none; }
+.b24-callcard__grip:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: 2px; border-radius: 6px; }
+.b24-callcard.is-dragging { user-select: none; box-shadow: var(--b24-shadow-popup, var(--b24-shadow-3xl)); }
 .b24-callcard--floating.is-bottom-right { top: auto; bottom: 16px; }
 .b24-callcard__min { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; margin: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; }
 .b24-callcard__min:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
