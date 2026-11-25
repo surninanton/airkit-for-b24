@@ -2,6 +2,13 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### Добавлено
+- Папки и закрепление чатов: `ChatListItem.pinned` (булавка и разделитель), `ChatChannel.icon`, `ChatListOptions.itemActions` — меню строки (правый клик, долгое нажатие, Shift+F10) с вложенным меню и отметкой; в `contextMenu` пункты получили `children` и `checked`.
+- Рейл: `sortable` / `ChatRailItem.fixed` / `onReorder` — перетаскивание папок (мышь, касание, Alt + стрелки), `onAdd` / `addLabel` — кнопка «+», `itemActions` — меню пункта.
+- `B24UI.prompt({ title, label, value, okLabel, … })` — окно ввода строки, `Promise<string | null>`.
+
 ## 0.27.0 — 2026-11-26
 
 ### Добавлено

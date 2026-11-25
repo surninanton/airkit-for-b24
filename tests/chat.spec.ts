@@ -505,3 +505,139 @@ test('чаты: реакции внутри пузыря (reactionsInBubble), а
   });
   expect(dflt).toEqual([true, 0]);
 });
+
+test('чаты: папки и закрепление — pinned, icon канала, меню строки с вложенным меню, рейл sortable / onAdd / меню, prompt', async ({ page }) => {
+  await open(page, '/chat.html');
+  const r = await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'pf-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:80px;width:360px;max-width:calc(100vw - 20px);height:420px;z-index:50;background:#fff;display:flex;flex-direction:column`;
+    document.body.append(host);
+    const log: string[] = [];
+    (window as any).__pflog = log;
+    (window as any).__pflist = B.createChatList(host, {
+      items: [
+        { id: 'p1', name: 'Закреплённый 1', pinned: true, time: new Date(), preview: 'a', channel: { label: 'ВКонтакте', icon: 'users' } },
+        { id: 'p2', name: 'Закреплённый 2', pinned: true, preview: 'b' },
+        { id: 'n1', name: 'Обычный', preview: 'c' },
+      ],
+      itemActions: (it: any) => [
+        { label: it.pinned ? 'Открепить' : 'Закрепить', icon: 'pin', onClick: (x: any) => log.push(`pin:${x.id}`) },
+        { label: 'Добавить в папку', icon: 'folder', children: [{ label: 'Папка 1', checked: true, onClick: (x: any) => log.push(`f1:${x.id}`) }, { label: 'Папка 2', checked: false, onClick: (x: any) => log.push(`f2:${x.id}`) }, { separator: true }, { label: '+ Новая папка', onClick: (x: any) => log.push(`new:${x.id}`) }] },
+        { separator: true },
+        { label: 'Удалить', danger: true, onClick: (x: any) => log.push(`del:${x.id}`) },
+      ],
+    });
+    const q = (id: string) => host.querySelector(`.b24-chat-list__item[data-id="${id}"]`)!;
+    return {
+      pin: !!q('p1').querySelector('.b24-chat-list__pin svg'),
+      noPin: !q('n1').querySelector('.b24-chat-list__pin'),
+      last: [q('p1').classList.contains('is-pin-last'), q('p2').classList.contains('is-pin-last'), q('n1').classList.contains('is-pin-last')],
+      chIcon: !!q('p1').querySelector('.b24-chat-channel svg'),
+    };
+  });
+  expect(r).toEqual({ pin: true, noPin: true, last: [false, true, false], chIcon: true });
+  // меню строки: правый клик → вложенное меню → пункт с отметкой
+  await page.locator('#pf-host .b24-chat-list__item[data-id="n1"]').click({ button: 'right' });
+  const menu = page.locator('.b24-context-menu').first();
+  await expect(menu.getByRole('menuitem', { name: 'Закрепить' })).toBeVisible();
+  await menu.getByRole('menuitem', { name: 'Добавить в папку' }).click();
+  const sub = page.locator('.b24-context-menu--sub');
+  await expect(sub.getByRole('menuitemcheckbox', { name: 'Папка 1' })).toHaveAttribute('aria-checked', 'true');
+  await expect(sub.getByRole('menuitemcheckbox', { name: 'Папка 2' })).toHaveAttribute('aria-checked', 'false');
+  await sub.getByRole('menuitem', { name: '+ Новая папка' }).click();
+  expect(await page.evaluate(() => (window as any).__pflog)).toEqual(['new:n1']);
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  // с клавиатуры: Shift+F10, → открывает вложенное, ← возвращает
+  await page.locator('#pf-host .b24-chat-list__item[data-id="p1"]').focus();
+  // браузер по Shift+F10 / клавише меню шлёт contextmenu без координат
+  await page.evaluate(() => document.querySelector('#pf-host .b24-chat-list__item[data-id="p1"]')!.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
+  await expect(page.locator('.b24-context-menu').first()).toBeVisible();
+  await expect(page.locator('.b24-context-menu').first().getByRole('menuitem', { name: 'Открепить' })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('.b24-context-menu').first().getByRole('menuitem', { name: 'Добавить в папку' })).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.b24-context-menu--sub')).toBeVisible();
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('.b24-context-menu--sub')).toHaveCount(0);
+  await expect(page.locator('.b24-context-menu').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  await page.evaluate(() => { (window as any).__pflist.destroy(); document.getElementById('pf-host')!.remove(); });
+});
+
+test('чаты: рейл — перетаскивание папок мышью и Alt+стрелками, fixed, «+», меню, обрезка подписи; B24UI.prompt', async ({ page }) => {
+  await open(page, '/chat.html');
+  if ((page.viewportSize()?.width ?? 1280) <= 768) test.skip(true, 'мышиное перетаскивание проверяем на десктопе');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'rl-host';
+    host.className = 'b24-chat';
+    host.style.cssText = 'position:fixed;left:400px;top:20px;height:520px;width:300px;z-index:50;background:#fff;display:grid;grid-template-columns:68px 1fr';
+    document.body.append(host);
+    (window as any).__rllog = [];
+    B.createChatRail(host, {
+      items: [
+        { id: 'chats', label: 'Чаты', icon: 'chat', fixed: true },
+        { id: 'f1', label: 'Папка один', icon: 'folder' },
+        { id: 'f2', label: 'Очень длинное название папки', icon: 'folder' },
+        { id: 'f3', label: 'Папка три', icon: 'folder' },
+        { id: 'phone', label: 'Телефон', icon: 'phone' },
+      ],
+      sortable: (it: any) => it.id.startsWith('f'),
+      onReorder: (ids: string[], all: string[]) => (window as any).__rllog.push([ids.join(','), all.join(',')]),
+      onAdd: () => (window as any).__rllog.push('add'),
+      addLabel: 'Новая папка',
+      itemActions: (it: any) => (it.id.startsWith('f') ? [{ label: 'Переименовать', onClick: (x: any) => (window as any).__rllog.push(`ren:${x.id}`) }, { label: 'Удалить папку', danger: true }] : null),
+    });
+  });
+  const items = () => page.evaluate(() => Array.from(document.querySelectorAll('#rl-host .b24-chat-rail__item')).map((e) => (e as HTMLElement).dataset.id ?? 'add'));
+  expect(await items()).toEqual(['chats', 'f1', 'f2', 'f3', 'phone', 'add']);
+  // подпись обрезается, полное название в title
+  const long = page.locator('#rl-host .b24-chat-rail__item[data-id="f2"]');
+  await expect(long).toHaveAttribute('title', 'Очень длинное название папки');
+  expect(await long.locator('.b24-chat-rail__label').evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(true);
+  // мышь: f1 тянем вниз за f3
+  const a = (await page.locator('#rl-host [data-id="f1"]').boundingBox())!;
+  const c = (await page.locator('#rl-host [data-id="f3"]').boundingBox())!;
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, c.y + c.height - 4, { steps: 8 });
+  await page.mouse.up();
+  expect(await items()).toEqual(['chats', 'f2', 'f3', 'f1', 'phone', 'add']);
+  expect(await page.evaluate(() => (window as any).__rllog)).toEqual([['f2,f3,f1', 'chats,f2,f3,f1,phone']]);
+  // после перетаскивания клик по пункту не срабатывает как выбор
+  expect(await page.locator('#rl-host .b24-chat-rail__item.is-active').count()).toBe(0);
+  // Alt+↑
+  await page.locator('#rl-host [data-id="f1"]').focus();
+  await page.keyboard.press('Alt+ArrowUp');
+  expect(await items()).toEqual(['chats', 'f2', 'f1', 'f3', 'phone', 'add']);
+  await expect(page.locator('#rl-host [data-id="f1"]')).toBeFocused();
+  // fixed не двигается
+  await page.locator('#rl-host [data-id="chats"]').focus();
+  await page.keyboard.press('Alt+ArrowDown');
+  expect((await items())[0]).toBe('chats');
+  // «+» и меню пункта
+  await page.locator('#rl-host .b24-chat-rail__add').click();
+  await page.locator('#rl-host [data-id="f2"]').click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Переименовать' }).click();
+  await page.locator('#rl-host [data-id="phone"]').click({ button: 'right' });
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  expect((await page.evaluate(() => (window as any).__rllog)).slice(1)).toEqual([['f2,f1,f3', 'chats,f2,f1,f3,phone'], 'add', 'ren:f2']);
+  // prompt
+  const p = page.evaluate(() => (window as any).B24UI.prompt({ title: 'Новая папка', label: 'Название', value: '', okLabel: 'Создать', validate: (v: string) => (v === 'x' ? 'Слишком коротко' : null) }));
+  const dlg = page.locator('.b24-modal');
+  await expect(dlg.getByRole('button', { name: 'Создать' })).toBeDisabled();
+  await dlg.locator('input').fill('x');
+  await dlg.getByRole('button', { name: 'Создать' }).click();
+  await expect(dlg.locator('.b24-field__error')).toHaveText('Слишком коротко');
+  await dlg.locator('input').fill('  Заказы  ');
+  await dlg.locator('input').press('Enter');
+  expect(await p).toBe('Заказы');
+  const p2 = page.evaluate(() => (window as any).B24UI.prompt({ title: 'Имя', value: 'Старое' }));
+  await expect(page.locator('.b24-modal input')).toHaveValue('Старое');
+  await page.keyboard.press('Escape');
+  expect(await p2).toBeNull();
+});

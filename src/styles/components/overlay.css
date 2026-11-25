@@ -46,6 +46,7 @@
   transform: rotate(-45deg) translate(2px, -2px);
 }
 .b24-menu__item:disabled, .b24-menu__item[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+.b24-menu__sub { display: inline-grid; margin-left: auto; padding-left: 12px; color: var(--b24-text-subtle); }
 .b24-menu__hint { margin-left: auto; padding-left: 16px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); }
 .b24-menu__divider { height: 1px; margin: 5px 4px; background: var(--b24-divider); }
 .b24-menu__title { padding: 8px 10px 4px; font-size: var(--b24-font-size-xs); color: var(--b24-text-subtle); text-transform: uppercase; letter-spacing: 0.04em; }

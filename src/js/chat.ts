@@ -16,6 +16,7 @@ import { getLocale, intlLocale, t } from './i18n';
 import { attachEmojiPicker, openEmojiPicker } from './emoji';
 import { showFloat } from './float';
 import { toast } from './toast';
+import { contextMenu, type ContextMenuItem } from './context-menu';
 
 export type ChatDate = Date | string | number;
 const toDate = (d: ChatDate) => (d instanceof Date ? d : new Date(d));
@@ -63,7 +64,32 @@ function richText(text: string): DocumentFragment {
 
 /* ── Список диалогов ─────────────────────────────────────── */
 
-export interface ChatChannel { label: string; color?: string }
+export interface ChatChannel {
+  label: string;
+  color?: string;
+  /** значок из набора кита перед подписью бейджа (12px): 'users' — беседа, 'phone'… */
+  icon?: IconName;
+}
+/**
+ * Пункт меню строки (список диалогов, пункт рейла): по правому клику, долгому нажатию и с клавиатуры (Shift+F10 / клавиша меню).
+ * children — вложенное меню («Добавить в папку →»), checked — отметка ✓, separator — разделитель.
+ */
+export interface ChatMenuAction<T> {
+  id?: string;
+  label?: string;
+  icon?: IconName;
+  danger?: boolean;
+  disabled?: boolean;
+  checked?: boolean;
+  separator?: boolean;
+  children?: Array<ChatMenuAction<T>>;
+  onClick?: (item: T) => void;
+}
+export function chatMenuItems<T>(actions: Array<ChatMenuAction<T>>, item: T): ContextMenuItem[] {
+  return actions.map((a) => (a.separator
+    ? { separator: true }
+    : { label: a.label, icon: a.icon, danger: a.danger, disabled: a.disabled, checked: a.checked, children: a.children ? chatMenuItems(a.children, item) : undefined, onClick: a.onClick ? () => a.onClick!(item) : undefined }));
+}
 export interface ChatListItem {
   id: string;
   name: string;
@@ -89,6 +115,8 @@ export interface ChatListItem {
   group?: string;
   /** собеседник печатает: вместо превью курсивом «печатает…»; строка — свой текст («Анна печатает…») */
   typing?: boolean | string;
+  /** закреплён: значок-булавка у времени; порядок («закреплённые первыми») задаёте вы в items, после последнего закреплённого — тонкий разделитель */
+  pinned?: boolean;
   /**
    * Результат поиска по сообщениям: что подсветить в preview — строка (все вхождения без учёта регистра), список строк
    * или диапазоны [[с, по)] в символах preview. Строка получает до 2 строк текста, превью обрезается так, чтобы совпадение было видно.
@@ -105,6 +133,8 @@ export interface ChatListOptions {
   onSelect?: (id: string, item: ChatListItem) => void;
   emptyText?: string;
   label?: string;
+  /** меню строки: правый клик, долгое нажатие, Shift+F10 / клавиша меню; вернуть [] или null — без меню */
+  itemActions?: (item: ChatListItem) => Array<ChatMenuAction<ChatListItem>> | null | undefined;
 }
 export interface ChatListHandle {
   element: HTMLElement;
@@ -154,7 +184,7 @@ const CHANNEL_COLORS: Record<string, string> = { telegram: '#2aabee', tg: '#2aab
 function channelBadge(ch: string | ChatChannel): HTMLElement {
   const c = typeof ch === 'string' ? { label: ch } : ch;
   const color = c.color ?? CHANNEL_COLORS[c.label.toLowerCase()];
-  const el = h('span', { class: 'b24-chat-channel' }, c.label);
+  const el = h('span', { class: 'b24-chat-channel' }, c.icon ? html(icon(c.icon, { size: 12 })) : '', c.label);
   if (color) el.style.setProperty('--_c', color);
   return el;
 }
@@ -167,10 +197,10 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
   const rows = new Map<string, HTMLElement>();
 
   const fill = (row: HTMLElement, it: ChatListItem) => {
-    row.className = `b24-chat-list__item${it.id === active ? ' is-active' : ''}${it.unread ? ' is-unread' : ''}${it.muted ? ' is-muted' : ''}${it.highlight && it.preview ? ' is-found' : ''}`;
+    row.className = `b24-chat-list__item${it.id === active ? ' is-active' : ''}${it.unread ? ' is-unread' : ''}${it.muted ? ' is-muted' : ''}${it.highlight && it.preview ? ' is-found' : ''}${it.pinned ? ' is-pinned' : ''}`;
     row.setAttribute('aria-selected', String(it.id === active));
     const av = html(avatarHtml(it.name, it.avatar, 'lg', { status: it.status })).firstElementChild!;
-    const top = h('span', { class: 'b24-chat-list__top' }, h('span', { class: 'b24-chat-list__name' }, it.name), it.time != null ? h('span', { class: 'b24-chat-list__time' }, formatChatListTime(it.time)) : '');
+    const top = h('span', { class: 'b24-chat-list__top' }, h('span', { class: 'b24-chat-list__name' }, it.name), it.time != null ? h('span', { class: 'b24-chat-list__time' }, formatChatListTime(it.time)) : '', it.pinned ? h('span', { class: 'b24-chat-list__pin', title: t('Закреплён') }, html(icon('pin', { size: 12 }))) : '');
     const preview = it.typing
       ? h('span', { class: 'b24-chat-list__preview b24-chat-list__typing' }, typeof it.typing === 'string' ? it.typing : t('печатает…'))
       : it.preview || !it.subtitle
@@ -184,6 +214,13 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
     row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.typing ? `. ${typeof it.typing === 'string' ? it.typing : t('печатает…')}` : it.preview ? `. ${it.preview}` : it.subtitle ? `. ${it.subtitle}` : ''}`);
   };
 
+  // тонкий разделитель после последнего закреплённого (если за ним идёт незакреплённый из той же группы)
+  const markPins = () => {
+    items.forEach((it, i) => {
+      const next = items[i + 1];
+      rows.get(it.id)?.classList.toggle('is-pin-last', !!it.pinned && !!next && !next.pinned && next.group === it.group);
+    });
+  };
   const render = () => {
     rows.clear();
     if (!items.length) {
@@ -201,6 +238,7 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
       out.push(row);
     }
     root.replaceChildren(...out);
+    markPins();
     const focusable = rows.get(active ?? '') ?? root.firstElementChild;
     if (focusable instanceof HTMLElement) focusable.tabIndex = 0;
   };
@@ -233,6 +271,13 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
   });
 
   render();
+  const menu = options.itemActions
+    ? contextMenu(root, (_e, el) => {
+      const it = items.find((x) => x.id === el.dataset.id);
+      const acts = it && options.itemActions!(it);
+      return acts?.length ? chatMenuItems(acts, it!) : null;
+    }, { selector: '.b24-chat-list__item' })
+    : null;
   const handle: ChatListHandle = {
     element: root,
     setItems(next) { items = next; render(); },
@@ -242,6 +287,7 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
       items = items.map((x, j) => (j === i ? { ...x, ...patch } : x));
       const row = rows.get(id);
       if (row) fill(row, items[i]);
+      markPins();
     },
     setActive(id) {
       active = id;
@@ -252,7 +298,7 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
       });
     },
     getActive: () => active,
-    destroy() { root.remove(); },
+    destroy() { menu?.destroy(); root.remove(); },
   };
   return handle;
 }
@@ -1137,6 +1183,8 @@ export interface ChatRailItem {
   /** свои атрибуты и класс на кнопке: переживают любые перерисовки рейла */
   attrs?: Record<string, string>;
   className?: string;
+  /** не перетаскивается и не сдвигается другими (когда у рейла sortable) */
+  fixed?: boolean;
 }
 export interface ChatRailOptions {
   items: ChatRailItem[];
@@ -1151,6 +1199,18 @@ export interface ChatRailOptions {
    */
   panes?: boolean;
   onPaneChange?: (pane: string, element: HTMLElement) => void;
+  /**
+   * Пункты перетаскиваются (мышь, касание — долгим нажатием, Alt + стрелки с клавиатуры). true — все, кроме fixed; функция — выбрать, какие
+   * (папки двигаются, «Чаты / Линии / Телефон» стоят на месте). Остальные пункты остаются на своих местах.
+   */
+  sortable?: boolean | ((item: ChatRailItem) => boolean);
+  /** порядок изменён: id перетаскиваемых пунктов в новом порядке и id всех пунктов */
+  onReorder?: (ids: string[], all: string[]) => void;
+  /** кнопка «+» в конце рейла (создать папку) */
+  onAdd?: () => void;
+  addLabel?: string;
+  /** меню пункта: правый клик, долгое нажатие, Shift+F10 / клавиша меню */
+  itemActions?: (item: ChatRailItem) => Array<ChatMenuAction<ChatRailItem>> | null | undefined;
 }
 export interface ChatRailHandle {
   element: HTMLElement;
@@ -1217,6 +1277,7 @@ export function createChatRail(host: HTMLElement, options: ChatRailOptions): Cha
     if (parts.length) el.setAttribute('aria-label', `${it.label}, ${parts.join(', ')}`); else el.removeAttribute('aria-label');
   };
 
+  let addLast = () => {};
   const render = () => {
     const ids = new Set(items.map((x) => x.id));
     for (const [id, el] of els) if (!ids.has(id)) { el.remove(); els.delete(id); sig.delete(id); ownAttrs.delete(id); }
@@ -1233,6 +1294,7 @@ export function createChatRail(host: HTMLElement, options: ChatRailOptions): Cha
       paint(el, it);
       if (root.children[i] !== el) root.insertBefore(el, root.children[i] ?? null);
     });
+    addLast();
     paintPanes();
   };
   root.addEventListener('click', (e) => {
@@ -1248,6 +1310,115 @@ export function createChatRail(host: HTMLElement, options: ChatRailOptions): Cha
     options.onSelect?.(it.id, it, e);
   });
   render();
+  // ── перетаскивание папок: мышь, касание (долгое нажатие), Alt + стрелки ──
+  const isSortable = (it: ChatRailItem) => !it.fixed && !it.disabled && (typeof options.sortable === 'function' ? options.sortable(it) : !!options.sortable);
+  const live = h('div', { class: 'b24-sortable__live', 'aria-live': 'polite', role: 'status' });
+  root.append(live);
+  const sortIds = () => items.filter(isSortable).map((x) => x.id);
+  /** новый порядок только среди перетаскиваемых: остальные остаются на своих местах */
+  const applyOrder = (ids: string[]) => {
+    const byId = new Map(items.map((x) => [x.id, x]));
+    let k = 0;
+    items = items.map((x) => (isSortable(x) ? byId.get(ids[k++])! : x));
+    render();
+  };
+  const finish = () => options.onReorder?.(sortIds(), items.map((x) => x.id));
+  let drag: { id: string; el: HTMLElement; pid: number; x: number; y: number; started: boolean; touch: boolean; timer: number; before: string } | null = null;
+  let suppressClickUntil = 0;
+  let suppressClickEl: HTMLElement | null = null;
+  const horizontal = () => getComputedStyle(root).flexDirection.startsWith('row');
+  const startDrag = () => {
+    if (!drag || drag.started) return;
+    drag.started = true;
+    drag.before = sortIds().join('|');
+    try { drag.el.setPointerCapture(drag.pid); } catch { /* ignore */ }
+    drag.el.classList.add('is-dragging');
+    root.classList.add('is-sorting');
+    navigator.vibrate?.(10);
+  };
+  const dragTo = (x: number, y: number) => {
+    if (!drag) return;
+    const hz = horizontal();
+    const pos = hz ? x : y;
+    const others = sortIds().filter((id) => id !== drag!.id);
+    let idx = 0;
+    for (const id of others) {
+      const r = els.get(id)!.getBoundingClientRect();
+      if ((hz ? r.left + r.width / 2 : r.top + r.height / 2) < pos) idx++;
+    }
+    const next = others.slice();
+    next.splice(idx, 0, drag.id);
+    if (next.join('|') !== sortIds().join('|')) applyOrder(next);
+  };
+  const endDrag = () => {
+    if (!drag) return;
+    clearTimeout(drag.timer);
+    const d = drag;
+    drag = null;
+    if (!d.started) return;
+    d.el.classList.remove('is-dragging');
+    root.classList.remove('is-sorting');
+    suppressClickUntil = Date.now() + 350;
+    suppressClickEl = d.el;
+    if (sortIds().join('|') !== d.before) { finish(); live.textContent = `${items.find((x) => x.id === d.id)?.label ?? ''}: ${sortIds().indexOf(d.id) + 1} / ${sortIds().length}`; }
+  };
+  if (options.sortable) {
+    root.addEventListener('pointerdown', (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-rail__item[data-id]');
+      const it = el && items.find((x) => x.id === el.dataset.id);
+      if (!el || !it || !isSortable(it) || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const touch = e.pointerType !== 'mouse';
+      drag = { id: it.id, el, pid: e.pointerId, x: e.clientX, y: e.clientY, started: false, touch, timer: 0, before: '' };
+      if (touch) drag.timer = window.setTimeout(startDrag, 380);
+    });
+    root.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.pid) return;
+      if (!drag.started) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) <= 6) return;
+        if (drag.touch) { clearTimeout(drag.timer); drag = null; return; }   // палец поехал раньше долгого нажатия — это прокрутка
+        startDrag();
+      }
+      e.preventDefault();
+      dragTo(e.clientX, e.clientY);
+    });
+    root.addEventListener('pointerup', endDrag);
+    root.addEventListener('pointercancel', endDrag);
+    root.addEventListener('touchmove', (e) => { if (drag?.started && e.cancelable) e.preventDefault(); }, { passive: false });
+    root.addEventListener('dragstart', (e) => e.preventDefault());
+    root.addEventListener('click', (e) => { if (Date.now() < suppressClickUntil && suppressClickEl?.contains(e.target as Node)) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+    root.addEventListener('keydown', (e) => {
+      if (!e.altKey) return;
+      const el = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-rail__item[data-id]');
+      const it = el && items.find((x) => x.id === el.dataset.id);
+      if (!el || !it || !isSortable(it)) return;
+      const dir = e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : 0;
+      if (!dir) return;
+      e.preventDefault();
+      const ids = sortIds();
+      const i = ids.indexOf(it.id);
+      const j = i + dir;
+      if (j < 0 || j >= ids.length) return;
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      applyOrder(ids);
+      els.get(it.id)?.focus();
+      finish();
+      live.textContent = `${it.label}: ${j + 1} / ${ids.length}`;
+    });
+  }
+  // ── кнопка «+» внизу и меню пункта ──
+  const addBtn = options.onAdd
+    ? h('button', { type: 'button', class: 'b24-chat-rail__item b24-chat-rail__add', 'aria-label': options.addLabel ?? t('Добавить'), title: options.addLabel ?? t('Добавить') }, h('span', { class: 'b24-chat-rail__icon' }, html(icon('plus', { size: 22 }))))
+    : null;
+  if (addBtn) { addBtn.addEventListener('click', () => options.onAdd!()); root.append(addBtn); }
+  const menu = options.itemActions
+    ? contextMenu(root, (_e, el) => {
+      const it = items.find((x) => x.id === el.dataset.id);
+      const acts = it && options.itemActions!(it);
+      return acts?.length ? chatMenuItems(acts, it!) : null;
+    }, { selector: '.b24-chat-rail__item[data-id]' })
+    : null;
+  addLast = () => { if (addBtn) root.append(addBtn); live.isConnected && root.append(live); };
+  addLast();
   const handle: ChatRailHandle = {
     element: root,
     setItems(next) { items = next; render(); },
@@ -1256,7 +1427,7 @@ export function createChatRail(host: HTMLElement, options: ChatRailOptions): Cha
     setPane(pane) { const it = items.find((x) => x.pane === pane); if (it) handle.setActive(it.id); },
     getActive: () => active,
     buttonOf: (id) => els.get(id) ?? null,
-    destroy() { root.remove(); },
+    destroy() { menu?.destroy(); root.remove(); },
   };
   return handle;
 }

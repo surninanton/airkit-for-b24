@@ -121,13 +121,15 @@ export function ChatRail({ items, value, onSelect, label }: ChatRailProps) {
 
 export interface ChatListProps extends Omit<ChatListOptions, 'items'> { items: ChatListItem[]; className?: string }
 /** Список диалогов; items и value применяются без пересоздания */
-export function ChatList({ items, value, onSelect, emptyText, label, className }: ChatListProps) {
+export function ChatList({ items, value, onSelect, emptyText, label, className, itemActions }: ChatListProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatListHandle | null>(null);
   const sel = useRef(onSelect);
   sel.current = onSelect;
+  const acts = useRef(itemActions);
+  acts.current = itemActions;
   useEffect(() => {
-    h.current = createChatList(host.current!, { items, value, emptyText, label, onSelect: (id, it) => sel.current?.(id, it) });
+    h.current = createChatList(host.current!, { items, value, emptyText, label, onSelect: (id, it) => sel.current?.(id, it), itemActions: itemActions ? (it) => acts.current?.(it) : undefined });
     return () => h.current?.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

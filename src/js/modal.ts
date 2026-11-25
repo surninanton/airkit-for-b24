@@ -160,3 +160,54 @@ export async function alert(message: Content, opts: { title?: string; okText?: s
     buttons: [{ text: opts.okText ?? t('Понятно'), variant: 'primary', autofocus: true }],
   }).result;
 }
+
+export interface PromptOptions {
+  title?: string;
+  /** подпись над полем */
+  label?: string;
+  value?: string;
+  placeholder?: string;
+  okLabel?: string;
+  cancelLabel?: string;
+  maxLength?: number;
+  /** пустое значение допустимо (по умолчанию нет: «ОК» неактивна) */
+  allowEmpty?: boolean;
+  /** текст ошибки (окно остаётся открытым) или null/undefined — значение подходит */
+  validate?: (value: string) => string | null | undefined;
+}
+/** Окно ввода одной строки: резолвится введённой строкой (обрезанной по краям) или null (Отмена, Esc, клик мимо). */
+export async function prompt(opts: PromptOptions = {}): Promise<string | null> {
+  const id = `b24-prompt-${Math.random().toString(36).slice(2, 8)}`;
+  const input = h('input', { type: 'text', class: 'b24-input', id, value: opts.value ?? '', placeholder: opts.placeholder, maxlength: opts.maxLength ? String(opts.maxLength) : undefined, autocomplete: 'off' }) as HTMLInputElement;
+  const error = h('div', { class: 'b24-field__error', role: 'alert', hidden: '' });
+  const content = h('div', { class: 'b24-field' }, opts.label ? h('label', { class: 'b24-label', for: id }, opts.label) : '', input, error);
+  let okBtn: HTMLButtonElement | null = null;
+  const value = () => input.value.trim();
+  const sync = () => { error.hidden = true; if (okBtn) okBtn.disabled = !opts.allowEmpty && !value(); };
+  const m = modal({
+    title: opts.title,
+    content,
+    size: 'sm',
+    buttons: [
+      {
+        text: opts.okLabel ?? t('ОК'), variant: 'primary', closes: false,
+        onClick: (ctx) => {
+          const v = value();
+          if (!opts.allowEmpty && !v) return false;
+          const err = opts.validate?.(v);
+          if (err) { error.textContent = err; error.hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus(); return false; }
+          void ctx.close(v);
+          return false;
+        },
+      },
+      { text: opts.cancelLabel ?? t('Отмена'), variant: 'plain', value: null },
+    ],
+  });
+  okBtn = m.element.querySelector<HTMLButtonElement>('.b24-modal__footer .b24-btn--primary');
+  sync();
+  input.addEventListener('input', () => { input.removeAttribute('aria-invalid'); sync(); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); okBtn?.click(); } });
+  requestAnimationFrame(() => { input.focus(); input.select(); });
+  const r = await m.result;
+  return typeof r === 'string' ? r : null;
+}

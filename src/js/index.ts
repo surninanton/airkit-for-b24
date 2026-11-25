@@ -1,5 +1,5 @@
 export { toast, TOAST_LIMIT, type ToastOptions, type ToastHandle, type ToastType } from './toast';
-export { modal, confirm, alert, type ModalOptions, type ModalHandle, type ModalButton } from './modal';
+export { modal, confirm, alert, prompt, type PromptOptions, type ModalOptions, type ModalHandle, type ModalButton } from './modal';
 export { openSidePanel, closeAllSidePanels, type SidePanelOptions, type SidePanelHandle } from './sidepanel';
 export { dropdown, type DropdownOptions, type DropdownHandle } from './dropdown';
 export { initTabs } from './tabs';
@@ -26,8 +26,8 @@ export { createEntityEditor, formatMoney, type EntityEditorOptions, type EntityE
 export { initComposer, initTimelinePin, setTimelinePinned, autoResize, formatTimelineTime, type ComposerHandle } from './timeline';
 export { initTopnavMore } from './topnav-more';
 export {
-  createChatList, createChatRail, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
-  type ChatRailItem, type ChatRailStatus, type ChatRailOptions, type ChatRailHandle, type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatDate,
+  createChatList, createChatRail, chatMenuItems, createChatFeed, createChatComposer, initChatLayout, formatChatListTime, formatChatDay,
+  type ChatRailItem, type ChatRailStatus, type ChatRailOptions, type ChatRailHandle, type ChatReaction, type ChatMessageAction, type ComposerAttachment, type ChatComposerMode, type ChatSendContext, type ChatListItem, type ChatListOptions, type ChatListHandle, type ChatChannel, type ChatMenuAction, type ChatDate,
   type ChatMessage, type ChatAttachment, type ChatFeedOptions, type ChatFeedHandle, type ChatAroundResult, type ChatScrollOptions,
   type ChatComposerOptions, type ChatComposerHandle, type ChatLayoutHandle,
 } from './chat';

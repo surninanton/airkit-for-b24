@@ -221,6 +221,8 @@ export const enData: Record<string, string> = {
   'Все чаты': 'All chats',
   'Открыть полностью': 'Open in full',
   'Свернуть': 'Minimize',
+  'ОК': 'OK',
+  'Закреплён': 'Pinned',
   'Перетащите, чтобы переместить; Alt + стрелки; двойной щелчок — на место': 'Drag to move; Alt + arrows; double-click to reset',
   'Развернуть': 'Expand',
   'Участники': 'Members',
