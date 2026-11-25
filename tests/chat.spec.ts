@@ -775,7 +775,7 @@ test('композер: панель ответа (setReply), replyTo в onSend,
   await page.evaluate(() => (window as any).__cp.setReply({ id: 'm7', author: 'Мария', text: 'Привет,   как дела?' }));
   const bar = root.locator('.b24-chat-composer__reply-bar');
   await expect(bar).toBeVisible();
-  await expect(bar).toContainText('Ответ: Мария');
+  await expect(bar).toContainText('Ответ для Мария');
   await expect(bar).toContainText('Привет, как дела?');
   await expect(input).toBeFocused();
   // Esc в пустом поле — отмена
@@ -785,6 +785,7 @@ test('композер: панель ответа (setReply), replyTo в onSend,
   // ответ уходит с replyTo и сбрасывается после отправки (без onReplyCancel)
   await page.evaluate(() => (window as any).__cp.setReply({ id: 'm8', author: 'Иван', text: 'Цитата', quote: true }));
   await expect(bar.locator('svg').first()).toBeVisible();
+  await expect(bar).toContainText('Цитата Иван');
   await input.fill('Ответ');
   await page.keyboard.press('Escape');
   await expect(bar).toBeVisible();
@@ -825,4 +826,233 @@ test('композер: панель ответа (setReply), replyTo в onSend,
   await fmt.locator('[data-fmt="strike"]').click();
   await expect(input).toHaveValue('~~текст~~');
   await page.evaluate(() => { (window as any).__cp.destroy(); document.getElementById('cp-host')?.remove(); });
+});
+
+test('сообщение: контекстное меню (реакции, действия, separator/danger), Shift+F10, выделение оставляет меню браузера', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'mm-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:40px;width:420px;max-width:calc(100vw - 20px);height:480px;z-index:50;background:#eef2f4;display:flex;flex-direction:column`;
+    document.body.append(host);
+    (window as any).__mm = [];
+    const log = (window as any).__mm;
+    (window as any).__f = B.createChatFeed(host, {
+      messageMenu: true, copy: true,
+      onReact: (id, e) => log.push('react:' + id + ':' + e), onReply: (m) => log.push('reply:' + m.id), onForward: (m) => log.push('fwd:' + m.id),
+      onEdit: (m) => log.push('edit:' + m.id),
+      actions: (m) => [{ separator: true }, { id: 'pin', label: 'Закрепить', icon: 'pin', onClick: (x) => log.push('pin:' + x.id) }, { separator: true }, { id: 'del', label: 'Удалить', icon: 'trash', danger: true, onClick: (x) => log.push('del:' + x.id) }],
+      messages: [
+        { id: 'a', dir: 'in', time: new Date(), text: 'Входящее сообщение для проверки' },
+        { id: 'b', dir: 'out', time: new Date(), text: 'Своё сообщение', status: 'read' },
+        { id: 'd', dir: 'in', time: new Date(), deleted: true },
+      ],
+    });
+  });
+  const feed = page.locator('#mm-host');
+  await feed.locator('.b24-chat-msg[data-id="a"] .b24-chat-msg__bubble').click({ button: 'right' });
+  const menu = page.locator('.b24-context-menu').first();
+  await expect(menu.locator('.b24-chat-menu__reactions .b24-chat-menu__reaction')).toHaveCount(7);
+  await expect(menu.getByRole('menuitem')).toHaveText(['Ответить', 'Переслать', 'Копировать', 'Закрепить', 'Удалить']);
+  await expect(menu.locator('.b24-menu__divider')).toHaveCount(3);
+  await expect(menu.getByRole('menuitem', { name: 'Удалить' })).toHaveClass(/b24-menu__item--danger/);
+  await menu.locator('.b24-chat-menu__reaction[data-emoji="👍"]').click();
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  // «⌄» — все эмодзи
+  await feed.locator('.b24-chat-msg[data-id="b"] .b24-chat-msg__bubble').click({ button: 'right' });
+  await expect(page.locator('.b24-context-menu').getByRole('menuitem', { name: 'Изменить' })).toBeVisible();
+  await page.locator('.b24-chat-menu__reaction--all').click();
+  await expect(page.locator('.b24-emoji__grid').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  // действие
+  await feed.locator('.b24-chat-msg[data-id="a"] .b24-chat-msg__bubble').click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Переслать' }).click();
+  // удалённое — без меню
+  await feed.locator('.b24-chat-msg[data-id="d"] .b24-chat-msg__bubble').click({ button: 'right' });
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  await expect(feed.locator('.b24-chat-msg[data-id="d"] .b24-chat-msg__deleted')).toHaveText('Сообщение удалено');
+  await expect(feed.locator('.b24-chat-msg[data-id="d"] .b24-chat-msg__side, .b24-chat-msg[data-id="d"] .b24-chat-msg__tools')).toHaveCount(0);
+  // выделен текст — своё меню не открывается (остаётся системное)
+  await page.evaluate(() => {
+    const el = document.querySelector('#mm-host .b24-chat-msg[data-id="a"] .b24-chat-msg__text')!;
+    const r = document.createRange(); r.setStart(el.firstChild!, 0); r.setEnd(el.firstChild!, 5);
+    const s = getSelection()!; s.removeAllRanges(); s.addRange(r);
+  });
+  await feed.locator('.b24-chat-msg[data-id="a"] .b24-chat-msg__bubble').dispatchEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 });
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  await page.evaluate(() => getSelection()!.removeAllRanges());
+  // Shift+F10 на ленте — меню последнего сообщения под курсором / последнего
+  await feed.locator('.b24-chat-msg[data-id="b"] .b24-chat-msg__bubble').hover();
+  await page.locator('#mm-host .b24-chat-feed').focus();
+  await page.keyboard.press('Shift+F10');
+  await expect(page.locator('.b24-context-menu').getByRole('menuitem', { name: 'Изменить' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  expect(await page.evaluate(() => (window as any).__mm)).toEqual(['react:a:👍', 'fwd:a']);
+  await page.evaluate(() => { (window as any).__f.destroy(); document.getElementById('mm-host')?.remove(); });
+});
+
+test('сообщение: кнопки сбоку (ответить и ⋯), без полоски реакций; двойной щелчок — ответ; hoverReactions', async ({ page }) => {
+  await open(page, '/chat.html');
+  if (mobile(page)) test.skip(true, 'на сенсорном экране кнопок сбоку нет: меню — по долгому нажатию');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'mm-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:40px;width:420px;max-width:calc(100vw - 20px);height:480px;z-index:50;background:#eef2f4;display:flex;flex-direction:column`;
+    document.body.append(host);
+    (window as any).__mm = [];
+    const log = (window as any).__mm;
+    (window as any).__f = B.createChatFeed(host, {
+      messageMenu: true,
+      onReact: (id, e) => log.push('react:' + id + ':' + e), onReply: (m) => log.push('reply:' + m.id),
+      messages: [
+        { id: 'a', dir: 'in', time: new Date(), text: 'Слово другое слово https://example.com/x' },
+        { id: 'b', dir: 'out', time: new Date(), text: 'Ответ', status: 'read', replyTo: { id: 'a', author: 'X', text: 'Слово' }, reactions: [{ emoji: '👍', count: 1 }] },
+      ],
+    });
+  });
+  const feed = page.locator('#mm-host');
+  const a = feed.locator('.b24-chat-msg[data-id="a"]');
+  await expect(feed.locator('.b24-chat-msg__tools')).toHaveCount(0);
+  const side = a.locator('.b24-chat-msg__side');
+  await expect(side).toBeHidden();
+  await a.locator('.b24-chat-msg__bubble').hover();
+  await expect(side).toBeVisible();
+  // кнопки снаружи пузыря, у низа
+  const geo = await page.evaluate(() => {
+    const m = (id: string) => document.querySelector(`#mm-host .b24-chat-msg[data-id="${id}"]`)!;
+    const bb = m('a').querySelector('.b24-chat-msg__bubble')!.getBoundingClientRect();
+    const sb = m('a').querySelector('.b24-chat-msg__side')!.getBoundingClientRect();
+    const ob = m('b').querySelector('.b24-chat-msg__bubble')!.getBoundingClientRect();
+    const os = m('b').querySelector('.b24-chat-msg__side')!.getBoundingClientRect();
+    return { inRight: sb.left >= bb.right, inBottom: Math.abs(sb.bottom - bb.bottom) < 2, outLeft: os.right <= ob.left, outBottom: Math.abs(os.bottom - ob.bottom) < 2 };
+  });
+  expect(geo).toEqual({ inRight: true, inBottom: true, outLeft: true, outBottom: true });
+  await side.getByRole('button', { name: 'Ответить' }).click();
+  await a.locator('.b24-chat-msg__bubble').hover();
+  await side.getByRole('button', { name: 'Ещё' }).click();
+  await expect(page.locator('.b24-context-menu .b24-chat-menu__reactions')).toBeVisible();
+  await page.keyboard.press('Escape');
+  // двойной щелчок по тексту — ответ, слово не выделяется
+  await a.locator('.b24-chat-msg__text').dblclick({ position: { x: 8, y: 8 } });
+  expect(await page.evaluate(() => getSelection()!.toString())).toBe('');
+  // по ссылке, блоку ответа и чипу реакции — нет
+  await a.locator('.b24-chat-msg__text a').dblclick();
+  await feed.locator('.b24-chat-msg[data-id="b"] .b24-chat-msg__reply').dblclick();
+  await feed.locator('.b24-chat-msg[data-id="b"] .b24-chat-reaction').dblclick();
+  expect(await page.evaluate(() => (window as any).__mm.filter((x: string) => x.startsWith('reply')))).toEqual(['reply:a', 'reply:a']);
+  await page.evaluate(() => { (window as any).__f.destroy(); document.getElementById('mm-host')?.remove(); });
+  // hoverReactions: полоска возвращается
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'mm-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:40px;width:420px;max-width:calc(100vw - 20px);height:480px;z-index:50;background:#eef2f4;display:flex;flex-direction:column`;
+    document.body.append(host);
+    (window as any).__mm = [];
+    const log = (window as any).__mm;
+    (window as any).__f = B.createChatFeed(host, { messageMenu: true, hoverReactions: true, onReact: () => {}, messages: [{ id: 'a', dir: 'in', time: new Date(), text: 'x' }] });
+  });
+  await expect(page.locator('#mm-host .b24-chat-msg__tools')).toHaveCount(1);
+  await page.evaluate(() => { (window as any).__f.destroy(); document.getElementById('mm-host')?.remove(); });
+});
+
+test('сообщение: режим выбора, закреплённое сообщение, панель ответа и меню поля', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'mm-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:40px;width:420px;max-width:calc(100vw - 20px);height:480px;z-index:50;background:#eef2f4;display:flex;flex-direction:column`;
+    document.body.append(host);
+    (window as any).__mm = [];
+    const log = (window as any).__mm;
+    (window as any).__f = B.createChatFeed(host, {
+      messageMenu: true, onReply: () => {},
+      selectActions: [{ id: 'copy', label: 'Копировать', icon: 'copy', onClick: (ms) => { log.push('copy:' + ms.map((m) => m.id).join(',')); return false; } }, { id: 'del', label: 'Удалить', danger: true, onClick: (ms) => { log.push('del:' + ms.map((m) => m.id).join(',')); } }],
+      onSelectChange: (ms) => log.push('sel:' + ms.length),
+      onUnpin: () => log.push('unpin'), canUnpin: false,
+      messages: [
+        { id: 'a', dir: 'in', time: new Date(), text: 'Первое' },
+        { id: 'b', dir: 'out', time: new Date(), text: 'Второе', status: 'read' },
+        { id: 'c', dir: 'in', time: new Date(), text: 'Третье' },
+      ],
+    });
+  });
+  const feed = page.locator('#mm-host');
+  await page.evaluate(() => (window as any).__f.startSelect('b'));
+  await expect(feed.locator('.b24-chat-selbar')).toContainText('Выбрано: 1');
+  await expect(feed.locator('.b24-chat-msg[data-id="b"]')).toHaveClass(/is-selected/);
+  await expect(feed.locator('.b24-chat-msg[data-id="a"] .b24-chat-msg__check')).toBeVisible();
+  await feed.locator('.b24-chat-msg[data-id="c"]').click();
+  await feed.locator('.b24-chat-msg[data-id="a"]').click();
+  await expect(feed.locator('.b24-chat-selbar')).toContainText('Выбрано: 3');
+  await feed.locator('.b24-chat-msg[data-id="b"]').click();
+  expect(await page.evaluate(() => (window as any).__f.getSelected().map((m: any) => m.id))).toEqual(['a', 'c']);
+  // контекстное меню и «Ответить» в режиме выбора отключены; onReply не вызывается двойным щелчком
+  await feed.locator('.b24-chat-msg[data-id="a"] .b24-chat-msg__bubble').click({ button: 'right' });
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  // false — режим остаётся
+  await feed.locator('.b24-chat-selbar__btn[data-id="copy"]').click();
+  await expect(feed.locator('.b24-chat-selbar')).toBeVisible();
+  await feed.locator('.b24-chat-selbar__btn[data-id="del"]').click();
+  await expect(feed.locator('.b24-chat-selbar')).toBeHidden();
+  expect(await page.evaluate(() => (window as any).__f.isSelecting())).toBe(false);
+  // Esc выходит
+  await page.evaluate(() => (window as any).__f.startSelect());
+  await expect(feed.locator('.b24-chat-selbar__btn[data-id="del"]')).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(feed.locator('.b24-chat-selbar')).toBeHidden();
+  expect((await page.evaluate(() => (window as any).__mm)).filter((x: string) => !x.startsWith('sel:'))).toEqual(['copy:a,c', 'del:a,c']);
+  // закреплённое
+  await page.evaluate(() => (window as any).__f.setPinned({ id: 'a', author: 'Мария', text: 'Первое **важное**' }));
+  const pin = feed.locator('.b24-chat-pinbar');
+  await expect(pin).toContainText('Закреплённое сообщение');
+  await expect(pin).toContainText('Первое');
+  await expect(pin.locator('.b24-chat-pinbar__x')).toHaveCount(0);
+  await pin.locator('.b24-chat-pinbar__body').click();
+  await expect(feed.locator('.b24-chat-msg[data-id="a"]')).toHaveClass(/is-flash/);
+  await page.evaluate(() => (window as any).__f.setPinned({ id: 'a', text: 'x', canUnpin: true }));
+  await pin.locator('.b24-chat-pinbar__x').click();
+  expect((await page.evaluate(() => (window as any).__mm)).at(-1)).toBe('unpin');
+  await page.evaluate(() => (window as any).__f.setPinned(null));
+  await expect(pin).toBeHidden();
+  await page.evaluate(() => { (window as any).__f.destroy(); document.getElementById('mm-host')?.remove(); });
+});
+
+test('композер: formattingButton: false, меню поля по правому клику на выделении, «Цитата»', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'fm-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:80px;width:380px;max-width:calc(100vw - 20px);z-index:50;background:#fff`;
+    document.body.append(host);
+    (window as any).__fm = B.createChatComposer(host, { formatting: true, formattingButton: false, onSend: () => {} });
+  });
+  const root = page.locator('#fm-host .b24-chat-composer');
+  const input = root.locator('textarea');
+  await expect(root.locator('.b24-chat-composer__aa')).toHaveCount(0);
+  await expect(root.locator('.b24-chat-composer__fmt')).toHaveCount(0);
+  await input.fill('первая\nвторая строка');
+  // без выделения — системное меню
+  await input.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(3, 3));
+  await input.click({ button: 'right', position: { x: 5, y: 5 } });
+  await expect(page.locator('.b24-context-menu')).toHaveCount(0);
+  // с выделением — наше меню
+  await input.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(0, 6));
+  await input.dispatchEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: 420, clientY: 100 });
+  const menu = page.locator('.b24-context-menu');
+  await expect(menu.getByRole('menuitem')).toHaveCount(8);
+  await expect(menu.getByRole('menuitem').nth(4)).toHaveText('Цитата');
+  await menu.getByRole('menuitem', { name: /^Жирный/ }).click();
+  await expect(input).toHaveValue('**первая**\nвторая строка');
+  await input.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(0, el.value.length));
+  await input.dispatchEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: 420, clientY: 100 });
+  await page.locator('.b24-context-menu').getByRole('menuitem', { name: 'Цитата' }).click();
+  await expect(input).toHaveValue('> **первая**\n> вторая строка');
+  await page.evaluate(() => (window as any).__fm.format('quote'));
+  await expect(input).toHaveValue('**первая**\nвторая строка');
+  await page.evaluate(() => { (window as any).__fm.destroy(); document.getElementById('fm-host')?.remove(); });
 });

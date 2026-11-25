@@ -17,7 +17,7 @@ import { getLocale, intlLocale, t } from './i18n';
 import { attachEmojiPicker, openEmojiPicker } from './emoji';
 import { showFloat } from './float';
 import { toast } from './toast';
-import { contextMenu, type ContextMenuItem } from './context-menu';
+import { contextMenu, openContextMenu, type ContextMenuItem } from './context-menu';
 
 export type ChatDate = Date | string | number;
 const toDate = (d: ChatDate) => (d instanceof Date ? d : new Date(d));
@@ -363,6 +363,8 @@ export interface ChatMessage {
   replyTo?: ChatReplyRef;
   /** пересланное: серая строка «Переслано от X» над текстом */
   forwarded?: { from: string };
+  /** удалено: серый курсив «Сообщение удалено» вместо текста и вложений, без меню, реакций и ответа */
+  deleted?: boolean;
   /** сообщение изменено: серая подпись «изменено» в meta; дата/время правки — в подсказке */
   edited?: boolean | ChatDate;
   /** false — «Изменить» из onEdit для этого сообщения не показывается (чужое, старше срока правки); по умолчанию — у своих (out и своя заметка) с текстом */
@@ -372,6 +374,15 @@ export type ChatAroundResult =
   | ChatMessage[]
   | { messages: ChatMessage[]; hasMore?: boolean; hasNewer?: boolean }
   | { before?: ChatMessage[]; message: ChatMessage; after?: ChatMessage[]; hasMore?: boolean; hasNewer?: boolean };
+export interface ChatSelectAction {
+  id: string;
+  label: string;
+  icon?: IconName;
+  danger?: boolean;
+  /** выбранные сообщения в порядке ленты; false — оставить режим выбора открытым */
+  onClick: (messages: ChatMessage[]) => void | boolean | Promise<void | boolean>;
+}
+export interface ChatPinnedMessage { id: string; author?: string; text?: string; canUnpin?: boolean }
 export interface ChatScrollOptions {
   /** коротко подсветить сообщение (по умолчанию да) */
   highlight?: boolean;
@@ -426,8 +437,30 @@ export interface ChatFeedOptions {
   onEdit?: (message: ChatMessage) => void;
   /** «Копировать» текст в меню сообщения (по умолчанию да) */
   copy?: boolean;
-  /** свои пункты меню сообщения (после «Ответить» и «Копировать»); вернуть [] — без своих */
-  actions?: (message: ChatMessage) => ChatMessageAction[];
+  /** свои пункты меню сообщения (после «Ответить» и «Копировать»); вернуть [] — без своих; { separator: true } — разделитель */
+  actions?: (message: ChatMessage) => Array<ChatMessageAction | { separator: true }>;
+  /**
+   * Работа с сообщением как в Telegram / ВК / MAX: контекстное меню по правому клику, долгому нажатию и Shift+F10 / клавише меню
+   * (сверху быстрые реакции и «⌄» — все эмодзи, ниже «Ответить», «Переслать», «Копировать», «Изменить» и ваши actions); у пузыря при наведении —
+   * круглые кнопки «Ответить» и «⋯» (то же меню); двойной щелчок — «Ответить» (replyOnDoubleClick). Если выделен текст, остаётся меню браузера.
+   * Старая полоска быстрых реакций над пузырём не рисуется (hoverReactions: true — вернуть).
+   */
+  messageMenu?: boolean;
+  /** с messageMenu: полоска быстрых реакций над пузырём по наведению (по умолчанию нет — реакции в меню) */
+  hoverReactions?: boolean;
+  /** двойной щелчок по пузырю — onReply (по умолчанию включено вместе с messageMenu; не срабатывает на ссылках, вложениях, чипах реакций и блоке ответа) */
+  replyOnDoubleClick?: boolean;
+  /** кнопки панели режима выбора (feed.startSelect): «Переслать», «Копировать», «Удалить»…; после onReturn !== false режим закрывается */
+  selectActions?: ChatSelectAction[];
+  /** выбор изменился (startSelect, клик по сообщению, endSelect) */
+  onSelectChange?: (selected: ChatMessage[]) => void;
+  /** ✕ на полоске закреплённого сообщения (feed.setPinned) */
+  onUnpin?: () => void;
+  /** ✕ показывается только если разрешено: для всех закреплённых (по умолчанию нет) или для конкретного — setPinned({ canUnpin }) */
+  canUnpin?: boolean;
+  /** клик по полоске закреплённого, когда сообщения нет в ленте (иначе — прокрутка, onReplyClick или onLoadAround) */
+  onPinnedClick?: (id: string) => void;
+
   /** вызывается для каждого сообщения после отрисовки (и после каждой перерисовки): добавить свою разметку в el */
   decorate?: (message: ChatMessage, el: HTMLElement) => void;
 }
@@ -442,6 +475,13 @@ export interface ChatFeedHandle {
   /** индикатор набора внизу ленты («Анна печатает…» с анимированными точками); null — скрыть. Прокрутка не сдвигается, если пользователь не у низа */
   setTyping(text: string | null): void;
   scrollToBottom(smooth?: boolean): void;
+  /** режим выбора: кружки-галочки у сообщений, панель «Выбрано: N» и selectActions; firstId — сразу отметить сообщение; Esc и «Отмена» выходят */
+  startSelect(firstId?: string): void;
+  endSelect(): void;
+  getSelected(): ChatMessage[];
+  isSelecting(): boolean;
+  /** закреплённое сообщение: полоска сверху ленты (pin, «Закреплённое сообщение», текст в одну строку, ✕ при canUnpin); null — убрать */
+  setPinned(pinned: ChatPinnedMessage | null): void;
   /** прокрутить к сообщению (по центру) и коротко подсветить (.is-flash); false — такого сообщения в ленте нет */
   scrollTo(id: string, options?: ChatScrollOptions): boolean;
   /**
@@ -480,7 +520,9 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   let loadingNewer = false;
   const newer = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--sm b24-chat-feed__newer' }, t('Показать новее'));
   newer.hidden = !hasNewer;
-  root.append(more, list, typing, newer);
+  const pinBar = h('div', { class: 'b24-chat-pinbar', hidden: '' });
+  const selBar = h('div', { class: 'b24-chat-selbar', role: 'toolbar', 'aria-label': t('Выбранные сообщения'), hidden: '' });
+  root.append(pinBar, selBar, more, list, typing, newer);
   host.append(root);
 
   const nearBottom = () => root.scrollHeight - root.scrollTop - root.clientHeight < 80;
@@ -558,6 +600,70 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     return a && a === textElOf(s.focusNode) && a.closest<HTMLElement>('.b24-chat-msg')?.dataset.id === id ? s.toString() : '';
   };
   let selSnap: { id: string; text: string } | null = null;
+  let selecting = false;
+  const selected = new Set<string>();
+  /** переход к исходному сообщению: есть в ленте — прокрутка и подсветка, нет — onReplyClick или подгрузка окна (onLoadAround) */
+  const goTo = (id: string, m: ChatMessage) => {
+    if (handle.scrollTo(id)) return;
+    if (options.onReplyClick) options.onReplyClick(id, m);
+    else if (options.onLoadAround) void handle.jumpTo(id);
+  };
+
+  /** Быстрые реакции в меню сообщения: ряд эмодзи и «⌄» — все эмодзи. */
+  const reactionsRow = (m: ChatMessage, close: () => void): HTMLElement => {
+    const row = h('div', { class: 'b24-chat-menu__reactions', role: 'group', 'aria-label': t('Реакции') });
+    for (const e of options.quickReactions ?? ['👍', '❤️', '😂', '😮', '😢', '🙏']) {
+      const b = h('button', { type: 'button', class: 'b24-chat-menu__reaction', 'aria-label': e, 'data-emoji': e }, e);
+      b.addEventListener('click', () => { close(); options.onReact!(m.id, e, m); });
+      row.append(b);
+    }
+    const all = h('button', { type: 'button', class: 'b24-chat-menu__reaction b24-chat-menu__reaction--all', 'aria-label': t('Другая реакция'), title: t('Другая реакция') }, html(icon('chevronDown', { size: 16 })));
+    all.addEventListener('click', () => {
+      close();
+      const anchor = findEl(m.id)?.querySelector<HTMLElement>('.b24-chat-msg__bubble') ?? root;
+      openEmojiPicker(anchor, { align: isMine(m) ? 'end' : 'start', onSelect: (e) => options.onReact!(m.id, e, m) });
+    });
+    row.append(all);
+    return row;
+  };
+  const isMine = (m: ChatMessage) => m.dir === 'out' || (m.dir === 'note' && m.mine !== false);
+  const menuItemsFor = (m: ChatMessage): ContextMenuItem[] => {
+    const out: ContextMenuItem[] = [];
+    if (options.onReact) { out.push({ content: (close) => reactionsRow(m, close) }); out.push({ separator: true }); }
+    for (const a of messageActions(m)) {
+      if ('separator' in a) { if (out.length && !out[out.length - 1].separator) out.push({ separator: true }); continue; }
+      out.push({ label: a.label, icon: a.icon, danger: a.danger, onClick: () => a.onClick(m) });
+    }
+    while (out.length && out[out.length - 1].separator) out.pop();
+    return out.length === 1 && out[0].separator ? [] : out;
+  };
+  const openMenuAt = (m: ChatMessage, x: number, y: number) => {
+    const items = menuItemsFor(m);
+    if (items.length) openContextMenu(x, y, items);
+  };
+  /** Круглые кнопки сбоку пузыря (при наведении): «Ответить» и «⋯» с тем же меню. */
+  const buildSide = (m: ChatMessage): HTMLElement | null => {
+    const hasMenu = messageMenuItemsExist(m);
+    if (!options.onReply && !hasMenu) return null;
+    const side = h('div', { class: 'b24-chat-msg__side', role: 'toolbar', 'aria-label': t('Действия с сообщением') });
+    if (options.onReply) {
+      const b = h('button', { type: 'button', class: 'b24-chat-msg__sidebtn', 'aria-label': t('Ответить'), title: t('Ответить'), 'data-act': 'reply' }, html(icon('reply', { size: 16 })));
+      b.addEventListener('click', (e) => { e.stopPropagation(); options.onReply!(m); });
+      side.append(b);
+    }
+    if (hasMenu) {
+      const b = h('button', { type: 'button', class: 'b24-chat-msg__sidebtn', 'aria-label': t('Ещё'), title: t('Ещё'), 'aria-haspopup': 'menu', 'data-act': 'more' }, html(icon('more', { size: 16 })));
+      b.addEventListener('pointerdown', () => { selSnap = { id: m.id, text: selectedIn(m.id) }; });
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const r = b.getBoundingClientRect();
+        openMenuAt(m, isMine(m) ? r.right - 200 : r.left, r.bottom + 4);
+      });
+      side.append(b);
+    }
+    return side;
+  };
+  const messageMenuItemsExist = (m: ChatMessage) => !!options.onReact || messageActions(m).some((a) => !('separator' in a));
 
   /** Блок «ответ на…» в пузыре: полоска акцента, автор, 1–2 строки; клик — к исходному сообщению. */
   const replyBlock = (m: ChatMessage): HTMLElement => {
@@ -566,11 +672,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const body = r.text?.trim() ? (options.formatting ? toPlain(r.text) : r.text) : r.attachment ? kinds[r.attachment] ?? r.attachment : '';
     const el = h('div', { class: `b24-chat-msg__reply${r.quote ? ' is-quote' : ''}`, role: 'button', tabindex: '0', 'data-reply-id': r.id, title: t('Перейти к сообщению') },
       r.quote ? html(icon('quote', { size: 12 })) : '', r.author ? h('span', { class: 'b24-chat-msg__reply-author' }, r.author) : '', h('span', { class: 'b24-chat-msg__reply-text' }, body));
-    const go = () => {
-      if (handle.scrollTo(r.id)) return;
-      if (options.onReplyClick) options.onReplyClick(r.id, m);
-      else if (options.onLoadAround) void handle.jumpTo(r.id);
-    };
+    const go = () => goTo(r.id, m);
     el.addEventListener('click', (e) => { e.preventDefault(); go(); });
     el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     return el;
@@ -581,22 +683,27 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const d = toDate(m.time);
     // подряд от одного автора в пределах 5 минут — без повторной подписи
     const grouped = !!prev && prev.dir === m.dir && prev.author === m.author && dayNum(toDate(prev.time)) === dayNum(d) && d.getTime() - toDate(prev.time).getTime() < 5 * 60000;
-    const el = h('div', { class: `b24-chat-msg is-${m.dir === 'note' ? `${m.mine === false ? 'in' : 'out'} is-note` : m.dir}${m.status === 'failed' ? ' is-failed' : ''}${grouped ? ' is-grouped' : ''}`, 'data-id': m.id });
+    const el = h('div', { class: `b24-chat-msg is-${m.dir === 'note' ? `${m.mine === false ? 'in' : 'out'} is-note` : m.dir}${m.status === 'failed' ? ' is-failed' : ''}${grouped ? ' is-grouped' : ''}${m.deleted ? ' is-deleted' : ''}${selected.has(m.id) ? ' is-selected' : ''}`, 'data-id': m.id });
+    el.append(h('span', { class: 'b24-chat-msg__check', role: 'checkbox', 'aria-checked': String(selected.has(m.id)), 'aria-label': t('Выбрать') }, html(icon('check', { size: 14 }))));
     if ((options.showAvatars && m.dir === 'in') || (m.dir === 'note' && m.mine === false)) el.append(grouped ? h('span', { class: 'b24-chat-msg__avatar' }) : html(avatarHtml(m.author ?? '', m.avatar, 'sm')).firstElementChild!);
     const bubble = h('div', { class: 'b24-chat-msg__bubble' });
     if (m.dir === 'note') bubble.append(h('div', { class: 'b24-chat-msg__note' }, html(icon('lock', { size: 12 })), h('span', {}, options.noteLabel ?? t('Видят только сотрудники'))));
     if (m.author && !grouped) bubble.append(h('div', { class: 'b24-chat-msg__author' }, m.author));
-    if (m.forwarded) bubble.append(h('div', { class: 'b24-chat-msg__fwd' }, html(icon('forward', { size: 12 })), h('span', {}, t('Переслано от {from}', { from: m.forwarded.from }))));
-    if (m.replyTo) bubble.append(replyBlock(m));
-    if (m.attachments?.length) bubble.append(h('div', { class: 'b24-chat-msg__atts' }, ...m.attachments.map((a) => attachment(a, m))));
-    if (m.text) bubble.append(h('div', { class: 'b24-chat-msg__text' }, options.formatting ? renderMarkup(m.text) : richText(m.text)));
+    const del = !!m.deleted;
+    if (del) bubble.append(h('div', { class: 'b24-chat-msg__deleted' }, t('Сообщение удалено')));
+    else {
+      if (m.forwarded) bubble.append(h('div', { class: 'b24-chat-msg__fwd' }, html(icon('forward', { size: 12 })), h('span', {}, t('Переслано от {from}', { from: m.forwarded.from }))));
+      if (m.replyTo) bubble.append(replyBlock(m));
+      if (m.attachments?.length) bubble.append(h('div', { class: 'b24-chat-msg__atts' }, ...m.attachments.map((a) => attachment(a, m))));
+      if (m.text) bubble.append(h('div', { class: 'b24-chat-msg__text' }, options.formatting ? renderMarkup(m.text) : richText(m.text)));
+    }
     const meta = h('span', { class: 'b24-chat-msg__meta' });
-    if (m.edited) {
+    if (m.edited && !del) {
       const ed = m.edited === true ? null : toDate(m.edited);
       meta.append(h('span', { class: 'b24-chat-msg__edited', title: ed && !isNaN(ed.getTime()) ? `${t('Изменено')} ${formatChatDay(ed)}, ${hm(ed)}` : undefined }, t('изменено')));
     }
-    meta.append(h('time', { datetime: d.toISOString() }, hm(d)), statusIcon(m));
-    const inBubble = !!options.reactionsInBubble && !!m.reactions?.some((r) => r.count > 0);
+    meta.append(h('time', { datetime: d.toISOString() }, hm(d)), del ? '' : statusIcon(m));
+    const inBubble = !del && !!options.reactionsInBubble && !!m.reactions?.some((r) => r.count > 0);
     const reactionChips = (): HTMLElement => {
       const chips = h('div', { class: 'b24-chat-reactions', role: 'group', 'aria-label': t('Реакции') });
       for (const r of m.reactions ?? []) {
@@ -630,15 +737,16 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       }
       col.append(err);
     }
-    if (!inBubble && m.reactions?.some((r) => r.count > 0)) col.append(reactionChips());
-    const tools = buildTools(m);
+    if (!del && !inBubble && m.reactions?.some((r) => r.count > 0)) col.append(reactionChips());
+    if (options.messageMenu && !del) { const side = buildSide(m); if (side) bubble.append(side); }
+    const tools = del || (options.messageMenu && !options.hoverReactions) ? null : buildTools(m);
     if (tools) col.append(tools);
     el.append(col);
     return el;
   };
 
-  const messageActions = (m: ChatMessage): ChatMessageAction[] => {
-    const list: ChatMessageAction[] = [];
+  const messageActions = (m: ChatMessage): Array<ChatMessageAction | { separator: true }> => {
+    const list: Array<ChatMessageAction | { separator: true }> = [];
     if (options.onReply) list.push({ id: 'reply', label: t('Ответить'), icon: 'reply', onClick: options.onReply });
     if (options.onForward) list.push({ id: 'forward', label: t('Переслать'), icon: 'forward', onClick: options.onForward });
     // выделена часть текста — копируется она, иначе весь текст (при formatting — без маркеров разметки)
@@ -649,7 +757,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
 
   /** Полоска быстрых реакций и «⋯» над пузырём: по наведению / фокусу, на телефоне — по долгому нажатию (.is-tools). */
   const buildTools = (m: ChatMessage): HTMLElement | null => {
-    const acts = messageActions(m);
+    const acts = (options.messageMenu ? [] : messageActions(m)).filter((a): a is ChatMessageAction => !('separator' in a));
     if (!options.onReact && !acts.length) return null;
     const bar = h('div', { class: 'b24-chat-msg__tools', role: 'toolbar', 'aria-label': t('Действия с сообщением') });
     if (options.onReact) {
@@ -691,12 +799,12 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const target = e.target as HTMLElement;
     const msg = target.closest<HTMLElement>('.b24-chat-msg');
     if (toolsEl && (!msg || msg !== toolsEl) && !target.closest('.b24-chat-msg__tools')) hideTools();
-    if (e.pointerType !== 'touch' || !msg || !msg.querySelector('.b24-chat-msg__tools') || target.closest('a, button, audio')) return;
+    if (options.messageMenu || e.pointerType !== 'touch' || !msg || !msg.querySelector('.b24-chat-msg__tools') || target.closest('a, button, audio')) return;
     clearTimeout(pressTimer);
     pressTimer = window.setTimeout(() => { hideTools(); msg.classList.add('is-tools'); toolsEl = msg; }, 450);
   });
   for (const ev of ['pointerup', 'pointercancel', 'pointermove']) list.addEventListener(ev, () => clearTimeout(pressTimer), { passive: true });
-  list.addEventListener('contextmenu', (e) => { if (toolsEl || (e.target as HTMLElement).closest('.b24-chat-msg__bubble') && matchMedia('(pointer: coarse)').matches) e.preventDefault(); });
+  list.addEventListener('contextmenu', (e) => { if (options.messageMenu) return; if (toolsEl || (e.target as HTMLElement).closest('.b24-chat-msg__bubble') && matchMedia('(pointer: coarse)').matches) e.preventDefault(); });
 
   const render = () => {
     toolsEl = null;
@@ -719,6 +827,108 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       prev = m;
     }
     list.replaceChildren(...out);
+  };
+
+
+  /* ── контекстное меню, двойной щелчок, режим выбора, закреплённое ── */
+  const msgOf = (n: Element | null) => { const el = n?.closest<HTMLElement>('.b24-chat-msg'); return el ? messages.find((x) => x.id === el.dataset.id) : undefined; };
+  let lastMsgEl: HTMLElement | null = null;
+  list.addEventListener('pointerover', (e) => { const el = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-msg'); if (el) lastMsgEl = el; });
+  const menuHandle = options.messageMenu
+    ? contextMenu(list, (e, target) => {
+      const m = msgOf(target);
+      // выделен текст — оставляем меню браузера (копирование), выделение «Цитировать» — плашка у выделения
+      if (!m || m.dir === 'system' || m.deleted || selecting || selectedIn(m.id) || target.closest('.b24-chat-msg__side, .b24-chat-msg__check')) return null;
+      selSnap = null;
+      void e;
+      return menuItemsFor(m);
+    }, { selector: '.b24-chat-msg__bubble' })
+    : null;
+  // Shift+F10 / клавиша меню: меню для сообщения в фокусе, под курсором или последнего
+  const onMenuKey = (e: KeyboardEvent) => {
+    if (!options.messageMenu || selecting || !((e.key === 'F10' && e.shiftKey) || e.key === 'ContextMenu')) return;
+    const active = document.activeElement as HTMLElement | null;
+    const el = (active && active !== root ? active.closest<HTMLElement>('.b24-chat-msg') : null) ?? (lastMsgEl && list.contains(lastMsgEl) ? lastMsgEl : null) ?? (list.querySelector<HTMLElement>('.b24-chat-msg:last-of-type'));
+    const m = msgOf(el);
+    if (!el || !m || m.dir === 'system' || m.deleted) return;
+    e.preventDefault();
+    const r = (el.querySelector('.b24-chat-msg__bubble') ?? el).getBoundingClientRect();
+    openMenuAt(m, r.left + Math.min(40, r.width / 2), r.top + Math.min(24, r.height / 2));
+  };
+  root.addEventListener('keydown', onMenuKey);
+  // двойной щелчок по пузырю — «Ответить»
+  const dblReply = !!options.onReply && (options.replyOnDoubleClick ?? !!options.messageMenu);
+  const dblTarget = (t0: Element) => !!t0.closest('.b24-chat-msg__bubble') && !t0.closest('a, button, audio, video, input, textarea, .b24-chat-msg__atts, .b24-chat-reaction, .b24-chat-reactions, .b24-chat-msg__reply, .b24-chat-msg__side, .b24-chat-msg__tools, .b24-chat-msg__error');
+  if (dblReply) {
+    list.addEventListener('mousedown', (e) => { if (e.detail > 1 && !selecting && dblTarget(e.target as Element)) e.preventDefault(); });
+    list.addEventListener('dblclick', (e) => {
+      const m = msgOf(e.target as Element);
+      if (!m || m.dir === 'system' || m.deleted || selecting || !dblTarget(e.target as Element)) return;
+      getSelection()?.removeAllRanges();
+      options.onReply!(m);
+    });
+  }
+
+  // режим выбора
+  const selectedMsgs = () => messages.filter((x) => selected.has(x.id));
+  const paintSel = () => {
+    list.querySelectorAll<HTMLElement>('.b24-chat-msg[data-id]').forEach((el) => {
+      const on = selected.has(el.dataset.id!);
+      el.classList.toggle('is-selected', on);
+      el.querySelector('.b24-chat-msg__check')?.setAttribute('aria-checked', String(on));
+    });
+    selBar.replaceChildren();
+    if (!selecting) return;
+    const n = selected.size;
+    selBar.append(h('span', { class: 'b24-chat-selbar__count', 'aria-live': 'polite' }, t('Выбрано: {n}', { n })));
+    for (const a of options.selectActions ?? []) {
+      const b = h('button', { type: 'button', class: `b24-chat-selbar__btn${a.danger ? ' is-danger' : ''}`, 'data-id': a.id, disabled: n === 0 }, a.icon ? html(icon(a.icon, { size: 16 })) : '', h('span', {}, a.label));
+      b.addEventListener('click', async () => {
+        const r = await a.onClick(selectedMsgs());
+        if (r !== false) handle.endSelect();
+      });
+      selBar.append(b);
+    }
+    const cancel = h('button', { type: 'button', class: 'b24-chat-selbar__btn b24-chat-selbar__cancel', 'data-id': 'cancel' }, t('Отмена'));
+    cancel.addEventListener('click', () => handle.endSelect());
+    selBar.append(cancel);
+    options.onSelectChange?.(selectedMsgs());
+  };
+  list.addEventListener('click', (e) => {
+    if (!selecting) return;
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.b24-chat-msg');
+    if (!el || !el.dataset.id) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (selected.has(el.dataset.id)) selected.delete(el.dataset.id); else selected.add(el.dataset.id);
+    paintSel();
+  }, true);
+  const onSelKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); handle.endSelect(); } };
+
+  // закреплённое сообщение
+  let pinned: ChatPinnedMessage | null = null;
+  const paintPin = () => {
+    pinBar.hidden = !pinned;
+    pinBar.replaceChildren();
+    if (!pinned) return;
+    const p = pinned;
+    const raw = (p.text ?? '').trim();
+    const txt = (options.formatting ? toPlain(raw) : raw).replace(/\s+/g, ' ');
+    const body = h('button', { type: 'button', class: 'b24-chat-pinbar__body', title: t('Перейти к сообщению') },
+      html(icon('pin', { size: 16 })),
+      h('span', { class: 'b24-chat-pinbar__text' }, h('span', { class: 'b24-chat-pinbar__title' }, p.author ? `${t('Закреплённое сообщение')} · ${p.author}` : t('Закреплённое сообщение')), h('span', { class: 'b24-chat-pinbar__msg' }, txt)));
+    body.addEventListener('click', () => {
+      if (handle.scrollTo(p.id)) return;
+      if (options.onPinnedClick) options.onPinnedClick(p.id);
+      else if (options.onReplyClick) options.onReplyClick(p.id, messages.find((x) => x.id === p.id) ?? ({ id: p.id, dir: 'in', time: new Date() } as ChatMessage));
+      else if (options.onLoadAround) void handle.jumpTo(p.id);
+    });
+    pinBar.append(body);
+    if ((p.canUnpin ?? options.canUnpin) && options.onUnpin) {
+      const x = h('button', { type: 'button', class: 'b24-chat-pinbar__x', 'aria-label': t('Открепить'), title: t('Открепить') }, html(icon('close', { size: 14 })));
+      x.addEventListener('click', () => options.onUnpin!());
+      pinBar.append(x);
+    }
   };
 
   /** Перерисовка с якорем прокрутки: пришло сверху — остаёмся на месте, снизу — вниз, если были у низа. */
@@ -885,6 +1095,32 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       return handle.scrollTo(id, opts);
     },
     setHasNewer(v) { hasNewer = v; newer.hidden = !v; if (!v) stick = nearBottom(); },
+    startSelect(firstId) {
+      if (selecting) return;
+      selecting = true;
+      selected.clear();
+      if (firstId) selected.add(firstId);
+      hideTools();
+      hideQuote();
+      getSelection()?.removeAllRanges();
+      root.classList.add('is-selecting');
+      selBar.hidden = false;
+      document.addEventListener('keydown', onSelKey);
+      paintSel();
+    },
+    endSelect() {
+      if (!selecting) return;
+      selecting = false;
+      selected.clear();
+      root.classList.remove('is-selecting');
+      selBar.hidden = true;
+      document.removeEventListener('keydown', onSelKey);
+      paintSel();
+      options.onSelectChange?.([]);
+    },
+    getSelected: selectedMsgs,
+    isSelecting: () => selecting,
+    setPinned(p) { pinned = p ? { ...p } : null; paintPin(); },
     scrollToBottom(smooth = false) {
       stick = true;
       programmatic = true;
@@ -894,7 +1130,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       if (smooth) setTimeout(done, 400); else done();
     },
     isAtBottom: nearBottom,
-    destroy() { ro?.disconnect(); document.removeEventListener('selectionchange', onSelectionChange); clearTimeout(selTimer); hideQuote(); root.remove(); },
+    destroy() { ro?.disconnect(); menuHandle?.destroy(); document.removeEventListener('keydown', onSelKey); document.removeEventListener('selectionchange', onSelectionChange); clearTimeout(selTimer); hideQuote(); root.remove(); },
   };
   return handle;
 }
@@ -973,8 +1209,10 @@ export interface ChatComposerOptions {
   maxLength?: number;
   /** пользователь печатает: вызывается при вводе не чаще раза в 3 с — шлите «печатает» в канал */
   onTyping?: () => void;
-  /** форматирование: Ctrl/⌘+B (**), +I (__), +Shift+X (~~), +E (`) оборачивают выделение маркерами (повторно — снимают), кнопка «Aa» открывает панель. Значение поля — с маркерами: для отправки используйте chatMarkup.toHtml / toPlain */
+  /** форматирование: Ctrl/⌘+B (**), +I (__), +Shift+X (~~), +E (`) оборачивают выделение маркерами (повторно — снимают); правый клик по выделению в поле — меню «Жирный / Курсив / Зачёркнутый / Код / Цитата» и «Вырезать / Копировать / Вставить»; кнопка «Aa» с панелью (formattingButton). Значение поля — с маркерами: для отправки используйте chatMarkup.toHtml / toPlain */
   formatting?: boolean;
+  /** кнопка «Aa» с панелью форматирования рядом со скрепкой (по умолчанию да при formatting; false — только горячие клавиши и меню) */
+  formattingButton?: boolean;
   /** ответ отменён пользователем (✕ или Esc в пустом поле); setReply(null) и отправка его не вызывают */
   onReplyCancel?: () => void;
   /** кнопка выбора эмодзи рядом со скрепкой: панель с «Частыми», разделами и поиском; вставка в позицию курсора */
@@ -997,7 +1235,7 @@ export interface ChatComposerHandle {
   /** пользователь отменил ответ (то же, что ✕): панель убирается, вызывается onReplyCancel */
   cancelReply(): void;
   /** обернуть выделение маркерами разметки (как горячие клавиши) */
-  format(kind: 'bold' | 'italic' | 'strike' | 'code'): void;
+  format(kind: 'bold' | 'italic' | 'strike' | 'code' | 'quote'): void;
   /** id правимого сообщения или null */
   getEditing(): string | null;
   insert(text: string): void;
@@ -1119,6 +1357,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     input.setSelectionRange(a, b);
     fit();
   };
+  let quoteFn = () => {};
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   const mod = mac ? '⌘' : 'Ctrl+';
   if (options.formatting) {
@@ -1127,16 +1366,53 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
       ['strike', 'Зачёркнутый', `${mod}${mac ? '⇧' : 'Shift+'}X`, '<s>S</s>'], ['code', 'Код', `${mod}E`, '<code>&lt;/&gt;</code>'],
     ];
     const bar = h('div', { class: 'b24-chat-composer__fmt', role: 'toolbar', 'aria-label': t('Форматирование'), hidden: '' });
-    for (const [kind, label, key, glyph] of defs) {
+    if (options.formattingButton !== false) for (const [kind, label, key, glyph] of defs) {
       const b = h('button', { type: 'button', class: 'b24-chat-composer__fmt-btn', 'data-fmt': kind, 'aria-label': `${t(label)} (${key})`, title: `${t(label)} (${key})` }, html(glyph));
       b.addEventListener('mousedown', (e) => e.preventDefault());
       b.addEventListener('click', () => wrapSel(fmtMarks[kind]));
       bar.append(b);
     }
-    const aa = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--icon b24-chat-composer__aa', 'aria-label': t('Форматирование'), title: t('Форматирование'), 'aria-pressed': 'false' }, 'Aa');
-    aa.addEventListener('click', () => { bar.hidden = !bar.hidden; aa.setAttribute('aria-pressed', String(!bar.hidden)); input.focus(); });
-    actions.append(aa);
-    row.before(bar);
+    if (options.formattingButton !== false) {
+      const aa = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--icon b24-chat-composer__aa', 'aria-label': t('Форматирование'), title: t('Форматирование'), 'aria-pressed': 'false' }, 'Aa');
+      aa.addEventListener('click', () => { bar.hidden = !bar.hidden; aa.setAttribute('aria-pressed', String(!bar.hidden)); input.focus(); });
+      actions.append(aa);
+      row.before(bar);
+    }
+    // правый клик по выделению в поле: форматирование и системные «Вырезать / Копировать / Вставить»; без выделения — меню браузера
+    const insertAt = (rep: string, from: number, to: number, a: number, b: number) => {
+      input.focus();
+      input.setSelectionRange(from, to);
+      if (!document.execCommand('insertText', false, rep)) input.setRangeText(rep, from, to, 'end');
+      input.setSelectionRange(a, b);
+      fit();
+    };
+    const quoteLines = () => {
+      const v = input.value;
+      const ls = v.lastIndexOf('\n', input.selectionStart - 1) + 1;
+      let le = v.indexOf('\n', input.selectionEnd);
+      if (le < 0) le = v.length;
+      const lines = v.slice(ls, le).split('\n');
+      const all = lines.every((l) => l.startsWith('> '));
+      const rep = lines.map((l) => (all ? l.slice(2) : `> ${l}`)).join('\n');
+      insertAt(rep, ls, le, ls, ls + rep.length);
+    };
+    quoteFn = quoteLines;
+    const execClip = (cmd: 'cut' | 'copy') => { input.focus(); document.execCommand(cmd); };
+    contextMenu(input, () => {
+      if (input.selectionStart === input.selectionEnd) return null;
+      const sc = (k: string) => `${mod}${k}`;
+      return [
+        { label: t('Жирный'), hint: sc('B'), onClick: () => wrapSel(fmtMarks.bold) },
+        { label: t('Курсив'), hint: sc('I'), onClick: () => wrapSel(fmtMarks.italic) },
+        { label: t('Зачёркнутый'), hint: sc(`${mac ? '⇧' : 'Shift+'}X`), onClick: () => wrapSel(fmtMarks.strike) },
+        { label: t('Код'), hint: sc('E'), onClick: () => wrapSel(fmtMarks.code) },
+        { label: t('Цитата'), onClick: quoteLines },
+        { separator: true },
+        { label: t('Вырезать'), hint: sc('X'), onClick: () => execClip('cut') },
+        { label: t('Копировать'), hint: sc('C'), onClick: () => execClip('copy') },
+        { label: t('Вставить'), hint: sc('V'), onClick: () => { void navigator.clipboard?.readText().then((txt) => { input.focus(); if (!document.execCommand('insertText', false, txt)) input.setRangeText(txt, input.selectionStart, input.selectionEnd, 'end'); fit(); }).catch(() => {}); } },
+      ];
+    }, { keepNativeOnInputs: false, longPress: 0 });
     input.addEventListener('keydown', (e) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
       const kind = e.code === 'KeyB' && !e.shiftKey ? 'bold' : e.code === 'KeyI' && !e.shiftKey ? 'italic' : e.code === 'KeyX' && e.shiftKey ? 'strike' : e.code === 'KeyE' && !e.shiftKey ? 'code' : null;
@@ -1160,7 +1436,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     x.addEventListener('click', () => { handle.cancelReply(); });
     replyBar.replaceChildren(
       html(icon(r.quote ? 'quote' : 'reply', { size: 16 })),
-      h('span', { class: 'b24-chat-composer__reply-body' }, h('span', { class: 'b24-chat-composer__reply-title' }, r.author ? `${t('Ответ')}: ${r.author}` : t('Ответ')), h('span', { class: 'b24-chat-composer__reply-text' }, cut.length > 140 ? `${cut.slice(0, 140)}…` : cut)),
+      h('span', { class: 'b24-chat-composer__reply-body' }, h('span', { class: 'b24-chat-composer__reply-title' }, r.author ? t(r.quote ? 'Цитата {author}' : 'Ответ для {author}', { author: r.author }) : r.quote ? t('Цитата') : t('Ответ')), h('span', { class: 'b24-chat-composer__reply-text' }, cut.length > 140 ? `${cut.slice(0, 140)}…` : cut)),
       x,
     );
   };
@@ -1284,7 +1560,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     setReply(r) { if (r && editId != null) handle.cancelEdit(); setReplyInner(r); if (r) input.focus(); },
     getReply: () => (reply ? { ...reply } : null),
     cancelReply() { if (!reply) return; setReplyInner(null); input.focus(); options.onReplyCancel?.(); },
-    format(kind) { wrapSel(fmtMarks[kind]); },
+    format(kind) { if (kind === 'quote') quoteFn(); else wrapSel(fmtMarks[kind]); },
     addAttachment(a) {
       const old = files.get(a.id);
       if (old) { old.a = a; paintChip(old); sync(); return; }

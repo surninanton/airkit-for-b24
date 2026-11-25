@@ -2,6 +2,13 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### Добавлено
+- Работа с сообщением как в Telegram / ВК / MAX (`messageMenu: true`): контекстное меню (быстрые реакции + «⌄», действия, `separator` и `danger` в `actions`), кнопки «Ответить» и «⋯» сбоку пузыря, двойной щелчок — ответ (`replyOnDoubleClick`), `hoverReactions`.
+- Режим выбора: `startSelect` / `endSelect` / `getSelected` / `isSelecting`, `selectActions`, `onSelectChange`. `ChatMessage.deleted`. Закреплённое сообщение: `setPinned`, `onUnpin`, `canUnpin`, `onPinnedClick`.
+- Поле ввода: панель ответа «Ответ для {author}» / «Цитата {author}», `formattingButton`, меню форматирования по правому клику на выделении, `format('quote')`.
+
 ## 0.29.0 — 2026-11-26
 
 ### Добавлено
