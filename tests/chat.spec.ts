@@ -641,3 +641,188 @@ test('чаты: рейл — перетаскивание папок мышью 
   await page.keyboard.press('Escape');
   expect(await p2).toBeNull();
 });
+
+test('chatMarkup: toPlain / toHtml / безопасность', async ({ page }) => {
+  await open(page, '/chat.html');
+  const r = await page.evaluate(() => {
+    const m = (window as any).B24UI.chatMarkup;
+    return {
+      plain: m.toPlain('**жирный** и __курсив__, ~~зачёркнутый~~ и `код`'),
+      html: m.toHtml('**жирный** и __курсив__, ~~зач~~ и `код`'),
+      nested: m.toHtml('**a __b__ c**'),
+      snake: m.toHtml('my_snake_case_name и _x_'),
+      codeRaw: m.toHtml('`**не жирный**` и ```\n__блок__ <b>\n```'),
+      link: m.toHtml('**https://example.com/a_b**, и https://ex.com/q?x=1&y=2'),
+      quote: m.toHtml('до\n> цитата **жирная**\n> вторая\nпосле'),
+      quotePlain: m.toPlain('до\n> цитата\nпосле'),
+      xss: m.toHtml('<img src=x onerror=alert(1)> **<script>**'),
+      unclosed: m.toHtml('**без закрытия и ~~ и `'),
+      pre2: m.toPlain('a\n```\nx\ny\n```\nb'),
+    };
+  });
+  expect(r.plain).toBe('жирный и курсив, зачёркнутый и код');
+  expect(r.html).toBe('<b>жирный</b> и <i>курсив</i>, <s>зач</s> и <code>код</code>');
+  expect(r.nested).toBe('<b>a <i>b</i> c</b>');
+  expect(r.snake).toBe('my_snake_case_name и _x_');
+  expect(r.codeRaw).toBe('<code>**не жирный**</code> и <pre>__блок__ &lt;b&gt;</pre>');
+  expect(r.link).toBe('<b><a href="https://example.com/a_b">https://example.com/a_b</a></b>, и <a href="https://ex.com/q?x=1&amp;y=2">https://ex.com/q?x=1&amp;y=2</a>');
+  expect(r.quote).toBe('до<blockquote>цитата <b>жирная</b>\nвторая</blockquote>после');
+  expect(r.quotePlain).toBe('до\nцитата\nпосле');
+  expect(r.xss).toBe('&lt;img src=x onerror=alert(1)&gt; <b>&lt;script&gt;</b>');
+  expect(r.unclosed).toBe('**без закрытия и ~~ и `');
+  expect(r.pre2).toBe('a\nx\ny\nb');
+});
+
+test('чаты: ответ (replyTo), пересылка, formatting в ленте, onQuote, «Переслать», «Копировать»', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'rp-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:60px;width:380px;max-width:calc(100vw - 20px);height:460px;z-index:50;background:#eef2f4;display:flex;flex-direction:column`;
+    document.body.append(host);
+    const log: any[] = [];
+    (window as any).__rplog = log;
+    (window as any).__rpfeed = B.createChatFeed(host, {
+      formatting: true,
+      onForward: (m: any) => log.push(`fwd:${m.id}`),
+      onQuote: (m: any, s: string) => log.push(`quote:${m.id}:${s}`),
+      onReplyClick: (id: string) => log.push(`missing:${id}`),
+      actions: () => [{ id: 'link', label: 'Копировать ссылку на сообщение', onClick: (m: any) => log.push(`link:${m.id}`) }],
+      messages: [
+        { id: 'a', dir: 'in', time: new Date(), text: 'Первое **сообщение** со `скобками`' },
+        { id: 'b', dir: 'out', time: new Date(), text: 'Ответ', replyTo: { id: 'a', author: 'Мария', text: 'Первое **сообщение** со `скобками`' } },
+        { id: 'c', dir: 'in', time: new Date(), text: 'Пересланное', forwarded: { from: 'Иван Петров' } },
+        { id: 'd', dir: 'in', time: new Date(), text: 'Цитата', replyTo: { id: 'zzz', author: 'Пётр', text: 'Фрагмент', quote: true } },
+        { id: 'e', dir: 'in', time: new Date(), text: '', attachments: [], replyTo: { id: 'a', attachment: 'photo' } },
+        { id: 'f', dir: 'in', time: new Date(), text: '> цитата\n```\nкод **не жирный**\n```\n__курсив__ <b>x</b>' },
+      ],
+    });
+  });
+  const feed = page.locator('#rp-host');
+  // форматирование и безопасный текст
+  await expect(feed.locator('.b24-chat-msg[data-id="a"] strong')).toHaveText('сообщение');
+  await expect(feed.locator('.b24-chat-msg[data-id="a"] code')).toHaveText('скобками');
+  await expect(feed.locator('.b24-chat-msg[data-id="f"] blockquote')).toHaveText('цитата');
+  await expect(feed.locator('.b24-chat-msg[data-id="f"] pre')).toHaveText('код **не жирный**');
+  await expect(feed.locator('.b24-chat-msg[data-id="f"] em')).toHaveText('курсив');
+  expect(await feed.locator('.b24-chat-msg[data-id="f"] b').count()).toBe(0);
+  // ответ: автор, текст без маркеров, цитата со значком, вложение вместо текста
+  const rb = feed.locator('.b24-chat-msg[data-id="b"] .b24-chat-msg__reply');
+  await expect(rb.locator('.b24-chat-msg__reply-author')).toHaveText('Мария');
+  await expect(rb.locator('.b24-chat-msg__reply-text')).toHaveText('Первое сообщение со скобками');
+  await expect(feed.locator('.b24-chat-msg[data-id="d"] .b24-chat-msg__reply.is-quote svg')).toHaveCount(1);
+  await expect(feed.locator('.b24-chat-msg[data-id="e"] .b24-chat-msg__reply-text')).toHaveText('Фото');
+  await expect(feed.locator('.b24-chat-msg[data-id="c"] .b24-chat-msg__fwd')).toHaveText('Переслано от Иван Петров');
+  // клик: есть в ленте — подсветка; нет — onReplyClick
+  await rb.click();
+  await expect(feed.locator('.b24-chat-msg[data-id="a"]')).toHaveClass(/is-flash/);
+  await feed.locator('.b24-chat-msg[data-id="d"] .b24-chat-msg__reply').click();
+  expect(await page.evaluate(() => (window as any).__rplog)).toEqual(['missing:zzz']);
+  // меню: Переслать и свой пункт «Копировать ссылку»
+  const msg = feed.locator('.b24-chat-msg[data-id="c"]');
+  await msg.hover();
+  await msg.getByRole('button', { name: 'Ещё' }).click({ force: true });
+  const menu = page.locator('.b24-chat-menu');
+  await expect(menu.getByRole('menuitem', { name: 'Копировать ссылку на сообщение' })).toBeVisible();
+  await menu.getByRole('menuitem', { name: 'Переслать' }).click();
+  expect((await page.evaluate(() => (window as any).__rplog)).at(-1)).toBe('fwd:c');
+  // «Копировать» — выделенное / весь текст без маркеров
+  await page.evaluate(() => { (window as any).__clip = []; Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (s: string) => (window as any).__clip.push(s) }, configurable: true }); });
+  const copy = async (id: string) => {
+    const m = feed.locator(`.b24-chat-msg[data-id="${id}"]`);
+    await m.hover();
+    await m.getByRole('button', { name: 'Ещё' }).click({ force: true });
+    await page.locator('.b24-chat-menu').getByRole('menuitem', { name: 'Копировать', exact: true }).click();
+  };
+  await copy('a');
+  expect(await page.evaluate(() => (window as any).__clip)).toEqual(['Первое сообщение со скобками']);
+  // выделение части текста
+  await page.evaluate(() => {
+    const el = document.querySelector('#rp-host .b24-chat-msg[data-id="c"] .b24-chat-msg__text')!;
+    const r = document.createRange(); r.setStart(el.firstChild!, 0); r.setEnd(el.firstChild!, 4);
+    const s = getSelection()!; s.removeAllRanges(); s.addRange(r);
+  });
+  await page.evaluate(() => (window as any).__clip.splice(0));
+  const m2 = feed.locator('.b24-chat-msg[data-id="c"]');
+  await m2.hover();
+  // всплывающая кнопка у выделения
+  const pop = page.locator('.b24-chat-quote-pop');
+  await expect(pop).toBeVisible();
+  await pop.getByRole('button', { name: 'Цитировать' }).click();
+  expect((await page.evaluate(() => (window as any).__rplog)).at(-1)).toBe('quote:c:Пере');
+  await expect(pop).toHaveCount(0);
+  await page.evaluate(() => { (window as any).__rpfeed.destroy(); document.getElementById('rp-host')?.remove(); });
+});
+
+test('композер: панель ответа (setReply), replyTo в onSend, Esc, форматирование горячими клавишами и «Aa»', async ({ page }) => {
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.id = 'cp-host';
+    host.style.cssText = `position:fixed;left:${innerWidth > 768 ? 400 : 10}px;top:60px;width:380px;max-width:calc(100vw - 20px);z-index:50;background:#fff`;
+    document.body.append(host);
+    (window as any).__cplog = [];
+    (window as any).__cp = B.createChatComposer(host, {
+      formatting: true,
+      onReplyCancel: () => (window as any).__cplog.push('cancel'),
+      onSend: (text: string, ctx: any) => { (window as any).__cplog.push({ text, replyTo: ctx.replyTo, reply: ctx.reply }); },
+    });
+  });
+  const root = page.locator('#cp-host .b24-chat-composer');
+  const input = root.locator('textarea');
+  await page.evaluate(() => (window as any).__cp.setReply({ id: 'm7', author: 'Мария', text: 'Привет,   как дела?' }));
+  const bar = root.locator('.b24-chat-composer__reply-bar');
+  await expect(bar).toBeVisible();
+  await expect(bar).toContainText('Ответ: Мария');
+  await expect(bar).toContainText('Привет, как дела?');
+  await expect(input).toBeFocused();
+  // Esc в пустом поле — отмена
+  await page.keyboard.press('Escape');
+  await expect(bar).toBeHidden();
+  expect(await page.evaluate(() => (window as any).__cplog)).toEqual(['cancel']);
+  // ответ уходит с replyTo и сбрасывается после отправки (без onReplyCancel)
+  await page.evaluate(() => (window as any).__cp.setReply({ id: 'm8', author: 'Иван', text: 'Цитата', quote: true }));
+  await expect(bar.locator('svg').first()).toBeVisible();
+  await input.fill('Ответ');
+  await page.keyboard.press('Escape');
+  await expect(bar).toBeVisible();
+  await input.press('Enter');
+  await expect(bar).toBeHidden();
+  const log = await page.evaluate(() => (window as any).__cplog);
+  expect(log[1]).toEqual({ text: 'Ответ', replyTo: 'm8', reply: { id: 'm8', author: 'Иван', text: 'Цитата', quote: true } });
+  expect(log.length).toBe(2);
+  // крестик
+  await page.evaluate(() => (window as any).__cp.setReply({ id: 'm9', text: 'x' }));
+  await bar.getByRole('button', { name: 'Отменить ответ' }).click();
+  expect((await page.evaluate(() => (window as any).__cplog)).at(-1)).toBe('cancel');
+  // форматирование: выделение → Ctrl+B, повторно — снять; без выделения — пара маркеров; другие клавиши
+  await input.fill('слово другое');
+  await input.evaluate((el: HTMLTextAreaElement) => { el.setSelectionRange(0, 5); });
+  await input.press('Control+KeyB');
+  await expect(input).toHaveValue('**слово** другое');
+  expect(await input.evaluate((el: HTMLTextAreaElement) => [el.selectionStart, el.selectionEnd])).toEqual([2, 7]);
+  await input.press('Control+KeyB');
+  await expect(input).toHaveValue('слово другое');
+  await input.evaluate((el: HTMLTextAreaElement) => { el.setSelectionRange(6, 12); });
+  await input.press('Control+KeyI');
+  await expect(input).toHaveValue('слово __другое__');
+  await input.evaluate((el: HTMLTextAreaElement) => { el.setSelectionRange(0, 5); });
+  await input.press('Control+Shift+KeyX');
+  await expect(input).toHaveValue('~~слово~~ __другое__');
+  await input.fill('');
+  await input.press('Control+KeyE');
+  await expect(input).toHaveValue('``');
+  expect(await input.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(1);
+  // панель «Aa»
+  const fmt = root.locator('.b24-chat-composer__fmt');
+  await expect(fmt).toBeHidden();
+  await root.locator('.b24-chat-composer__aa').click();
+  await expect(fmt).toBeVisible();
+  await input.fill('текст');
+  await input.evaluate((el: HTMLTextAreaElement) => { el.setSelectionRange(0, 5); });
+  await fmt.locator('[data-fmt="strike"]').click();
+  await expect(input).toHaveValue('~~текст~~');
+  await page.evaluate(() => { (window as any).__cp.destroy(); document.getElementById('cp-host')?.remove(); });
+});

@@ -2,6 +2,13 @@
 
 Версии по [SemVer](https://semver.org/lang/ru/). Пока кит в версии 0.x, классы могут меняться в минорных версиях — о таких изменениях здесь будет отдельный пункт «Несовместимо».
 
+## Не выпущено
+
+### Добавлено
+- Ответ на сообщение: `ChatMessage.replyTo` (блок цитаты в пузыре, `onReplyClick`, переход к исходному), `composer.setReply` / `cancelReply` / `getReply`, `ChatSendContext.replyTo` и `reply`, `onReplyCancel`, Esc в пустом поле.
+- Цитата выделенного: `onQuote(message, text)` — кнопки «Цитировать» и «Копировать» у выделения. Пересылка: `onForward`, `ChatMessage.forwarded`. «Копировать» копирует выделенное или текст без маркеров.
+- Разметка сообщений: `formatting` у ленты и поля (`**`, `__`, `~~`, `` ` ``, ```` ``` ````, `> `), горячие клавиши и кнопка «Aa», `composer.format()`, `B24UI.chatMarkup` (`toPlain`, `toHtml`, `render`, `parse`). Иконки `quote`, `forward`.
+
 ## 0.28.0 — 2026-11-26
 
 ### Добавлено

@@ -11,7 +11,8 @@
 import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
 import { autoResize } from './timeline';
-import { h, html } from './dom';
+import { bringToFront, h, html } from './dom';
+import { renderMarkup, toPlain, MARKERS } from './chat-markup';
 import { getLocale, intlLocale, t } from './i18n';
 import { attachEmojiPicker, openEmojiPicker } from './emoji';
 import { showFloat } from './float';
@@ -326,6 +327,14 @@ export interface ChatReaction {
    */
   avatars?: Array<string | { name: string; src?: string }>;
 }
+/** Ссылка на сообщение, на которое отвечают: quote: true — цитата фрагмента (значок кавычек); attachment — вместо текста подпись «Фото», «Файл»… */
+export interface ChatReplyRef {
+  id: string;
+  author?: string;
+  text?: string;
+  attachment?: 'photo' | 'file' | 'voice' | 'video' | 'geo' | (string & {});
+  quote?: boolean;
+}
 export interface ChatMessageAction {
   id: string;
   label: string;
@@ -350,6 +359,10 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
   /** реакции под пузырём: чипы «👍 3» */
   reactions?: ChatReaction[];
+  /** это ответ на сообщение: блок цитаты над текстом (полоска, автор, 1–2 строки), клик ведёт к исходному (см. onReplyClick) */
+  replyTo?: ChatReplyRef;
+  /** пересланное: серая строка «Переслано от X» над текстом */
+  forwarded?: { from: string };
   /** сообщение изменено: серая подпись «изменено» в meta; дата/время правки — в подсказке */
   edited?: boolean | ChatDate;
   /** false — «Изменить» из onEdit для этого сообщения не показывается (чужое, старше срока правки); по умолчанию — у своих (out и своя заметка) с текстом */
@@ -380,6 +393,14 @@ export interface ChatFeedOptions {
    * массивом или { messages, hasMore (есть раньше), hasNewer (есть новее) }, либо { before, after, message } .
    */
   onLoadAround?: (id: string) => ChatAroundResult | Promise<ChatAroundResult>;
+  /** разметка в тексте: **жирный**, __курсив__, ~~зачёркнутый~~, `код`, ```блок```, «> цитата» (по умолчанию выключена — текст как есть) */
+  formatting?: boolean;
+  /** клик по блоку ответа (replyTo): исходное сообщение есть в ленте — прокрутка к нему с подсветкой, нет — вызывается onReplyClick (если не задан, но есть onLoadAround — лента подгружает окно вокруг сообщения сама) */
+  onReplyClick?: (id: string, message: ChatMessage) => void;
+  /** «Цитировать»: при выделении текста в сообщении рядом с выделением всплывает кнопка (и «Копировать»); без обработчика кнопки нет */
+  onQuote?: (message: ChatMessage, selectedText: string) => void;
+  /** «Переслать» в меню сообщения; без обработчика пункта нет */
+  onForward?: (message: ChatMessage) => void;
   /** аватары у входящих (групповой чат) */
   showAvatars?: boolean;
   /** повторить отправку («не доставлено» → «Повторить») */
@@ -528,6 +549,33 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     return h('span', { class: `b24-chat-msg__status is-${m.status}`, title: label, 'aria-label': label }, html(icon(name, { size: 14 })));
   };
 
+  /** выделенный текст внутри сообщения (пусто — выделения нет или оно в другом месте) */
+  const textElOf = (n: Node | null) => (n instanceof Element ? n : n?.parentElement)?.closest<HTMLElement>('.b24-chat-msg__text') ?? null;
+  const selectedIn = (id: string): string => {
+    const s = getSelection();
+    if (!s || s.isCollapsed) return '';
+    const a = textElOf(s.anchorNode);
+    return a && a === textElOf(s.focusNode) && a.closest<HTMLElement>('.b24-chat-msg')?.dataset.id === id ? s.toString() : '';
+  };
+  let selSnap: { id: string; text: string } | null = null;
+
+  /** Блок «ответ на…» в пузыре: полоска акцента, автор, 1–2 строки; клик — к исходному сообщению. */
+  const replyBlock = (m: ChatMessage): HTMLElement => {
+    const r = m.replyTo!;
+    const kinds: Record<string, string> = { photo: t('Фото'), file: t('Файл'), voice: t('Голосовое сообщение'), video: t('Видео'), geo: t('Геоточка') };
+    const body = r.text?.trim() ? (options.formatting ? toPlain(r.text) : r.text) : r.attachment ? kinds[r.attachment] ?? r.attachment : '';
+    const el = h('div', { class: `b24-chat-msg__reply${r.quote ? ' is-quote' : ''}`, role: 'button', tabindex: '0', 'data-reply-id': r.id, title: t('Перейти к сообщению') },
+      r.quote ? html(icon('quote', { size: 12 })) : '', r.author ? h('span', { class: 'b24-chat-msg__reply-author' }, r.author) : '', h('span', { class: 'b24-chat-msg__reply-text' }, body));
+    const go = () => {
+      if (handle.scrollTo(r.id)) return;
+      if (options.onReplyClick) options.onReplyClick(r.id, m);
+      else if (options.onLoadAround) void handle.jumpTo(r.id);
+    };
+    el.addEventListener('click', (e) => { e.preventDefault(); go(); });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    return el;
+  };
+
   const buildMessage = (m: ChatMessage, prev?: ChatMessage): HTMLElement => {
     if (m.dir === 'system') return h('div', { class: 'b24-chat-system', 'data-id': m.id }, h('span', {}, m.text ?? ''));
     const d = toDate(m.time);
@@ -538,8 +586,10 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     const bubble = h('div', { class: 'b24-chat-msg__bubble' });
     if (m.dir === 'note') bubble.append(h('div', { class: 'b24-chat-msg__note' }, html(icon('lock', { size: 12 })), h('span', {}, options.noteLabel ?? t('Видят только сотрудники'))));
     if (m.author && !grouped) bubble.append(h('div', { class: 'b24-chat-msg__author' }, m.author));
+    if (m.forwarded) bubble.append(h('div', { class: 'b24-chat-msg__fwd' }, html(icon('forward', { size: 12 })), h('span', {}, t('Переслано от {from}', { from: m.forwarded.from }))));
+    if (m.replyTo) bubble.append(replyBlock(m));
     if (m.attachments?.length) bubble.append(h('div', { class: 'b24-chat-msg__atts' }, ...m.attachments.map((a) => attachment(a, m))));
-    if (m.text) bubble.append(h('div', { class: 'b24-chat-msg__text' }, richText(m.text)));
+    if (m.text) bubble.append(h('div', { class: 'b24-chat-msg__text' }, options.formatting ? renderMarkup(m.text) : richText(m.text)));
     const meta = h('span', { class: 'b24-chat-msg__meta' });
     if (m.edited) {
       const ed = m.edited === true ? null : toDate(m.edited);
@@ -590,7 +640,9 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   const messageActions = (m: ChatMessage): ChatMessageAction[] => {
     const list: ChatMessageAction[] = [];
     if (options.onReply) list.push({ id: 'reply', label: t('Ответить'), icon: 'reply', onClick: options.onReply });
-    if (m.text && options.copy !== false) list.push({ id: 'copy', label: t('Копировать'), icon: 'copy', onClick: (x) => void copyText(x.text ?? '') });
+    if (options.onForward) list.push({ id: 'forward', label: t('Переслать'), icon: 'forward', onClick: options.onForward });
+    // выделена часть текста — копируется она, иначе весь текст (при formatting — без маркеров разметки)
+    if (m.text && options.copy !== false) list.push({ id: 'copy', label: t('Копировать'), icon: 'copy', onClick: (x) => { const sel = selectedIn(x.id) || (selSnap?.id === x.id ? selSnap.text : ''); selSnap = null; void copyText(sel || (options.formatting ? toPlain(x.text ?? '') : x.text ?? '')); } });
     if (options.onEdit && (m.dir === 'out' || (m.dir === 'note' && m.mine !== false)) && m.editable !== false && m.text && m.status !== 'failed' && m.status !== 'sending') list.push({ id: 'edit', label: t('Изменить'), icon: 'edit', onClick: options.onEdit });
     return [...list, ...(options.actions?.(m) ?? [])];
   };
@@ -614,6 +666,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     }
     if (acts.length) {
       const more = h('button', { type: 'button', class: 'b24-chat-msg__tool', 'aria-label': t('Ещё'), title: t('Ещё'), 'aria-haspopup': 'menu' }, html(icon('more', { size: 16 })));
+      more.addEventListener('pointerdown', () => { selSnap = { id: m.id, text: selectedIn(m.id) }; });
       more.addEventListener('click', () => {
         const menu = h('div', { class: 'b24-chat-menu', role: 'menu' });
         const fl = showFloat(more, menu, { align: m.dir === 'out' || (m.dir === 'note' && m.mine !== false) ? 'end' : 'start', sheet: false, onClose: () => more.focus({ preventScroll: true }) });
@@ -732,6 +785,52 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   render();
   requestAnimationFrame(() => handle.scrollToBottom());
 
+  // «Цитировать» / «Копировать» рядом с выделенным текстом (только при onQuote)
+  let quotePop: HTMLElement | null = null;
+  let quoteInfo: { msg: ChatMessage; text: string } | null = null;
+  const hideQuote = () => { quotePop?.remove(); quotePop = null; quoteInfo = null; };
+  const showQuote = () => {
+    if (!options.onQuote) return;
+    const s = getSelection();
+    const a = s && !s.isCollapsed && s.rangeCount ? textElOf(s.anchorNode) : null;
+    const text = a && s && a === textElOf(s.focusNode) && root.contains(a) ? s.toString().trim() : '';
+    const msg = text ? messages.find((x) => x.id === a!.closest<HTMLElement>('.b24-chat-msg')?.dataset.id) : undefined;
+    if (!s || !msg) { hideQuote(); return; }
+    quoteInfo = { msg, text };
+    if (!quotePop) {
+      const q = h('button', { type: 'button', class: 'b24-chat-quote-pop__btn', 'data-act': 'quote' }, html(icon('quote', { size: 14 })), t('Цитировать'));
+      const c = h('button', { type: 'button', class: 'b24-chat-quote-pop__btn', 'data-act': 'copy' }, html(icon('copy', { size: 14 })), t('Копировать'));
+      quotePop = h('div', { class: 'b24-root b24-chat-quote-pop', role: 'toolbar', 'aria-label': t('Выделенный текст') }, q, c);
+      // клик не должен снимать выделение
+      quotePop.addEventListener('mousedown', (e) => e.preventDefault());
+      quotePop.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') e.preventDefault(); });
+      quotePop.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
+        const info = quoteInfo;
+        if (!btn || !info) return;
+        if (btn.dataset.act === 'quote') options.onQuote!(info.msg, info.text); else void copyText(info.text);
+        getSelection()?.removeAllRanges();
+        hideQuote();
+      });
+      document.body.append(quotePop);
+      bringToFront(quotePop);
+    }
+    const rects = s.getRangeAt(0).getClientRects();
+    const r = rects.length ? rects[rects.length - 1] : s.getRangeAt(0).getBoundingClientRect();
+    const pw = quotePop.offsetWidth, ph = quotePop.offsetHeight;
+    const coarse = matchMedia('(pointer: coarse)').matches;
+    const vw = document.documentElement.clientWidth;
+    const top = coarse || r.top - ph - 8 < 8 ? r.bottom + (coarse ? 44 : 8) : r.top - ph - 8;
+    quotePop.style.left = `${Math.round(Math.max(8, Math.min(r.left + r.width / 2 - pw / 2, vw - pw - 8)))}px`;
+    quotePop.style.top = `${Math.round(Math.max(8, top))}px`;
+  };
+  let selTimer = 0;
+  const onSelectionChange = () => { if (!options.onQuote) return; clearTimeout(selTimer); selTimer = window.setTimeout(showQuote, 140); };
+  if (options.onQuote) {
+    document.addEventListener('selectionchange', onSelectionChange);
+    root.addEventListener('scroll', hideQuote, { passive: true });
+  }
+
   const handle: ChatFeedHandle = {
     element: root,
     setMessages: apply,
@@ -795,7 +894,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       if (smooth) setTimeout(done, 400); else done();
     },
     isAtBottom: nearBottom,
-    destroy() { ro?.disconnect(); root.remove(); },
+    destroy() { ro?.disconnect(); document.removeEventListener('selectionchange', onSelectionChange); clearTimeout(selTimer); hideQuote(); root.remove(); },
   };
   return handle;
 }
@@ -834,7 +933,13 @@ export interface ChatSendContext {
   mode?: string;
   /** id правимого сообщения (mode: 'edit') */
   editId?: string;
+  /** id сообщения, на которое отвечают (setReply); после отправки панель ответа сбрасывается */
+  replyTo?: string;
+  /** то же целиком: автор, текст, quote */
+  reply?: ChatReplyDraft;
 }
+/** Ответ в поле ввода: «↩ Ответ: Автор — текст…» над полем. quote: true — цитата выделенного фрагмента. */
+export interface ChatReplyDraft { id: string; author?: string; text?: string; quote?: boolean }
 export interface ChatComposerOptions {
   placeholder?: string;
   /** отправка: false или исключение — текст остаётся в поле. Можно отправить только файлы без текста (ctx.attachments) */
@@ -868,6 +973,10 @@ export interface ChatComposerOptions {
   maxLength?: number;
   /** пользователь печатает: вызывается при вводе не чаще раза в 3 с — шлите «печатает» в канал */
   onTyping?: () => void;
+  /** форматирование: Ctrl/⌘+B (**), +I (__), +Shift+X (~~), +E (`) оборачивают выделение маркерами (повторно — снимают), кнопка «Aa» открывает панель. Значение поля — с маркерами: для отправки используйте chatMarkup.toHtml / toPlain */
+  formatting?: boolean;
+  /** ответ отменён пользователем (✕ или Esc в пустом поле); setReply(null) и отправка его не вызывают */
+  onReplyCancel?: () => void;
   /** кнопка выбора эмодзи рядом со скрепкой: панель с «Частыми», разделами и поиском; вставка в позицию курсора */
   emoji?: boolean;
 }
@@ -882,6 +991,13 @@ export interface ChatComposerHandle {
   startEdit(message: { id: string; text: string }): void;
   /** выйти из правки (Esc или ✕): поле очищается */
   cancelEdit(): void;
+  /** панель «Ответ: Автор — текст…» над полем (с ✕), фокус в поле; null — убрать. onSend получит ctx.replyTo / ctx.reply */
+  setReply(reply: ChatReplyDraft | null): void;
+  getReply(): ChatReplyDraft | null;
+  /** пользователь отменил ответ (то же, что ✕): панель убирается, вызывается onReplyCancel */
+  cancelReply(): void;
+  /** обернуть выделение маркерами разметки (как горячие клавиши) */
+  format(kind: 'bold' | 'italic' | 'strike' | 'code'): void;
   /** id правимого сообщения или null */
   getEditing(): string | null;
   insert(text: string): void;
@@ -986,6 +1102,69 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     }));
   };
 
+  /* форматирование: Ctrl/⌘ + B, I, Shift+X, E и кнопка «Aa» с панелью */
+  const fmtMarks = { bold: MARKERS.bold, italic: MARKERS.italic, strike: MARKERS.strike, code: MARKERS.code } as const;
+  const wrapSel = (mark: string) => {
+    const v = input.value;
+    const s = input.selectionStart, e = input.selectionEnd, L = mark.length;
+    const sel = v.slice(s, e);
+    let from = s, to = e, rep: string, a: number, b: number;
+    if (sel.length >= 2 * L && sel.startsWith(mark) && sel.endsWith(mark)) { rep = sel.slice(L, -L); a = s; b = s + rep.length; }
+    else if (v.slice(s - L, s) === mark && v.slice(e, e + L) === mark) { from = s - L; to = e + L; rep = sel; a = from; b = from + sel.length; }
+    else if (!sel) { rep = mark + mark; a = b = s + L; }
+    else { rep = mark + sel + mark; a = s + L; b = s + L + sel.length; }
+    input.focus();
+    input.setSelectionRange(from, to);
+    if (!document.execCommand('insertText', false, rep)) input.setRangeText(rep, from, to, 'end');
+    input.setSelectionRange(a, b);
+    fit();
+  };
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const mod = mac ? '⌘' : 'Ctrl+';
+  if (options.formatting) {
+    const defs: Array<[keyof typeof fmtMarks, string, string, string]> = [
+      ['bold', 'Жирный', `${mod}B`, '<b>B</b>'], ['italic', 'Курсив', `${mod}I`, '<i>I</i>'],
+      ['strike', 'Зачёркнутый', `${mod}${mac ? '⇧' : 'Shift+'}X`, '<s>S</s>'], ['code', 'Код', `${mod}E`, '<code>&lt;/&gt;</code>'],
+    ];
+    const bar = h('div', { class: 'b24-chat-composer__fmt', role: 'toolbar', 'aria-label': t('Форматирование'), hidden: '' });
+    for (const [kind, label, key, glyph] of defs) {
+      const b = h('button', { type: 'button', class: 'b24-chat-composer__fmt-btn', 'data-fmt': kind, 'aria-label': `${t(label)} (${key})`, title: `${t(label)} (${key})` }, html(glyph));
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      b.addEventListener('click', () => wrapSel(fmtMarks[kind]));
+      bar.append(b);
+    }
+    const aa = h('button', { type: 'button', class: 'b24-btn b24-btn--plain b24-btn--icon b24-chat-composer__aa', 'aria-label': t('Форматирование'), title: t('Форматирование'), 'aria-pressed': 'false' }, 'Aa');
+    aa.addEventListener('click', () => { bar.hidden = !bar.hidden; aa.setAttribute('aria-pressed', String(!bar.hidden)); input.focus(); });
+    actions.append(aa);
+    row.before(bar);
+    input.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const kind = e.code === 'KeyB' && !e.shiftKey ? 'bold' : e.code === 'KeyI' && !e.shiftKey ? 'italic' : e.code === 'KeyX' && e.shiftKey ? 'strike' : e.code === 'KeyE' && !e.shiftKey ? 'code' : null;
+      if (!kind) return;
+      e.preventDefault();
+      wrapSel(fmtMarks[kind]);
+    });
+  }
+
+  /* панель ответа над полем */
+  let reply: ChatReplyDraft | null = null;
+  const replyBar = h('div', { class: 'b24-chat-composer__editing b24-chat-composer__reply-bar', hidden: '' });
+  editBar.after(replyBar);
+  const setReplyInner = (r: ChatReplyDraft | null) => {
+    reply = r ? { ...r } : null;
+    replyBar.hidden = !r;
+    root.classList.toggle('is-replying', !!r);
+    if (!r) { replyBar.replaceChildren(); return; }
+    const cut = (r.text ?? '').replace(/\s+/g, ' ').trim();
+    const x = h('button', { type: 'button', class: 'b24-chat-composer__editing-x', 'aria-label': t('Отменить ответ'), title: t('Отменить ответ') }, html(icon('close', { size: 14 })));
+    x.addEventListener('click', () => { handle.cancelReply(); });
+    replyBar.replaceChildren(
+      html(icon(r.quote ? 'quote' : 'reply', { size: 16 })),
+      h('span', { class: 'b24-chat-composer__editing-body' }, h('span', { class: 'b24-chat-composer__editing-title' }, r.author ? `${t('Ответ')}: ${r.author}` : t('Ответ')), h('span', { class: 'b24-chat-composer__editing-text' }, cut.length > 140 ? `${cut.slice(0, 140)}…` : cut)),
+      x,
+    );
+  };
+
   const submit = async () => {
     const text = input.value.trim();
     const atts = editId != null ? [] : ready();
@@ -997,11 +1176,12 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     sendingIds.forEach((id) => { sending.add(id); const rec = files.get(id); if (rec) paintChip(rec); });
     let ok = false;
     try {
-      const r = await options.onSend(text, editId != null ? { attachments: [], mode: 'edit', editId } : { attachments: atts, mode });
+      const r = await options.onSend(text, editId != null ? { attachments: [], mode: 'edit', editId } : { attachments: atts, mode, ...(reply ? { replyTo: reply.id, reply: { ...reply } } : {}) });
       ok = r !== false;
       if (ok && editId != null) { handle.cancelEdit(); }
       else if (ok) {
         input.value = ''; fit();
+        setReplyInner(null);
         atts.forEach((a) => handle.removeAttachment(a.id));
         if (options.clearFailedOnSend) Array.from(files.values()).filter((x) => x.a.error).forEach((x) => handle.removeAttachment(x.a.id));
       }
@@ -1024,6 +1204,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && editId != null) { e.preventDefault(); e.stopPropagation(); handle.cancelEdit(); return; }
+    if (e.key === 'Escape' && reply && !input.value) { e.preventDefault(); e.stopPropagation(); handle.cancelReply(); return; }
     if (e.key !== 'Enter' || e.isComposing) return;
     const mod = e.ctrlKey || e.metaKey;
     if (enter ? !e.shiftKey && !mod : mod) { e.preventDefault(); void submit(); }
@@ -1076,6 +1257,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     getValue: () => input.value,
     setValue(text) { input.value = text; fit(); },
     startEdit(m) {
+      setReplyInner(null);
       editId = m.id;
       root.classList.add('is-editing');
       const cut = m.text.replace(/\s+/g, ' ').trim();
@@ -1099,6 +1281,10 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
       input.focus();
     },
     getEditing: () => editId,
+    setReply(r) { if (r && editId != null) handle.cancelEdit(); setReplyInner(r); if (r) input.focus(); },
+    getReply: () => (reply ? { ...reply } : null),
+    cancelReply() { if (!reply) return; setReplyInner(null); input.focus(); options.onReplyCancel?.(); },
+    format(kind) { wrapSel(fmtMarks[kind]); },
     addAttachment(a) {
       const old = files.get(a.id);
       if (old) { old.a = a; paintChip(old); sync(); return; }

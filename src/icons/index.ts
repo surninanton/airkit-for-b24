@@ -17,6 +17,8 @@ const paths = {
   phoneForward: '<path d="M5 4h2.6l1.4 3.6-1.8 1.3a10 10 0 0 0 4.9 4.9l1.3-1.8L17 13.4V16a2 2 0 0 1-2 2A12 12 0 0 1 3 6a2 2 0 0 1 2-2z"/><path d="M15 8h6M18.5 5.5 21 8l-2.5 2.5"/>',
   smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/>',
   reply: '<path d="M10 8 5 13l5 5"/><path d="M5 13h9a5 5 0 0 1 5 5v1"/>',
+  forward: '<path d="m14 8 5 5-5 5"/><path d="M19 13h-9a5 5 0 0 0-5 5v1"/>',
+  quote: '<path d="M9.5 7.5C7 8 5.5 9.8 5.5 12.5V16h4.5v-4.5H7.5"/><path d="M18.5 7.5C16 8 14.5 9.8 14.5 12.5V16H19v-4.5h-2.5"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
   chevronUp: '<path d="m6 15 6-6 6 6"/>',

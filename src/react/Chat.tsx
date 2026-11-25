@@ -149,14 +149,17 @@ export interface ChatFeedProps extends Omit<ChatFeedOptions, 'messages'> {
  * Лента: передавайте весь список messages — кит сам поймёт, что пришло сверху («Показать раньше», позиция сохраняется)
  * или снизу (прокрутка вниз, если пользователь был у низа или сообщение наше).
  */
-export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, noteLabel, reactionsHint, reactionsInBubble, onReact, quickReactions, onReply, onEdit, copy, actions, decorate, hasNewer, onLoadNewer, onLoadAround, feedRef }: ChatFeedProps) {
+export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, noteLabel, reactionsHint, reactionsInBubble, onReact, quickReactions, onReply, onEdit, copy, actions, decorate, formatting, onReplyClick, onQuote, onForward, hasNewer, onLoadNewer, onLoadAround, feedRef }: ChatFeedProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatFeedHandle | null>(null);
-  const cbs = useRef({ onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround });
-  cbs.current = { onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround };
+  const cbs = useRef({ onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround, onReplyClick, onQuote, onForward });
+  cbs.current = { onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround, onReplyClick, onQuote, onForward };
   useEffect(() => {
     h.current = createChatFeed(host.current!, {
-      messages, hasMore, hasNewer, showAvatars, emptyText, quickReactions, copy, noteLabel, reactionsHint, reactionsInBubble,
+      messages, hasMore, hasNewer, showAvatars, emptyText, quickReactions, copy, noteLabel, reactionsHint, reactionsInBubble, formatting,
+      onReplyClick: onReplyClick ? (id, m) => cbs.current.onReplyClick?.(id, m) : undefined,
+      onQuote: onQuote ? (m, s) => cbs.current.onQuote?.(m, s) : undefined,
+      onForward: onForward ? (m) => cbs.current.onForward?.(m) : undefined,
       onReact: onReact ? (id, e, m) => cbs.current.onReact?.(id, e, m) : undefined,
       onReply: onReply ? (m) => cbs.current.onReply?.(m) : undefined,
       onEdit: onEdit ? (m) => cbs.current.onEdit?.(m) : undefined,
@@ -187,14 +190,15 @@ export interface ChatComposerProps extends ChatComposerOptions {
   composerRef?: MutableRefObject<ChatComposerHandle | null>;
 }
 /** Поле ответа: Enter — отправить, Shift+Enter — новая строка; false из onSend — текст остаётся */
-export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji, modes, mode, onModeChange, onRemoveAttachment, composerRef, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend, onTyping }: ChatComposerProps) {
+export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji, modes, mode, onModeChange, onRemoveAttachment, composerRef, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend, onTyping, formatting, onReplyCancel }: ChatComposerProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatComposerHandle | null>(null);
-  const cbs = useRef({ onSend, onAttach, onModeChange, onRemoveAttachment, onTyping });
-  cbs.current = { onSend, onAttach, onModeChange, onRemoveAttachment, onTyping };
+  const cbs = useRef({ onSend, onAttach, onModeChange, onRemoveAttachment, onTyping, onReplyCancel });
+  cbs.current = { onSend, onAttach, onModeChange, onRemoveAttachment, onTyping, onReplyCancel };
   useEffect(() => {
     h.current = createChatComposer(host.current!, {
-      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji, modes, mode, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend,
+      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji, modes, mode, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend, formatting,
+      onReplyCancel: onReplyCancel ? () => cbs.current.onReplyCancel?.() : undefined,
       onModeChange: onModeChange ? (m) => cbs.current.onModeChange?.(m) : undefined,
       onRemoveAttachment: onRemoveAttachment ? (a) => cbs.current.onRemoveAttachment?.(a) : undefined,
       onSend: (text, ctx) => cbs.current.onSend(text, ctx),
