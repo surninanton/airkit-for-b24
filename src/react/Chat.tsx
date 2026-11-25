@@ -147,14 +147,14 @@ export interface ChatFeedProps extends Omit<ChatFeedOptions, 'messages'> {
  * Лента: передавайте весь список messages — кит сам поймёт, что пришло сверху («Показать раньше», позиция сохраняется)
  * или снизу (прокрутка вниз, если пользователь был у низа или сообщение наше).
  */
-export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, noteLabel, reactionsHint, onReact, quickReactions, onReply, onEdit, copy, actions, decorate, hasNewer, onLoadNewer, onLoadAround, feedRef }: ChatFeedProps) {
+export function ChatFeed({ messages, hasMore, onLoadMore, onRetry, onPhotoClick, showAvatars, emptyText, noteLabel, reactionsHint, reactionsInBubble, onReact, quickReactions, onReply, onEdit, copy, actions, decorate, hasNewer, onLoadNewer, onLoadAround, feedRef }: ChatFeedProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatFeedHandle | null>(null);
   const cbs = useRef({ onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround });
   cbs.current = { onLoadMore, onRetry, onPhotoClick, onReact, onReply, onEdit, actions, decorate, onLoadNewer, onLoadAround };
   useEffect(() => {
     h.current = createChatFeed(host.current!, {
-      messages, hasMore, hasNewer, showAvatars, emptyText, quickReactions, copy, noteLabel, reactionsHint,
+      messages, hasMore, hasNewer, showAvatars, emptyText, quickReactions, copy, noteLabel, reactionsHint, reactionsInBubble,
       onReact: onReact ? (id, e, m) => cbs.current.onReact?.(id, e, m) : undefined,
       onReply: onReply ? (m) => cbs.current.onReply?.(m) : undefined,
       onEdit: onEdit ? (m) => cbs.current.onEdit?.(m) : undefined,

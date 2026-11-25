@@ -274,6 +274,11 @@ export interface ChatReaction {
   mine?: boolean;
   /** кто поставил — в подсказке чипа */
   users?: string[];
+  /**
+   * кто поставил, аватарами вместо числа в чипе: до 3 кружков с наложением (строка — имя, инициалы; { name, src } — с картинкой). При count > 3 — число.
+   * Без avatars при reactionsInBubble аватары строятся по users (инициалы); без reactionsInBubble — число, как раньше.
+   */
+  avatars?: Array<string | { name: string; src?: string }>;
 }
 export interface ChatMessageAction {
   id: string;
@@ -339,6 +344,8 @@ export interface ChatFeedOptions {
   noteLabel?: string;
   /** общая приписка в подсказке чипов реакций: «Нажмите, чтобы убрать свою» */
   reactionsHint?: string;
+  /** реакции внутри пузыря, как в Telegram: после текста и вложений, в одной строке с временем (по умолчанию — под пузырём) */
+  reactionsInBubble?: boolean;
   /**
    * Реакция: клик по чипу или эмодзи в полоске быстрых реакций. Ваш код ставит / снимает реакцию и передаёт новое
    * message.reactions. Задан onReact — у сообщения по наведению (на телефоне — по долгому нажатию) появляется полоска.
@@ -493,7 +500,30 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       meta.append(h('span', { class: 'b24-chat-msg__edited', title: ed && !isNaN(ed.getTime()) ? `${t('Изменено')} ${formatChatDay(ed)}, ${hm(ed)}` : undefined }, t('изменено')));
     }
     meta.append(h('time', { datetime: d.toISOString() }, hm(d)), statusIcon(m));
-    bubble.append(meta);
+    const inBubble = !!options.reactionsInBubble && !!m.reactions?.some((r) => r.count > 0);
+    const reactionChips = (): HTMLElement => {
+      const chips = h('div', { class: 'b24-chat-reactions', role: 'group', 'aria-label': t('Реакции') });
+      for (const r of m.reactions ?? []) {
+        if (r.count <= 0) continue;
+        const who = r.avatars ?? (options.reactionsInBubble ? r.users : undefined);
+        const people = who && who.length && r.count <= 3 ? who.slice(0, 3).map((x) => (typeof x === 'string' ? { name: x } : x)) : [];
+        const chip = h('button', {
+          type: 'button', class: `b24-chat-reaction${r.mine ? ' is-mine' : ''}${people.length ? ' has-avatars' : ''}`, 'data-emoji': r.emoji, 'aria-pressed': String(!!r.mine),
+          title: [r.users?.length ? r.users.join(', ') : people.map((p) => p.name).join(', '), options.reactionsHint ?? ''].filter(Boolean).join(' — ') || undefined, 'aria-label': `${r.emoji} ${r.count}`,
+        }, h('span', { class: 'b24-chat-reaction__emoji' }, r.emoji));
+        if (people.length) {
+          const stack = h('span', { class: 'b24-chat-reaction__avatars', 'aria-hidden': 'true' });
+          for (const p of people) stack.append(html(avatarHtml(p.name, p.src, 'xs')).firstElementChild!);
+          chip.append(stack);
+        } else chip.append(h('span', { class: 'b24-chat-reaction__count' }, String(r.count)));
+        if (options.onReact) chip.addEventListener('click', () => options.onReact!(m.id, r.emoji, m));
+        else chip.disabled = true;
+        chips.append(chip);
+      }
+      return chips;
+    };
+    if (inBubble) bubble.append(h('div', { class: 'b24-chat-msg__foot' }, reactionChips(), meta));
+    else bubble.append(meta);
     const col = h('div', { class: 'b24-chat-msg__col' }, bubble);
     if (m.status === 'failed') {
       const err = h('div', { class: 'b24-chat-msg__error', role: 'alert' }, html(icon('warning', { size: 14 })), h('span', {}, `${t('Не доставлено')}${m.error ? `: ${m.error}` : ''}`));
@@ -504,20 +534,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
       }
       col.append(err);
     }
-    if (m.reactions?.some((r) => r.count > 0)) {
-      const chips = h('div', { class: 'b24-chat-reactions', role: 'group', 'aria-label': t('Реакции') });
-      for (const r of m.reactions) {
-        if (r.count <= 0) continue;
-        const chip = h('button', {
-          type: 'button', class: `b24-chat-reaction${r.mine ? ' is-mine' : ''}`, 'data-emoji': r.emoji, 'aria-pressed': String(!!r.mine),
-          title: [r.users?.length ? r.users.join(', ') : '', options.reactionsHint ?? ''].filter(Boolean).join(' — ') || undefined, 'aria-label': `${r.emoji} ${r.count}`,
-        }, h('span', { class: 'b24-chat-reaction__emoji' }, r.emoji), h('span', { class: 'b24-chat-reaction__count' }, String(r.count)));
-        if (options.onReact) chip.addEventListener('click', () => options.onReact!(m.id, r.emoji, m));
-        else chip.disabled = true;
-        chips.append(chip);
-      }
-      col.append(chips);
-    }
+    if (!inBubble && m.reactions?.some((r) => r.count > 0)) col.append(reactionChips());
     const tools = buildTools(m);
     if (tools) col.append(tools);
     el.append(col);

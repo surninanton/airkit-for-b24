@@ -45,6 +45,19 @@
   transition: background-color var(--b24-duration-fast), border-color var(--b24-duration-fast);
 }
 .b24-chat-reaction:disabled { cursor: default; }
+/* аватары вместо числа: до трёх кружков 18px с наложением */
+.b24-chat-reaction__avatars { display: inline-flex; align-items: center; }
+.b24-chat-reaction__avatars .b24-avatar { --_s: 18px; font-size: 8px; box-shadow: 0 0 0 1.5px var(--_chip-bg, var(--b24-bg-surface)); }
+.b24-chat-reaction__avatars .b24-avatar + .b24-avatar { margin-left: -6px; }
+.b24-chat-reaction.has-avatars { padding-right: 6px; }
+/* реакции внутри пузыря (reactionsInBubble): чипы слева, время справа в одной строке */
+.b24-chat-msg__foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.b24-chat-msg__foot > .b24-chat-reactions { flex: 1 1 auto; min-width: 0; justify-content: flex-start; }
+.b24-chat-msg__foot > .b24-chat-msg__meta { float: none; flex: 0 0 auto; margin: 0 0 3px; }
+.b24-chat-msg__foot .b24-chat-reaction { --_chip-bg: var(--b24-bg-surface); background: var(--_chip-bg); border-color: color-mix(in srgb, var(--b24-text-subtle) 35%, transparent); }
+.b24-chat-msg.is-out .b24-chat-msg__foot .b24-chat-reaction { --_chip-bg: var(--b24-bg-surface); }
+.b24-chat-msg.is-in .b24-chat-msg__foot .b24-chat-reaction { --_chip-bg: var(--b24-bg-surface-2, #f1f4f7); }
+.b24-chat-msg__foot .b24-chat-reaction.is-mine { --_chip-bg: var(--b24-color-soft-blue-3, #e5f4ff); border-color: var(--b24-color-primary); }
 .b24-chat-reaction:hover:not(:disabled) { background: var(--b24-bg-hover); }
 .b24-chat-reaction__emoji { font-size: 14px; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 .b24-chat-reaction__count { font-variant-numeric: tabular-nums; font-weight: var(--b24-font-weight-medium); }

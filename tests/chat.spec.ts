@@ -451,3 +451,57 @@ test('панель мессенджера: группы «Линии» / «Со�
   expect(after).toEqual(['#lines', 'l1', 'l2', 'x', '#staff', 's1', 's2']);
   await page.evaluate(() => (window as any).__gbar.destroy());
 });
+
+test('чаты: реакции внутри пузыря (reactionsInBubble), аватары вместо числа', async ({ page }) => {
+  await open(page, '/chat.html');
+  const r = await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div');
+    host.style.cssText = 'height:420px;width:420px;display:flex;flex-direction:column';
+    host.id = 'rb-host';
+    document.body.append(host);
+    const clicks: string[] = [];
+    const feed = B.createChatFeed(host, {
+      reactionsInBubble: true, reactionsHint: 'Нажмите',
+      onReact: (id: string, e: string) => clicks.push(`${id}:${e}`),
+      messages: [
+        { id: 'a', dir: 'in', time: new Date(), text: 'Привет', reactions: [{ emoji: '👍', count: 2, users: ['Анна Ли', 'Пётр Тест'] }, { emoji: '❤️', count: 4, users: ['А', 'Б', 'В', 'Г'] }, { emoji: '🍕', count: 1, mine: true, avatars: [{ name: 'Вы', src: '/x.png' }] }] },
+        { id: 'b', dir: 'out', time: new Date(), text: 'Ответ', reactions: [{ emoji: '🙏', count: 1, avatars: ['Иван Петров'] }] },
+      ],
+    });
+    (window as any).__rbfeed = feed; (window as any).__rbclicks = clicks;
+    const q = (id: string) => host.querySelector(`.b24-chat-msg[data-id="${id}"]`)!;
+    const a = q('a');
+    return {
+      inBubble: !!a.querySelector('.b24-chat-msg__bubble .b24-chat-msg__foot .b24-chat-reactions'),
+      notBelow: !a.querySelector('.b24-chat-msg__col > .b24-chat-reactions'),
+      order: Array.from(a.querySelector('.b24-chat-msg__foot')!.children).map((c) => (c as HTMLElement).className.split(' ')[0]),
+      av: Array.from(a.querySelectorAll('.b24-chat-reaction')).map((c) => c.querySelectorAll('.b24-avatar').length + ':' + (c.querySelector('.b24-chat-reaction__count')?.textContent ?? '')),
+      initials: a.querySelector('.b24-chat-reaction .b24-avatar')!.textContent,
+      img: a.querySelector('.b24-chat-reaction.is-mine img')?.getAttribute('src'),
+      title: a.querySelector('.b24-chat-reaction')!.getAttribute('title'),
+      outAv: q('b').querySelectorAll('.b24-chat-reaction .b24-avatar').length,
+    };
+  });
+  expect(r.inBubble).toBe(true);
+  expect(r.notBelow).toBe(true);
+  expect(r.order).toEqual(['b24-chat-reactions', 'b24-chat-msg__meta']);
+  expect(r.av).toEqual(['2:', '0:4', '1:']);
+  expect(r.initials).toBe('АЛ');
+  expect(r.img).toBe('/x.png');
+  expect(r.title).toBe('Анна Ли, Пётр Тест — Нажмите');
+  expect(r.outAv).toBe(1);
+  // клик и обновление через update работают
+  await page.locator('#rb-host .b24-chat-msg[data-id="a"] .b24-chat-reaction').first().click();
+  expect(await page.evaluate(() => (window as any).__rbclicks)).toEqual(['a:👍']);
+  await page.evaluate(() => (window as any).__rbfeed.update('a', { reactions: [{ emoji: '🔥', count: 1 }] }));
+  await expect(page.locator('#rb-host .b24-chat-msg[data-id="a"] .b24-chat-msg__foot .b24-chat-reaction')).toHaveCount(1);
+  // по умолчанию — под пузырём, без аватаров из users
+  const dflt = await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    const host = document.createElement('div'); host.style.height = '200px'; document.body.append(host);
+    B.createChatFeed(host, { messages: [{ id: 'z', dir: 'in', time: new Date(), text: 'x', reactions: [{ emoji: '👍', count: 1, users: ['Анна'] }] }] });
+    return [!!host.querySelector('.b24-chat-msg__col > .b24-chat-reactions'), host.querySelectorAll('.b24-chat-reaction .b24-avatar').length];
+  });
+  expect(dflt).toEqual([true, 0]);
+});
