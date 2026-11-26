@@ -416,3 +416,49 @@ test('планировщик: свёрнутый промежуток часов
   await page.evaluate(() => (window as unknown as { __s: { destroy(): void } }).__s.destroy());
   expect(errors()).toEqual([]);
 });
+
+test('планировщик: рабочие сутки 08:30–01:00 — часы после полуночи, хвост, перенос через 24:00', async ({ page }) => {
+  test.skip(isMobile(page), 'десктоп');
+  const { errors } = await open(page, '/scheduler.html');
+  await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: { createScheduler: (h: HTMLElement, o: unknown) => unknown } }).B24UI;
+    const host = document.createElement('div');
+    host.id = 'zz-night'; host.style.cssText = 'position:fixed;inset:20px;z-index:9999;background:#fff';
+    document.body.append(host);
+    const d = new Date(2026, 10, 26);
+    const at = (day: number, h: number, m = 0) => new Date(2026, 10, day, h, m);
+    const ranges: Array<{ start: Date; end: Date }> = [];
+    (window as unknown as Record<string, unknown>).__ranges = ranges;
+    (window as unknown as Record<string, unknown>).__n = B.createScheduler(host, {
+      view: 'day', date: d, hours: [8.5, 25], height: 300, initialScroll: 'start',
+      onRangeChange: (r: { start: Date; end: Date }) => ranges.push(r),
+      resources: [{ id: 'r1', name: 'Анна' }],
+      events: [
+        { id: 'late', resourceId: 'r1', title: 'Вечер', start: at(26, 21), end: at(27, 0, 40) },
+        { id: 'tail', resourceId: 'r1', title: 'Хвост', start: at(27, 0), end: at(27, 1) },
+        { id: 'next', resourceId: 'r1', title: 'Следующие', start: at(27, 10), end: at(27, 11) },
+      ],
+    });
+  });
+  const host = page.locator('#zz-night');
+  const labels = await host.locator('.b24-scheduler__tick--bottom').allTextContents();
+  expect(labels[0]).toBe('08:30');
+  expect(labels).toContain('23:00');
+  expect(labels).toContain('00:00');
+  expect(labels[labels.length - 1]).toBe('00:00');
+  await expect(host.locator('.b24-scheduler__nextday')).toHaveText('27 нояб.');
+  await expect(host.locator('.b24-scheduler__event[data-event="late"]')).toHaveCount(1);
+  await expect(host.locator('.b24-scheduler__event[data-event="tail"]')).toHaveCount(1);
+  await expect(host.locator('.b24-scheduler__event[data-event="next"]')).toHaveCount(0);
+  const px = await page.evaluate(() => {
+    const t = (id: string) => document.querySelector(`#zz-night [data-event="${id}"]`)!.getBoundingClientRect();
+    const l = t('late'), tl = t('tail'), mid = document.querySelector('#zz-night .b24-scheduler__col.is-midnight')!.getBoundingClientRect();
+    return { lateEnd: l.right - mid.left, tailLeft: tl.left - mid.left, lateStartBeforeMid: mid.left - l.left };
+  });
+  expect(px.tailLeft).toBeCloseTo(0, 0);              // хвост начинается ровно у полуночи
+  expect(px.lateStartBeforeMid).toBeGreaterThan(100);  // вечернее событие слева от полуночи
+  expect(px.lateEnd).toBeGreaterThan(0);               // и продолжается за неё
+  const r = await page.evaluate(() => (window as unknown as { __ranges: Array<{ start: Date; end: Date }> }).__ranges[0]);
+  expect(new Date(r.end).getTime() - new Date(r.start).getTime()).toBe(25 * 3_600_000);
+  expect(errors()).toEqual([]);
+});

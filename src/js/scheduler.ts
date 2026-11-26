@@ -146,6 +146,11 @@ export interface SchedulerOptions {
   /** шаг привязки, минуты (по умолчанию 15; в месяце — 60) */
   step?: number;
   /** видимые часы суток в дне и неделе: [8, 20] — ночь не показывается (по умолчанию [8, 20]); [0, 24] — сутки целиком */
+  /**
+   * Рабочие сутки через полночь: конец больше 24 и дробное начало — hours: [8.5, 25] (08:30 → 01:00 следующего дня).
+   * Колонка-сутки идёт от начала до конца окна; часы после 24 подписаны 00:00, 01:00 с датой следующего дня, события из «хвоста»
+   * (00:00–01:00 следующего календарного дня) показываются в предыдущих сутках. В `load` / `onRangeChange` конец периода сдвинут на хвост.
+   */
   hours?: [number, number];
   /**
    * Свёрнутые промежутки часов (день, неделя, N дней): вместо них в шкале узкая штрихованная «гармошка» (36 px) с подписью «01–08».
@@ -343,6 +348,10 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
    * в день/неделю добавляются часы за пределами окна hours (8–20 → 6–22 → … → 0–24), час становится уже. */
   /** окно часов из настроек: в месяце — сутки целиком */
   const baseWin = (): [number, number] => (view === 'month' ? [0, 24] : o.hours ?? [8, 20]);
+  /** часы «хвоста» после полуночи рабочих суток (hours: [8.5, 25] → 1) */
+  const tailH = () => Math.max(0, (o.hours?.[1] ?? 20) - 24);
+  /** границы суток целиком (24 часа подряд, включая хвост) */
+  const fullWin = (): [number, number] => { const hi = Math.max(24, baseWin()[1]); return [hi - 24, hi]; };
   let winCur: [number, number] = baseWin();
   let pxCur: number = PX[view];
   let availW = 0;
@@ -358,7 +367,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   };
   const fitBase = () => { const [b0, b1] = baseWin(); return availW > 0 ? pxFill(b0, b1) : PX[view]; };
   /** самый мелкий масштаб: сутки 0–24 на ширину области (в месяце — месяц на ширину) */
-  const minPx = () => (view === 'month' ? fitBase() : availW > 0 ? Math.min(fitBase(), pxFill(0, 24)) : PX[view]);
+  const minPx = () => (view === 'month' ? fitBase() : availW > 0 ? Math.min(fitBase(), pxFill(...fullWin())) : PX[view]);
   const maxPx = () => PX[view] * MAX_ZOOM;
   const applyScale = () => {
     const [b0, b1] = baseWin();
@@ -368,10 +377,11 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     // уже окна hours — расширяем окно на целые часы, поровну в обе стороны, в пределах суток
     const winFor = (span: number): [number, number] => {
       const extra = span - (b1 - b0);
+      const [lo, hi] = fullWin();
       let a = b0 - Math.floor(extra / 2);
       let b = b1 + Math.ceil(extra / 2);
-      if (a < 0) { b -= a; a = 0; }
-      if (b > 24) { a = Math.max(0, a - (b - 24)); b = 24; }
+      if (a < lo) { b -= a - lo; a = lo; }
+      if (b > hi) { a = Math.max(lo, a - (b - hi)); b = hi; }
       return [a, b];
     };
     let span = b1 - b0;
@@ -395,13 +405,19 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     }
     return off;
   };
+  /** время → рабочие сутки (индекс в периоде) и часы в них; «хвост» после полуночи (< hours[1] − 24) относится к предыдущим суткам */
+  const locate = (d: Date) => {
+    const di = Math.floor((startOfDay(d).getTime() - range().start.getTime() + 2 * HOUR) / DAY);
+    const hrs = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+    if (tailH() > 0 && hrs < tailH() && hrs < (o.hours?.[0] ?? 8)) return { di: di - 1, hrs: hrs + 24 };
+    return { di, hrs };
+  };
   /** время → x: каждый день — окно часов, время вне окна прижимается к его краю */
   const x = (d: Date) => {
-    const start = range().start;
-    const di = Math.floor((startOfDay(d).getTime() - start.getTime() + 2 * HOUR) / DAY);
+    const { di, hrs } = locate(d);
     if (di < 0) return 0;
     if (di >= days()) return days() * dayW();
-    return di * dayW() + hx(d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600);
+    return di * dayW() + hx(hrs);
   };
   const width = () => days() * dayW();
   /** px внутри дня → часы; «гармошка» отдаёт своё начало */
@@ -522,7 +538,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   let layout: Item[] = [];
   let laneH = 30;
 
-  const inRange = (s: Date, e: Date) => e > range().start && s < range().end;
+  const inRange = (s: Date, e: Date) => e.getTime() > range().start.getTime() + tailH() * HOUR && s.getTime() < range().end.getTime() + tailH() * HOUR;
   const computeLayout = () => {
     root.dataset.view = view;
     laneH = parseFloat(getComputedStyle(root).getPropertyValue('--_lane-h')) || 30;
@@ -560,7 +576,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   };
 
   /* ── шапка и сетка ── */
-  const hh2 = (n: number) => { const h0 = Math.floor(n); const m = Math.round((n - h0) * 60); return m ? `${String(h0).padStart(2, '0')}:${String(m).padStart(2, '0')}` : String(h0).padStart(2, '0'); };
+  const hh2 = (n0: number) => { const n = n0 >= 24 ? n0 - 24 : n0; const h0 = Math.floor(n); const m = Math.round((n - h0) * 60); return m ? `${String(h0).padStart(2, '0')}:${String(m).padStart(2, '0')}` : String(h0).padStart(2, '0'); };
   const foldLabel = (c: SchedulerCollapse) => c.label ?? `${hh2(c.from)}–${hh2(c.to)}`;
   const toggleFold = (c: SchedulerCollapse) => {
     const offset = (viewport.clientWidth - resW()) / 3;
@@ -591,6 +607,14 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const segList = segs();
     const inClosed = (hh: number) => segList.some((g) => g.closed && hh >= g.a && hh < g.b);
     /** «гармошки» и кнопки сворачивания одних суток; left — левый край суток */
+    /** рабочие сутки через полночь: дата следующего дня над первой ячейкой после 24:00 */
+    const nextDay = (left: number, d: Date) => {
+      if (h1 <= 24 || h0 >= 24) return;
+      const nd = addDays(d, 1);
+      const w = hx(h1) - hx(24);
+      if (w < 14) return;
+      scale.append(h('div', { class: 'b24-scheduler__nextday', style: `left:${left + hx(24)}px;width:${w}px` }, w >= 48 ? new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short' }).format(nd) : String(nd.getDate())));
+    };
     const folds = (left: number) => {
       let off = 0;
       for (const g of segList) {
@@ -628,12 +652,19 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     };
     if (view === 'day') {
       tick('top', 0, w, new Intl.DateTimeFormat(loc, { weekday: 'long', day: 'numeric', month: 'long' }).format(start));
-      for (let hh = h0; hh < h1; hh++) {
+      const first = Math.ceil(h0);
+      if (first > h0 && !inClosed(h0)) {
+        // дробное начало (08:30): узкая первая ячейка
+        tick('bottom', 0, (first - h0) * pxh(), `${String(Math.floor(h0)).padStart(2, '0')}:${String(Math.round((h0 % 1) * 60)).padStart(2, '0')}`);
+        col(0);
+      }
+      for (let hh = first; hh < h1; hh++) {
         if (inClosed(hh)) continue;
-        tick('bottom', hx(hh), pxh() / sub, `${String(hh).padStart(2, '0')}:00`);
-        col(hx(hh), hh === h0 ? '' : ' is-minor');
+        tick('bottom', hx(hh), pxh() / sub, `${String(hh % 24).padStart(2, '0')}:00`);
+        col(hx(hh), hh === h0 ? '' : hh === 24 ? ' is-midnight' : ' is-minor');
         subTicks(hx(hh));
       }
+      nextDay(0, start);
       folds(0);
     } else if (view === 'week' || view === 'days') {
       // подписи часов — каждый час при увеличении, иначе каждые 2 часа (или реже, если узко)
@@ -643,14 +674,15 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
         const left = i * dayW();
         const wd = new Intl.DateTimeFormat(loc, { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
         tick('top', left, dayW(), wd, `${sameDay(d, today) ? ' is-today' : ''}${isWeekend(d) ? ' is-weekend' : ''}`);
-        for (let hh = h0; hh < h1; hh += every) {
+        for (let hh = Math.ceil(h0); hh < h1; hh += every) {
           if (inClosed(hh)) continue;
-          tick('bottom', left + hx(hh), (every * pxh()) / sub, every === 1 && sub > 1 ? `${String(hh).padStart(2, '0')}:00` : String(hh).padStart(2, '0'));
+          tick('bottom', left + hx(hh), (every * pxh()) / sub, every === 1 && sub > 1 ? `${String(hh % 24).padStart(2, '0')}:00` : String(hh % 24).padStart(2, '0'));
           if (every === 1) subTicks(left + hx(hh));
         }
         col(left, ` is-day${isWeekend(d) ? ' is-weekend' : ''}`);
         if (isWeekend(d)) grid.lastElementChild!.setAttribute('style', `left:${left}px;width:${dayW()}px`);
-        for (let hh = h0 + every; hh < h1; hh += every) if (!inClosed(hh)) col(left + hx(hh), ' is-minor');
+        for (let hh = Math.ceil(h0) + (Math.ceil(h0) > h0 ? 0 : every); hh < h1; hh += every) if (!inClosed(hh)) col(left + hx(hh), hh === 24 ? ' is-midnight' : ' is-minor');
+        nextDay(left, d);
         folds(left);
       }
     } else {
@@ -663,8 +695,9 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
         if (isWeekend(d)) grid.lastElementChild!.setAttribute('style', `left:${i * dayW()}px;width:${dayW()}px`);
       }
     }
-    const nowH = today.getHours() + today.getMinutes() / 60;
-    if (today >= start && today < end && nowH >= h0 && nowH <= h1) {
+    const loc2 = locate(today);
+    const nowH = loc2.hrs;
+    if (loc2.di >= 0 && loc2.di < days() && nowH >= h0 && nowH <= h1) {
       // внутри «гармошки» линия «сейчас» прилипает к её середине
       const g = segList.find((q) => q.closed && nowH >= q.a && nowH <= q.b);
       const nx = g ? x(today) - hx(nowH) + hx(g.a) + FOLD_W / 2 : x(today);
@@ -815,7 +848,8 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
 
   /* ── загрузка периода ── */
   const reload = async () => {
-    const r = range();
+    const r0 = range();
+    const r = { start: r0.start, end: new Date(r0.end.getTime() + tailH() * HOUR) };
     o.onRangeChange?.({ view, ...r });
     if (!o.load) return;
     abort?.abort();

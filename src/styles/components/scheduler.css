@@ -191,3 +191,10 @@
   position: absolute; top: 0; bottom: 0; pointer-events: none; box-sizing: border-box;
   background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 14%, transparent) 0 1px, transparent 1px 7px);
 }
+
+/* рабочие сутки через полночь: линия полуночи и дата следующего дня */
+.b24-scheduler__col.is-midnight { border-left: 1px solid var(--b24-divider-accent); }
+.b24-scheduler__nextday {
+  position: absolute; top: 0; z-index: 1; height: 28px; display: flex; align-items: center; padding: 0 6px; box-sizing: border-box; overflow: hidden; white-space: nowrap;
+  font-size: 10px; color: var(--b24-text-subtle); background: var(--b24-bg-surface); border-left: 1px solid var(--b24-divider-accent);
+}
