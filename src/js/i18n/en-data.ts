@@ -258,6 +258,7 @@ export const enData: Record<string, string> = {
   'Закреплён': 'Pinned',
   'Перетащите, чтобы переместить; Alt + стрелки; двойной щелчок — на место': 'Drag to move; Alt + arrows; double-click to reset',
   'Развернуть': 'Expand',
+  'Ещё окна чата: {n}': 'More chat windows: {n}',
   'Участники': 'Members',
   'вы': 'you',
   'в сети': 'online',

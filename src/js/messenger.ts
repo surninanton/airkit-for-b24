@@ -7,6 +7,7 @@
  */
 import { icon, type IconName } from '../icons';
 import { avatarHtml } from './avatar';
+import { openContextMenu } from './context-menu';
 import { h, html } from './dom';
 import { t } from './i18n';
 import {
@@ -270,17 +271,73 @@ export interface ChatDockHandle {
 
 let dockHost: HTMLElement | null = null;
 const docks = new Map<string, ChatDockHandle>();
-/** окон в ряд не больше, чем помещается; лишние сворачиваются — начиная со старых */
+/** порядок «свежести»: последний — самый новый (открыт или развёрнут последним) */
+const dockOrder: string[] = [];
+const touchDock = (id: string) => { const i = dockOrder.indexOf(id); if (i >= 0) dockOrder.splice(i, 1); dockOrder.push(id); };
+let moreBtn: HTMLButtonElement | null = null;
+let fitting = false;
+/**
+ * Всё, что стоит в ряду, должно поместиться: развёрнутые (ширина окна + gap) и свёрнутые (240 + gap).
+ * Сначала сворачиваются старые развёрнутые, потом самые старые полоски уходят в кнопку «+N» с меню.
+ */
 const fitDocks = () => {
-  if (!dockHost) return;
-  const open = Array.from(docks.values()).filter((d) => !d.isMinimized());
-  const room = Math.max(1, Math.floor((window.innerWidth - 120) / 372));
-  open.slice(0, Math.max(0, open.length - room)).forEach((d) => d.minimize());
+  if (!dockHost || fitting) return;
+  fitting = true;
+  try {
+    const list = dockOrder.map((id) => docks.get(id)).filter((d): d is ChatDockHandle => !!d);
+    list.forEach((d) => d.element.classList.remove('is-overflow'));
+    if (window.matchMedia('(max-width: 768px)').matches) { moreBtn?.remove(); moreBtn = null; return; }
+    const cs = getComputedStyle(dockHost);
+    const gap = parseFloat(cs.columnGap) || 12;
+    const openW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--b24-chat-dock-width')) || 360;
+    const MIN_W = 240, MORE_W = 56;
+    const avail = window.innerWidth - (parseFloat(cs.right) || 12) - 12;
+    const width = (hidden: number) => {
+      let sum = 0, n = 0;
+      list.forEach((d) => { if (d.element.classList.contains('is-overflow')) return; sum += (d.isMinimized() ? MIN_W : openW) + gap; n++; });
+      return sum + (hidden ? MORE_W + gap : 0) - (n || hidden ? gap : 0);
+    };
+    // 1) сворачиваем старые развёрнутые, самое свежее оставляем
+    for (const d of list) {
+      if (width(0) <= avail) break;
+      if (!d.isMinimized() && list.filter((x) => !x.isMinimized()).length > 1) d.minimize();
+    }
+    // 2) старые полоски — в «+N»
+    let hidden: ChatDockHandle[] = [];
+    for (const d of list) {
+      if (width(hidden.length) <= avail) break;
+      if (!d.isMinimized()) continue;
+      d.element.classList.add('is-overflow');
+      hidden.push(d);
+    }
+    // 3) совсем узкое окно: единственное развёрнутое сворачивается тоже
+    for (const d of list) {
+      if (width(hidden.length) <= avail) break;
+      if (d.element.classList.contains('is-overflow')) continue;
+      if (!d.isMinimized()) d.minimize();
+      d.element.classList.add('is-overflow'); hidden.push(d);
+    }
+    if (!hidden.length) { moreBtn?.remove(); moreBtn = null; return; }
+    if (!moreBtn) {
+      moreBtn = h('button', { type: 'button', class: 'b24-chat-docks__more', 'aria-haspopup': 'menu' }) as HTMLButtonElement;
+      moreBtn.addEventListener('click', () => {
+        const r = moreBtn!.getBoundingClientRect();
+        const items = dockOrder.map((id) => docks.get(id)).filter((d): d is ChatDockHandle => !!d && d.element.classList.contains('is-overflow')).reverse();
+        openContextMenu(r.left, r.top - 4, items.map((d) => ({
+          label: d.element.getAttribute('aria-label') ?? d.id,
+          onClick: () => { d.restore(); d.focus(); },
+        })));
+      });
+      dockHost.append(moreBtn);
+    }
+    moreBtn.textContent = `+${hidden.length}`;
+    moreBtn.setAttribute('aria-label', t('Ещё окна чата: {n}').replace('{n}', String(hidden.length)));
+  } finally { fitting = false; }
 };
 
 export function openChatDock(options: ChatDockOptions): ChatDockHandle {
   const existing = docks.get(options.id);
-  if (existing) { existing.restore(); existing.focus(); return existing; }
+  if (existing) { existing.restore(); touchDock(options.id); existing.focus(); return existing; }
   if (!dockHost) {
     dockHost = h('div', { class: 'b24-chat-docks b24-root' });
     document.body.append(dockHost);
@@ -332,7 +389,8 @@ export function openChatDock(options: ChatDockOptions): ChatDockHandle {
     minBtn.setAttribute('aria-label', min ? t('Развернуть') : t('Свернуть'));
     minBtn.title = min ? t('Развернуть') : t('Свернуть');
     minBtn.innerHTML = icon(min ? 'chevronUp' : 'minus', { size: 18 });
-    if (!min) { badge.hidden = true; feed.scrollToBottom(); fitDocks(); }
+    if (!min) { badge.hidden = true; touchDock(options.id); el.classList.remove('is-overflow'); dockHost?.prepend(el); feed.scrollToBottom(); }
+    fitDocks();
     options.onMinimize?.(min);
   };
   titleBtn.addEventListener('click', () => handle.toggle());
@@ -362,11 +420,13 @@ export function openChatDock(options: ChatDockOptions): ChatDockHandle {
       feed.destroy();
       el.remove();
       docks.delete(options.id);
-      if (!docks.size && dockHost) { dockHost.remove(); dockHost = null; window.removeEventListener('resize', fitDocks); }
+      const oi = dockOrder.indexOf(options.id); if (oi >= 0) dockOrder.splice(oi, 1);
+      if (!docks.size && dockHost) { dockHost.remove(); dockHost = null; moreBtn = null; window.removeEventListener('resize', fitDocks); } else fitDocks();
       options.onClose?.();
     },
   };
   docks.set(options.id, handle);
+  touchDock(options.id);
   if (options.minimized) setMin(true); else fitDocks();
   return handle;
 }

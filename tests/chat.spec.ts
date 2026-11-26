@@ -1465,3 +1465,36 @@ test('панель мессенджера: groupStyle card — подложки 
   await expect(bar.locator('.b24-im-bar__card')).toHaveCount(0);
   await page.evaluate(() => (window as any).__cbar.destroy());
 });
+
+test('окна чата: 1 развёрнутое и 4 свёрнутых помещаются, «+N» открывает скрытое', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile', 'на телефоне окна — нижний лист');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    B.getChatDocks().forEach((d: any) => d.close());
+    for (let i = 0; i < 5; i++) B.openChatDock({ id: `fit${i}`, name: `Тестовый собеседник ${i}`, minimized: i < 4, feed: { messages: [] } });
+  });
+  const dock = (i: number) => page.locator(`.b24-chat-dock[data-id="fit${i}"]`);
+  const check = async () => {
+    const boxes = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLElement>('.b24-chat-dock:not(.is-overflow), .b24-chat-docks__more')).map((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, w: r.width, min: e.classList.contains('is-minimized') }; }));
+    for (const b of boxes) { expect(b.l).toBeGreaterThanOrEqual(0); expect(b.r).toBeLessThanOrEqual(1280); if (b.min) expect(Math.round(b.w)).toBe(240); }
+    return boxes;
+  };
+  await expect(dock(4)).not.toHaveClass(/is-minimized/);
+  expect(Math.round((await dock(4).boundingBox())!.width)).toBe(360);
+  await check();
+  // сужаем окно браузера: лишние полоски уходят в «+N»
+  await page.setViewportSize({ width: 800, height: 800 });
+  const more = page.locator('.b24-chat-docks__more');
+  await expect(more).toBeVisible();
+  const boxes = await check();
+  expect(boxes.length).toBeLessThan(6);
+  const hiddenId = await page.evaluate(() => (document.querySelector('.b24-chat-dock.is-overflow') as HTMLElement).dataset.id!);
+  await more.click();
+  await page.locator('.b24-menu [role="menuitem"]').first().click();
+  await expect(page.locator(`.b24-chat-dock[data-id="${hiddenId}"]`)).not.toHaveClass(/is-overflow|is-minimized/);
+  await check();
+  await page.evaluate(() => (window as any).B24UI.getChatDocks().forEach((d: any) => d.close()));
+  await expect(more).toHaveCount(0);
+});
