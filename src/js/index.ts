@@ -35,7 +35,7 @@ export {
   createMessengerBar, openChatDock, getChatDocks,
   type MessengerBarItem, type MessengerBarAction, type MessengerBarGroup, type MessengerBarOptions, type MessengerBarHandle, type ChatDockOptions, type ChatDockHandle,
 } from './messenger';
-export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory } from './emoji';
+export { openEmojiPicker, attachEmojiPicker, searchEmoji, getRecentEmoji, rememberEmoji, EMOJI_CATEGORIES, type EmojiPickerOptions, type EmojiAttachHandle, type EmojiCategory, type StickerItem, type StickerPack, type StickersOptions } from './emoji';
 export { showFloat, type FloatOptions, type FloatHandle } from './float';
 export { createDialpad, createCallCard, createLineStatus, createMicMeter, normalizePhone, formatPhone, type NormalizePhoneOptions, formatCallTime, type DialpadOptions, type DialpadHandle, type CallState, type CallCardAction, type CallCardOptions, type CallCardHandle, type LineStatus, type LineStatusOptions, type LineStatusHandle, type MicMeterOptions, type MicMeterHandle } from './phone';
 export { contextMenu, openContextMenu, type ContextMenuItem, type ContextMenuItems, type ContextMenuOptions, type ContextMenuHandle } from './context-menu';

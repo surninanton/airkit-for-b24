@@ -190,14 +190,14 @@ export interface ChatComposerProps extends ChatComposerOptions {
   composerRef?: MutableRefObject<ChatComposerHandle | null>;
 }
 /** Поле ответа: Enter — отправить, Shift+Enter — новая строка; false из onSend — текст остаётся */
-export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji, modes, mode, onModeChange, onRemoveAttachment, composerRef, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend, onTyping, formatting, onReplyCancel }: ChatComposerProps) {
+export function ChatComposer({ onSend, onAttach, accept, quickReplies, enterToSend, disabled, disabledText, placeholder, maxLength, emoji, modes, mode, onModeChange, onRemoveAttachment, composerRef, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend, onTyping, formatting, onReplyCancel, stickers }: ChatComposerProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<ChatComposerHandle | null>(null);
   const cbs = useRef({ onSend, onAttach, onModeChange, onRemoveAttachment, onTyping, onReplyCancel });
   cbs.current = { onSend, onAttach, onModeChange, onRemoveAttachment, onTyping, onReplyCancel };
   useEffect(() => {
     h.current = createChatComposer(host.current!, {
-      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji, modes, mode, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend, formatting,
+      placeholder, accept, quickReplies, enterToSend, disabled, disabledText, maxLength, emoji, modes, mode, dropTarget, maxSize, maxFiles, onReject, clearFailedOnSend, formatting, stickers,
       onReplyCancel: onReplyCancel ? () => cbs.current.onReplyCancel?.() : undefined,
       onModeChange: onModeChange ? (m) => cbs.current.onModeChange?.(m) : undefined,
       onRemoveAttachment: onRemoveAttachment ? (a) => cbs.current.onRemoveAttachment?.(a) : undefined,

@@ -1370,3 +1370,65 @@ test('цвета папок: полоски в списке, фон значка
   await page.screenshot({ path: '/tmp/folders.png' });
   expect(errors()).toEqual([]);
 });
+
+test('стикеры: вкладка в панели эмодзи, паки, поиск, недавние, стикер в ленте без пузыря', async ({ page }) => {
+  const { errors } = await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Record<string, (...a: unknown[]) => unknown> }).B24UI;
+    const img = (c: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><circle cx="48" cy="48" r="44" fill="${c}"/></svg>`)}`;
+    const w = window as unknown as Record<string, unknown>;
+    w.__picked = [];
+    let loads = 0;
+    w.__loads = () => loads;
+    const host = document.createElement('div');
+    host.id = 'zz-comp'; host.style.cssText = 'position:fixed;left:10px;bottom:10px;width:420px;z-index:9000;background:#fff';
+    document.body.append(host);
+    B.createChatComposer(host, {
+      emoji: true, onSend: () => {},
+      stickers: {
+        packs: async () => { loads++; return [
+          { id: 'cats', label: 'Коты', icon: img('#fa0'), credit: 'Автор: Кот Образцов', items: [{ id: 'c1', src: img('#f60'), label: 'Привет' }, { id: 'c2', src: img('#fc0'), label: 'Пока' }] },
+          { id: 'dogs', label: 'Псы', icon: img('#0af'), items: [{ id: 'd1', src: img('#09f'), label: 'Гав' }] },
+        ]; },
+        onSticker: (i: unknown, p: unknown) => (w.__picked as unknown[]).push([i, p]),
+      },
+    });
+    const fh = document.createElement('div'); fh.id = 'zz-feed'; fh.style.cssText = 'position:fixed;left:450px;top:10px;width:400px;height:300px;z-index:9000;background:#fff';
+    document.body.append(fh);
+    B.createChatFeed(fh, { messages: [
+      { id: 's1', dir: 'in', time: new Date(), attachments: [{ type: 'sticker', url: img('#f60'), label: 'Привет' }] },
+      { id: 's2', dir: 'in', time: new Date(), attachments: [{ type: 'sticker', label: 'Подпись без картинки' }] },
+    ] });
+  });
+  await page.locator('#zz-comp .b24-chat-composer__emoji').click();
+  const panel = page.locator('.b24-emoji');
+  await expect(panel.locator('.b24-emoji__mode')).toHaveText(['Эмодзи', 'Стикеры']);
+  await panel.locator('.b24-emoji__mode', { hasText: 'Стикеры' }).click();
+  await expect(panel.locator('.b24-emoji__sticker')).toHaveCount(2);
+  await expect(panel.locator('.b24-emoji__credit')).toHaveText('Автор: Кот Образцов');
+  await panel.locator('.b24-emoji__packbtn[data-pack="dogs"]').click();
+  await expect(panel.locator('.b24-emoji__sticker')).toHaveCount(1);
+  await expect(panel.locator('.b24-emoji__credit')).toHaveText('');
+  await panel.locator('.b24-emoji__pane--stickers .b24-emoji__search').fill('пока');
+  await expect(panel.locator('.b24-emoji__sticker')).toHaveCount(1);
+  await panel.locator('.b24-emoji__sticker').click();
+  await expect(panel).toHaveCount(0);
+  const picked = await page.evaluate(() => (window as unknown as { __picked: Array<[{ id: string }, { id: string }]> }).__picked.map(([i, p]) => `${p.id}/${i.id}`));
+  expect(picked).toEqual(['cats/c2']);
+  // последняя вкладка и недавние; паки не грузятся повторно
+  await page.locator('#zz-comp .b24-chat-composer__emoji').click();
+  await expect(page.locator('.b24-emoji__mode.is-active')).toHaveText('Стикеры');
+  await expect(page.locator('.b24-emoji__packbtn').first()).toHaveAttribute('data-pack', '@recent');
+  await expect(page.locator('.b24-emoji__sticker')).toHaveCount(1);
+  expect(await page.evaluate(() => (window as unknown as { __loads: () => number }).__loads())).toBe(1);
+  await page.keyboard.press('Escape');
+  // лента: только стикер — без пузыря
+  const s1 = page.locator('#zz-feed .b24-chat-msg[data-id="s1"]');
+  await expect(s1).toHaveClass(/is-sticker/);
+  expect(await s1.locator('.b24-chat-att--sticker img').evaluate((e) => e.getBoundingClientRect().width)).toBe(150);
+  expect(await s1.locator('.b24-chat-msg__bubble').evaluate((e) => getComputedStyle(e).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+  await expect(page.locator('#zz-feed .b24-chat-msg[data-id="s2"] .b24-chat-att--sticker')).toHaveText('Подпись без картинки');
+  await expect(page.locator('#zz-feed .b24-chat-msg[data-id="s2"]')).not.toHaveClass(/is-sticker/);
+  await page.screenshot({ path: '/tmp/stk.png' });
+  expect(errors()).toEqual([]);
+});

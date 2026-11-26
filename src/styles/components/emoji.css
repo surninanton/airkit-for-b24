@@ -27,6 +27,24 @@
 .b24-emoji__btn:hover { background: var(--b24-bg-hover); }
 .b24-emoji__empty { grid-column: 1 / -1; padding: 24px 8px; text-align: center; color: var(--b24-text-subtle); }
 
+/* стикеры: переключатель «Эмодзи | Стикеры», строка паков, сетка 72 px, подпись автора */
+.b24-emoji__pane { display: contents; }
+.b24-emoji__pane[hidden] { display: none; }
+.b24-emoji__pane--stickers:not([hidden]) { display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-height: 0; }
+.b24-emoji__modes { flex: 0 0 auto; display: flex; gap: 2px; padding: 2px; background: var(--b24-bg-surface-3); border-radius: var(--b24-radius-md); }
+.b24-emoji__mode { flex: 1 1 0; height: 28px; padding: 0 8px; font: inherit; font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); background: none; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer; }
+.b24-emoji__mode.is-active { color: var(--b24-text-primary); background: var(--b24-bg-surface); box-shadow: var(--b24-shadow-sm); font-weight: var(--b24-font-weight-medium); }
+.b24-emoji__mode:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-emoji__packs .b24-emoji__tab { display: grid; place-items: center; width: 36px; height: 36px; filter: none; }
+.b24-emoji__packs .b24-emoji__tab img { width: 28px; height: 28px; object-fit: contain; }
+.b24-emoji__grid--stickers { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 2px; }
+.b24-emoji__sticker { display: grid; place-items: center; height: 76px; padding: 4px; background: none; border: 0; border-radius: var(--b24-radius-sm); cursor: pointer; }
+.b24-emoji__sticker:hover { background: var(--b24-bg-hover); }
+.b24-emoji__sticker:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-emoji__sticker img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.b24-emoji__credit { flex: 0 0 auto; min-height: 0; font-size: 10px; color: var(--b24-text-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b24-emoji__credit:empty { display: none; }
+
 /* нижний лист на телефоне */
 @media (max-width: 768px) {
   .b24-float-backdrop { display: block; position: fixed; inset: 0; background: var(--b24-bg-overlay, rgba(0, 0, 0, 0.35)); }
@@ -86,3 +104,15 @@
 .b24-chat-menu__item:hover, .b24-chat-menu__item:focus-visible { background: var(--b24-bg-hover); outline: 0; }
 .b24-chat-menu__item svg { flex: 0 0 auto; color: var(--b24-text-subtle); }
 .b24-chat-menu__item.is-danger { color: var(--b24-color-danger); }
+
+/* стикер в ленте: без пузыря, время плашкой поверх нижнего угла */
+.b24-chat-att--sticker { display: block; }
+.b24-chat-att--sticker img { display: block; width: 150px; height: 150px; max-width: 100%; object-fit: contain; }
+.b24-chat-att--sticker.is-nourl { color: var(--b24-text-secondary); }
+.b24-chat-msg.is-sticker .b24-chat-msg__bubble { position: relative; padding: 0; background: none; box-shadow: none; border-radius: 0; }
+.b24-chat-msg.is-sticker .b24-chat-msg__atts { margin: 0; }
+.b24-chat-msg.is-sticker .b24-chat-msg__meta { position: absolute; right: 4px; bottom: 4px; float: none; margin: 0; padding: 3px 6px; color: #fff; background: rgba(0, 0, 0, 0.45); border-radius: 10px; }
+.b24-chat-msg.is-sticker .b24-chat-msg__meta .b24-chat-msg__status { color: #fff; }
+.b24-chat-msg.is-sticker .b24-chat-msg__foot { margin-top: 0; }
+.b24-chat-msg.is-sticker .b24-chat-msg__foot > .b24-chat-reactions { padding-top: 4px; }
+@media (max-width: 768px) { .b24-emoji__sticker { height: 72px; } }

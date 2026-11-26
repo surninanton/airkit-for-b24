@@ -17,7 +17,7 @@ import { createAudioPlayer } from './audio-player';
 import { createMicMeter } from './phone';
 import { storageGet, storageSet } from './storage';
 import { getLocale, intlLocale, t } from './i18n';
-import { attachEmojiPicker, openEmojiPicker } from './emoji';
+import { attachEmojiPicker, openEmojiPicker, type StickersOptions } from './emoji';
 import { showFloat } from './float';
 import { toast } from './toast';
 import { contextMenu, openContextMenu, type ContextMenuItem } from './context-menu';
@@ -325,6 +325,8 @@ export type ChatAttachment =
   | { type: 'photo'; url: string; thumb?: string; name?: string; width?: number; height?: number }
   | { type: 'file'; url: string; name: string; size?: number }
   | { type: 'voice'; url: string; duration?: number }
+  /** стикер: PNG или анимированный WebP; сообщение только со стикером рисуется без пузыря (150 px, время плашкой поверх угла); без url — подпись label */
+  | { type: 'sticker'; url?: string; label?: string }
   /** video: player — адрес встроенного плеера (iframe, VK video_ext.php): превью с ▶, по клику плеер в пузыре 16:9; без player — превью-ссылка на url; без обоих — неактивная плашка */
   | { type: 'video'; player?: string; url?: string; thumb?: string; name?: string; duration?: number }
   | { type: 'geo'; lat: number; lng: number; label?: string; url?: string };
@@ -347,7 +349,7 @@ export interface ChatReplyRef {
   id: string;
   author?: string;
   text?: string;
-  attachment?: 'photo' | 'file' | 'voice' | 'video' | 'geo' | (string & {});
+  attachment?: 'photo' | 'file' | 'voice' | 'video' | 'geo' | 'sticker' | (string & {});
   quote?: boolean;
 }
 export interface ChatMessageAction {
@@ -598,6 +600,10 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
         if (!a.url) return h('div', { class: 'b24-chat-att b24-chat-att--file is-disabled', title: t('Файл недоступен') }, html(icon('file')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.name), a.size != null ? h('span', { class: 'b24-chat-att__meta' }, fmtSize(a.size)) : ''));
         return h('a', { class: 'b24-chat-att b24-chat-att--file', href: a.url, target: '_blank', rel: 'noopener', download: a.name },
           html(icon('file')), h('span', { class: 'b24-chat-att__body' }, h('span', { class: 'b24-chat-att__name' }, a.name), a.size != null ? h('span', { class: 'b24-chat-att__meta' }, fmtSize(a.size)) : ''));
+      case 'sticker': {
+        if (!a.url) return h('div', { class: 'b24-chat-att b24-chat-att--sticker is-nourl' }, a.label ?? t('Стикер'));
+        return h('div', { class: 'b24-chat-att b24-chat-att--sticker' }, h('img', { src: a.url, alt: a.label ?? t('Стикер'), title: a.label || undefined, loading: 'lazy', draggable: 'false' }));
+      }
       case 'voice': {
         if (!a.url) return h('div', { class: 'b24-chat-att b24-chat-att--voice is-disabled', title: t('Запись недоступна') }, html(icon('mic')), h('span', { class: 'b24-chat-att__name' }, t('Голосовое сообщение')), a.duration != null ? h('span', { class: 'b24-chat-att__meta' }, fmtDur(a.duration)) : '');
         // компактный плеер: play / pause, полоса, время (метаданные грузятся по нажатию)
@@ -723,7 +729,7 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
   /** Блок «ответ на…» в пузыре: полоска акцента, автор, 1–2 строки; клик — к исходному сообщению. */
   const replyBlock = (m: ChatMessage): HTMLElement => {
     const r = m.replyTo!;
-    const kinds: Record<string, string> = { photo: t('Фото'), file: t('Файл'), voice: t('Голосовое сообщение'), video: t('Видео'), geo: t('Геоточка') };
+    const kinds: Record<string, string> = { photo: t('Фото'), file: t('Файл'), voice: t('Голосовое сообщение'), video: t('Видео'), geo: t('Геоточка'), sticker: t('Стикер') };
     const body = r.text?.trim() ? (options.formatting ? toPlain(r.text) : r.text) : r.attachment ? kinds[r.attachment] ?? r.attachment : '';
     const el = h('div', { class: `b24-chat-msg__reply${r.quote ? ' is-quote' : ''}`, role: 'button', tabindex: '0', 'data-reply-id': r.id, title: t('Перейти к сообщению') },
       r.quote ? html(icon('quote', { size: 12 })) : '', r.author ? h('span', { class: 'b24-chat-msg__reply-author' }, r.author) : '', h('span', { class: 'b24-chat-msg__reply-text' }, body));
@@ -742,6 +748,9 @@ export function createChatFeed(host: HTMLElement, options: ChatFeedOptions = {})
     el.append(h('span', { class: 'b24-chat-msg__check', role: 'checkbox', 'aria-checked': String(selected.has(m.id)), 'aria-label': t('Выбрать') }, html(icon('check', { size: 14 }))));
     if ((options.showAvatars && m.dir === 'in') || (m.dir === 'note' && m.mine === false)) el.append(grouped ? h('span', { class: 'b24-chat-msg__avatar' }) : html(avatarHtml(m.author ?? '', m.avatar, 'sm')).firstElementChild!);
     const bubble = h('div', { class: 'b24-chat-msg__bubble' });
+    // только стикер: без пузыря, время плашкой поверх нижнего угла
+    const a0 = m.attachments?.[0];
+    if (!m.deleted && !m.text && !m.replyTo && !m.forwarded && m.attachments?.length === 1 && a0?.type === 'sticker' && a0.url) el.classList.add('is-sticker');
     if (m.dir === 'note') bubble.append(h('div', { class: 'b24-chat-msg__note' }, html(icon('lock', { size: 12 })), h('span', {}, options.noteLabel ?? t('Видят только сотрудники'))));
     if (m.author && !grouped) bubble.append(h('div', { class: 'b24-chat-msg__author' }, m.author));
     const del = !!m.deleted;
@@ -1302,6 +1311,8 @@ export interface ChatComposerOptions {
   onReplyCancel?: () => void;
   /** кнопка выбора эмодзи рядом со скрепкой: панель с «Частыми», разделами и поиском; вставка в позицию курсора */
   emoji?: boolean;
+  /** стикеры: в панели эмодзи (emoji: true) вкладки «Эмодзи | Стикеры»; паки — массив или загрузка при первом открытии вкладки; клик по стикеру — onSticker(item, pack) и панель закрывается. Недавние — в хранилище кита ('b24-stickers:recent', до 20) */
+  stickers?: StickersOptions;
 }
 export interface ChatComposerHandle {
   element: HTMLElement;
@@ -1954,7 +1965,7 @@ export function createChatComposer(host: HTMLElement, options: ChatComposerOptio
     setQuickReplies: setQuick,
     destroy() { document.removeEventListener('keydown', onVoiceKey); if (dTimer) saveDraft(); if (vs) { vs.cancelled = true; if (vs.rec.state !== 'inactive') vs.rec.stop(); voiceCleanup(); } clearTimeout(mTimer); unResize(); dropCleanup.forEach((fn) => fn()); root.remove(); },
   };
-  const emojiBtn = options.emoji ? attachEmojiPicker(handle) : null;
+  const emojiBtn = options.emoji ? attachEmojiPicker(handle, { stickers: options.stickers }) : null;
   if (emojiBtn) { const base = handle.destroy; handle.destroy = () => { emojiBtn.destroy(); base(); }; }
   paintModes();
   if (options.disabled || options.disabledText) handle.setDisabled(true, options.disabledText);
