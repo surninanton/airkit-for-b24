@@ -69,7 +69,7 @@ export {
 export { createRating, getRating, type RatingOptions, type RatingHandle } from './rating';
 export { createLockScreen, openPinSetup, idleLock, type LockUser, type LockScreenOptions, type LockScreenHandle, type PinSetupOptions, type IdleLockOptions } from './lock-screen';
 export { createLogViewer, jsonHtml, codeHtml, traceHtml, copyText, type LogEntry, type LogLevel, type LogPage, type LogViewerOptions, type LogViewerHandle, type CodeTone } from './logs';
-export { createScheduler, bx24SchedulerLoader, type SchedulerOptions, type SchedulerHandle, type SchedulerResource, type SchedulerEvent, type SchedulerBand, type SchedulerChange, type SchedulerView, type BandKind, type SchedulerEventType, type SchedulerEditorField, type SchedulerEditorOptions, type SchedulerMenuContext, type SchedulerMenuItem, type SchedulerDraft } from './scheduler';
+export { createScheduler, bx24SchedulerLoader, type SchedulerOptions, type SchedulerHandle, type SchedulerResource, type SchedulerEvent, type SchedulerBand, type SchedulerChange, type SchedulerView, type BandKind, type SchedulerEventType, type SchedulerEditorField, type SchedulerEditorOptions, type SchedulerMenuContext, type SchedulerMenuItem, type SchedulerDraft, type SchedulerCollapse } from './scheduler';
 export { t, setLocale, getLocale, addMessages, intlLocale, type Messages } from './i18n';
 export { init, delegateGlobalEvents } from './auto';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';

@@ -167,3 +167,27 @@
   .b24-scheduler__resource .b24-avatar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .b24-scheduler__group-head::before { transition: none; } }
+
+/* свёрнутый промежуток часов («гармошка»): кнопка в шапке, колонка в сетке, штриховка в строках */
+.b24-scheduler__fold {
+  position: absolute; top: 28px; height: 28px; z-index: 1; display: grid; place-items: center; padding: 0; margin: 0; box-sizing: border-box;
+  color: var(--b24-text-subtle); cursor: pointer; background: var(--b24-bg-surface-3); border: 0; border-left: 1px solid var(--b24-divider-accent); border-right: 1px solid var(--b24-divider-accent);
+}
+.b24-scheduler__fold:hover { color: var(--b24-color-primary); background: var(--b24-bg-hover); }
+.b24-scheduler__fold:focus-visible, .b24-scheduler__fold-btn:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-scheduler__fold-btn {
+  position: absolute; top: 32px; z-index: 2; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; margin: 0;
+  color: var(--b24-text-subtle); cursor: pointer; background: var(--b24-bg-surface); border: 1px solid var(--b24-divider); border-radius: 50%;
+}
+.b24-scheduler__fold-btn:hover { color: var(--b24-color-primary); background: var(--b24-bg-hover); }
+.b24-scheduler__fold-col {
+  position: absolute; top: 0; bottom: 0; box-sizing: border-box; pointer-events: none;
+  border-left: 1px solid var(--b24-divider-accent); border-right: 1px solid var(--b24-divider-accent);
+  background-color: color-mix(in srgb, var(--b24-text-subtle) 8%, transparent);
+  background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 12%, transparent) 0 1px, transparent 1px 7px);
+}
+.b24-scheduler__fold-label { position: sticky; top: 64px; display: block; padding: 8px 0; writing-mode: vertical-rl; text-align: center; width: 100%; font-size: var(--b24-font-size-xs); font-variant-numeric: tabular-nums; color: var(--b24-text-subtle); white-space: nowrap; }
+.b24-scheduler__fold-zone {
+  position: absolute; top: 0; bottom: 0; pointer-events: none; box-sizing: border-box;
+  background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--b24-text-subtle) 14%, transparent) 0 1px, transparent 1px 7px);
+}

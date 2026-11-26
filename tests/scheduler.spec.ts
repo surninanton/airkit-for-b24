@@ -366,3 +366,53 @@ test("view: 'days' — N дней от даты, листание на N, пун
   expect(res.second).toEqual({ start: '2026-11-19', end: '2026-11-26' });
   expect(res.back).toBe('2026-11-5');
 });
+
+test('планировщик: свёрнутый промежуток часов — гармошка, события, «сейчас», хранилище', async ({ page }) => {
+  test.skip(isMobile(page), 'десктоп');
+  const { errors } = await open(page, '/scheduler.html');
+  const out = await page.evaluate(async () => {
+    const B = (window as unknown as { B24UI: { createScheduler: (h: HTMLElement, o: unknown) => { destroy(): void } } }).B24UI;
+    const mem: Record<string, string> = {};
+    (window as unknown as { B24UI: { setStorage: (s: unknown) => void } }).B24UI.setStorage({ get: (k: string) => mem[k] ?? null, set: (k: string, v: string | null) => { if (v == null) delete mem[k]; else mem[k] = v; } });
+    const host = document.createElement('div');
+    host.id = 'zz-sched'; host.style.cssText = 'position:fixed;inset:20px;z-index:9999;background:#fff';
+    document.body.append(host);
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    const at = (h: number) => new Date(d.getTime() + h * 3_600_000);
+    const toggles: boolean[] = [];
+    const s = B.createScheduler(host, {
+      view: 'week', date: d, hours: [0, 24], height: 400, toolbar: true,
+      collapse: [{ from: 1, to: 8 }],
+      onCollapseToggle: (_r: unknown, open: boolean) => toggles.push(open),
+      resources: [{ id: 'r1', name: 'Анна' }],
+      events: [{ id: 'e1', resourceId: 'r1', title: 'Ночная смена', start: at(0), end: at(10) }, { id: 'e2', resourceId: 'r1', title: 'Днём', start: at(12), end: at(14) }],
+    });
+    (window as unknown as { __s: unknown; __mem: unknown; __t: unknown }).__s = s;
+    (window as unknown as { __mem: unknown }).__mem = mem;
+    (window as unknown as { __t: unknown }).__t = toggles;
+    return true;
+  });
+  expect(out).toBe(true);
+  const host = page.locator('#zz-sched');
+  const fold = host.locator('.b24-scheduler__fold').first();
+  await expect(fold).toBeVisible();
+  expect(await fold.evaluate((e) => e.getBoundingClientRect().width)).toBeCloseTo(36, 0);
+  await expect(host.locator('.b24-scheduler__fold-label').first()).toHaveText('01–08');
+  await expect(host.locator('.b24-scheduler__fold')).toHaveCount(await host.locator('.b24-scheduler__fold-zone').count() / await host.locator('.b24-scheduler__row').count());
+  // событие 0–10 пересекает гармошку: ширина больше 36, подпись есть
+  const e1 = host.locator('.b24-scheduler__event[data-event="e1"]').first();
+  await expect(e1).toContainText('Ночная смена');
+  expect(await e1.evaluate((e) => e.getBoundingClientRect().width)).toBeGreaterThan(36);
+  // развернуть: Enter
+  await fold.focus();
+  await page.keyboard.press('Enter');
+  await expect(host.locator('.b24-scheduler__fold')).toHaveCount(0);
+  await expect(host.locator('.b24-scheduler__fold-btn').first()).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __t: boolean[] }).__t)).toEqual([true]);
+  expect(await page.evaluate(() => (window as unknown as { __mem: Record<string, string> }).__mem['zz-sched:collapse'])).toBe('{"1-8":true}');
+  // свернуть обратно
+  await host.locator('.b24-scheduler__fold-btn').first().click();
+  await expect(host.locator('.b24-scheduler__fold').first()).toBeVisible();
+  await page.evaluate(() => (window as unknown as { __s: { destroy(): void } }).__s.destroy());
+  expect(errors()).toEqual([]);
+});

@@ -1,3 +1,4 @@
+import { storageGet, storageSet } from './storage';
 import { icon } from '../icons';
 import { avatarHtml } from './avatar';
 import { escapeHtml, h, html } from './dom';
@@ -127,6 +128,9 @@ export interface SchedulerChange {
   resourceId: string;
   previous: { start: Date; end: Date; resourceId: string };
 }
+/** Свёрнутый промежуток часов суток: { from: 1, to: 8 } (можно дробные). */
+export interface SchedulerCollapse { from: number; to: number; label?: string; open?: boolean }
+
 export interface SchedulerOptions {
   resources: SchedulerResource[];
   events?: SchedulerEvent[];
@@ -143,6 +147,16 @@ export interface SchedulerOptions {
   step?: number;
   /** видимые часы суток в дне и неделе: [8, 20] — ночь не показывается (по умолчанию [8, 20]); [0, 24] — сутки целиком */
   hours?: [number, number];
+  /**
+   * Свёрнутые промежутки часов (день, неделя, N дней): вместо них в шкале узкая штрихованная «гармошка» (36 px) с подписью «01–08».
+   * Клик / Enter разворачивает промежуток, повторный — сворачивает. События и полосы внутри сжимаются в её ширину, создать встречу в ней нельзя.
+   * Состояние (open) запоминается в хранилище кита под ключом `<id>:collapse` (нужен id или id у хоста).
+   */
+  collapse?: SchedulerCollapse[];
+  /** разворот / сворачивание промежутка пользователем */
+  onCollapseToggle?: (range: SchedulerCollapse, open: boolean) => void;
+  /** ключ для сохранения состояния (по умолчанию — id элемента-хоста) */
+  id?: string;
   /** высота области, px */
   height?: number;
   toolbar?: boolean;
@@ -188,6 +202,8 @@ export interface SchedulerHandle {
   setResources(resources: SchedulerResource[]): void;
   setEvents(events: SchedulerEvent[]): void;
   setBands(bands: SchedulerBand[]): void;
+  /** задать свёрнутые промежутки часов (open — развёрнут); сохранённое состояние поверх не накладывается */
+  setCollapse(list: SchedulerCollapse[]): void;
   getEvents(): SchedulerEvent[];
   /** прокрутить к моменту времени: по умолчанию он встаёт на треть ширины, 'center' — по центру, 'start' — к левому краю */
   scrollToTime(date: DateInput, align?: 'third' | 'center' | 'start'): void;
@@ -245,6 +261,43 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   let events: Array<SchedulerEvent & { s: Date; e: Date }> = [];
   let bands: Array<SchedulerBand & { s: Date; e: Date }> = [];
   const collapsed = new Set<string>();
+  /* ── свёрнутые промежутки часов ── */
+  const FOLD_W = 36;
+  const foldId = (c: SchedulerCollapse) => `${c.from}-${c.to}`;
+  const foldKey = () => { const id = o.id ?? host.id; return id ? `${id}:collapse` : null; };
+  let fold: SchedulerCollapse[] = (o.collapse ?? []).filter((c) => c.to > c.from).map((c) => ({ ...c }));
+  const loadFold = () => {
+    const k = foldKey();
+    const raw = k ? storageGet(k) : null;
+    if (!raw) return;
+    try { const m = JSON.parse(raw) as Record<string, boolean>; fold.forEach((c) => { if (typeof m[foldId(c)] === 'boolean') c.open = m[foldId(c)]; }); } catch { /* битые данные — по умолчанию */ }
+  };
+  const saveFold = () => {
+    const k = foldKey();
+    if (k) storageSet(k, JSON.stringify(Object.fromEntries(fold.map((c) => [foldId(c), !!c.open]))));
+  };
+  loadFold();
+  interface Seg { a: number; b: number; closed: boolean; c?: SchedulerCollapse }
+  /** сегменты часов окна [a, b]: обычные и свёрнутые (в месяце свёрнутых нет) */
+  const segsFor = (a: number, b: number): Seg[] => {
+    const closed = view === 'month' ? [] : fold.filter((c) => !c.open).map((c) => ({ c, a: Math.max(a, c.from), b: Math.min(b, c.to) })).filter((r) => r.b > r.a).sort((p, q) => p.a - q.a);
+    const out: Seg[] = [];
+    let cur = a;
+    for (const r of closed) {
+      const ra = Math.max(r.a, cur);
+      if (r.b <= ra) continue;
+      if (ra > cur) out.push({ a: cur, b: ra, closed: false });
+      out.push({ a: ra, b: r.b, closed: true, c: r.c });
+      cur = r.b;
+    }
+    if (cur < b) out.push({ a: cur, b, closed: false });
+    return out;
+  };
+  /** обычные часы и число свёрнутых промежутков в окне — для расчёта масштаба */
+  const measure = (a: number, b: number) => {
+    const sg = segsFor(a, b);
+    return { fixed: sg.filter((x) => x.closed).length * FOLD_W, norm: sg.filter((x) => !x.closed).reduce((n, x) => n + x.b - x.a, 0) };
+  };
   let abort: AbortController | null = null;
 
   const fmtTime = () => new Intl.DateTimeFormat(intlLocale(), { hour: '2-digit', minute: '2-digit' });
@@ -298,9 +351,14 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   /** видимое окно часов суток (может быть шире hours при сжатии) */
   const win = (): [number, number] => winCur;
   /** px в часе, когда окно hours ровно на ширину области */
-  const fitBase = () => { const [b0, b1] = baseWin(); return availW > 0 ? availW / (days() * (b1 - b0)) : PX[view]; };
+  /** px в часе, когда окно [a, b] (за вычетом «гармошек») заполняет ширину области */
+  const pxFill = (a: number, b: number) => {
+    const m = measure(a, b);
+    return m.norm > 0 ? Math.max(0.5, (availW / days() - m.fixed) / m.norm) : PX[view];
+  };
+  const fitBase = () => { const [b0, b1] = baseWin(); return availW > 0 ? pxFill(b0, b1) : PX[view]; };
   /** самый мелкий масштаб: сутки 0–24 на ширину области (в месяце — месяц на ширину) */
-  const minPx = () => (view === 'month' ? fitBase() : availW > 0 ? Math.min(fitBase(), availW / (days() * 24)) : PX[view]);
+  const minPx = () => (view === 'month' ? fitBase() : availW > 0 ? Math.min(fitBase(), pxFill(0, 24)) : PX[view]);
   const maxPx = () => PX[view] * MAX_ZOOM;
   const applyScale = () => {
     const [b0, b1] = baseWin();
@@ -308,34 +366,66 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const target = pxTarget ?? Math.max(PX[view], fit);
     if (view === 'month' || target >= fit - 0.01 || availW <= 0) { winCur = [b0, b1]; pxCur = Math.max(target, fit); return; }
     // уже окна hours — расширяем окно на целые часы, поровну в обе стороны, в пределах суток
-    const span = Math.min(24, Math.max(b1 - b0, Math.ceil(availW / (days() * target) - 0.01)));
-    const extra = span - (b1 - b0);
-    let a = b0 - Math.floor(extra / 2);
-    let b = b1 + Math.ceil(extra / 2);
-    if (a < 0) { b -= a; a = 0; }
-    if (b > 24) { a = Math.max(0, a - (b - 24)); b = 24; }
-    winCur = [a, b];
-    pxCur = availW / (days() * (b - a));
+    const winFor = (span: number): [number, number] => {
+      const extra = span - (b1 - b0);
+      let a = b0 - Math.floor(extra / 2);
+      let b = b1 + Math.ceil(extra / 2);
+      if (a < 0) { b -= a; a = 0; }
+      if (b > 24) { a = Math.max(0, a - (b - 24)); b = 24; }
+      return [a, b];
+    };
+    let span = b1 - b0;
+    let w = winFor(span);
+    while (span < 24 && pxFill(w[0], w[1]) > target + 0.01) { span += 1; w = winFor(span); }
+    winCur = w;
+    pxCur = pxFill(w[0], w[1]);
   };
-  const dayW = () => (win()[1] - win()[0]) * pxh();
+  const segs = () => segsFor(win()[0], win()[1]);
+  const segW = (g: Seg) => (g.closed ? FOLD_W : (g.b - g.a) * pxh());
+  const dayW = () => segs().reduce((n, g) => n + segW(g), 0);
   const days = () => Math.round((range().end.getTime() - range().start.getTime()) / DAY);
+  /** часы суток → смещение внутри дня; в «гармошке» — пропорционально её ширине */
+  const hx = (hrs: number) => {
+    const [h0, h1] = win();
+    const v = Math.min(h1, Math.max(h0, hrs));
+    let off = 0;
+    for (const g of segs()) {
+      if (v <= g.b) return off + (g.closed ? ((v - g.a) / (g.b - g.a)) * FOLD_W : (v - g.a) * pxh());
+      off += segW(g);
+    }
+    return off;
+  };
   /** время → x: каждый день — окно часов, время вне окна прижимается к его краю */
   const x = (d: Date) => {
     const start = range().start;
     const di = Math.floor((startOfDay(d).getTime() - start.getTime() + 2 * HOUR) / DAY);
     if (di < 0) return 0;
     if (di >= days()) return days() * dayW();
-    const [h0, h1] = win();
-    const hrs = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
-    return di * dayW() + (Math.min(h1, Math.max(h0, hrs)) - h0) * pxh();
+    return di * dayW() + hx(d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600);
   };
   const width = () => days() * dayW();
+  /** px внутри дня → часы; «гармошка» отдаёт своё начало */
+  const hoursAt = (p: number) => {
+    let left = Math.max(0, p);
+    const sg = segs();
+    for (const g of sg) {
+      const w = segW(g);
+      if (left < w) return g.closed ? g.a : g.a + left / pxh();
+      left -= w;
+    }
+    return win()[1];
+  };
   const timeAt = (px: number) => {
-    const [h0, h1] = win();
     const di = Math.min(days() - 1, Math.max(0, Math.floor(px / dayW())));
-    const within = Math.min(h1 - h0, Math.max(0, (px - di * dayW()) / pxh()));
     const d = addDays(range().start, di);
-    return new Date(d.getTime() + (h0 + within) * HOUR);
+    return new Date(d.getTime() + hoursAt(px - di * dayW()) * HOUR);
+  };
+  /** px сетки внутри свёрнутого промежутка */
+  const inFold = (px: number) => {
+    if (!fold.length || view === 'month') return false;
+    let left = px - Math.min(days() - 1, Math.max(0, Math.floor(px / dayW()))) * dayW();
+    for (const g of segs()) { const w = segW(g); if (left < w) return g.closed; left -= w; }
+    return false;
   };
   const snap = (d: Date) => new Date(Math.round(d.getTime() / stepMs()) * stepMs());
 
@@ -470,6 +560,19 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
   };
 
   /* ── шапка и сетка ── */
+  const hh2 = (n: number) => { const h0 = Math.floor(n); const m = Math.round((n - h0) * 60); return m ? `${String(h0).padStart(2, '0')}:${String(m).padStart(2, '0')}` : String(h0).padStart(2, '0'); };
+  const foldLabel = (c: SchedulerCollapse) => c.label ?? `${hh2(c.from)}–${hh2(c.to)}`;
+  const toggleFold = (c: SchedulerCollapse) => {
+    const offset = (viewport.clientWidth - resW()) / 3;
+    const at = timeAt(viewport.scrollLeft + offset);
+    c.open = !c.open;
+    saveFold();
+    render();
+    viewport.scrollLeft = Math.max(0, x(at) - offset);
+    o.onCollapseToggle?.({ ...c }, !!c.open);
+    const again = [...root.querySelectorAll<HTMLElement>(c.open ? '.b24-scheduler__fold-btn' : '.b24-scheduler__fold')];
+    again.find((b) => b.getAttribute('aria-label')?.includes(foldLabel(c)))?.focus({ preventScroll: true });
+  };
   const renderScale = () => {
     const { start, end } = range();
     const w = width();
@@ -485,6 +588,35 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     };
     const col = (left: number, cls = '') => grid.append(h('div', { class: `b24-scheduler__col${cls}`, style: `left:${left}px` }));
     const [h0, h1] = win();
+    const segList = segs();
+    const inClosed = (hh: number) => segList.some((g) => g.closed && hh >= g.a && hh < g.b);
+    /** «гармошки» и кнопки сворачивания одних суток; left — левый край суток */
+    const folds = (left: number) => {
+      let off = 0;
+      for (const g of segList) {
+        const w = segW(g);
+        if (g.closed && g.c) {
+          const c = g.c;
+          const label = foldLabel(c);
+          const btn = h('button', { type: 'button', class: 'b24-scheduler__fold', style: `left:${left + off}px;width:${w}px`, 'aria-expanded': 'false', title: `${t('Развернуть')} ${label}`, 'aria-label': `${t('Свёрнуто')} ${label}. ${t('Развернуть')}` }, html(icon('arrowsH', { size: 14 })));
+          btn.addEventListener('click', () => toggleFold(c));
+          scale.append(btn);
+          grid.append(h('div', { class: 'b24-scheduler__fold-col', style: `left:${left + off}px;width:${w}px` }, h('span', { class: 'b24-scheduler__fold-label' }, label)));
+        }
+        off += w;
+      }
+      // открытые промежутки в окне: кнопка «свернуть» у правого края
+      for (const c of fold) {
+        if (!c.open || view === 'month') continue;
+        const a = Math.max(h0, c.from);
+        const b = Math.min(h1, c.to);
+        if (b <= a) continue;
+        const bx = left + hx(b);
+        const btn = h('button', { type: 'button', class: 'b24-scheduler__fold-btn', style: `left:${Math.max(left + hx(a), bx - 20)}px`, 'aria-expanded': 'true', title: `${t('Свернуть')} ${foldLabel(c)}`, 'aria-label': `${t('Свернуть')} ${foldLabel(c)}` }, html(icon('chevronLeft', { size: 12 })));
+        btn.addEventListener('click', () => toggleFold(c));
+        scale.append(btn);
+      }
+    };
     // деления внутри часа при увеличении: :30 от 100 px на час, :15 и :45 от 200 px
     const sub = pxh() >= 200 ? 4 : pxh() >= 100 ? 2 : 1;
     const subTicks = (left: number) => {
@@ -497,10 +629,12 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     if (view === 'day') {
       tick('top', 0, w, new Intl.DateTimeFormat(loc, { weekday: 'long', day: 'numeric', month: 'long' }).format(start));
       for (let hh = h0; hh < h1; hh++) {
-        tick('bottom', (hh - h0) * pxh(), pxh() / sub, `${String(hh).padStart(2, '0')}:00`);
-        col((hh - h0) * pxh(), hh === h0 ? '' : ' is-minor');
-        subTicks((hh - h0) * pxh());
+        if (inClosed(hh)) continue;
+        tick('bottom', hx(hh), pxh() / sub, `${String(hh).padStart(2, '0')}:00`);
+        col(hx(hh), hh === h0 ? '' : ' is-minor');
+        subTicks(hx(hh));
       }
+      folds(0);
     } else if (view === 'week' || view === 'days') {
       // подписи часов — каждый час при увеличении, иначе каждые 2 часа (или реже, если узко)
       const every = pxh() >= 40 ? 1 : pxh() * 2 >= 40 ? 2 : pxh() * 4 >= 40 ? 4 : 6;
@@ -510,12 +644,14 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
         const wd = new Intl.DateTimeFormat(loc, { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
         tick('top', left, dayW(), wd, `${sameDay(d, today) ? ' is-today' : ''}${isWeekend(d) ? ' is-weekend' : ''}`);
         for (let hh = h0; hh < h1; hh += every) {
-          tick('bottom', left + (hh - h0) * pxh(), (every * pxh()) / sub, every === 1 && sub > 1 ? `${String(hh).padStart(2, '0')}:00` : String(hh).padStart(2, '0'));
-          if (every === 1) subTicks(left + (hh - h0) * pxh());
+          if (inClosed(hh)) continue;
+          tick('bottom', left + hx(hh), (every * pxh()) / sub, every === 1 && sub > 1 ? `${String(hh).padStart(2, '0')}:00` : String(hh).padStart(2, '0'));
+          if (every === 1) subTicks(left + hx(hh));
         }
         col(left, ` is-day${isWeekend(d) ? ' is-weekend' : ''}`);
         if (isWeekend(d)) grid.lastElementChild!.setAttribute('style', `left:${left}px;width:${dayW()}px`);
-        for (let hh = h0 + every; hh < h1; hh += every) col(left + (hh - h0) * pxh(), ' is-minor');
+        for (let hh = h0 + every; hh < h1; hh += every) if (!inClosed(hh)) col(left + hx(hh), ' is-minor');
+        folds(left);
       }
     } else {
       tick('top', 0, w, new Intl.DateTimeFormat(loc, { month: 'long', year: 'numeric' }).format(start));
@@ -528,7 +664,12 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
       }
     }
     const nowH = today.getHours() + today.getMinutes() / 60;
-    if (today >= start && today < end && nowH >= h0 && nowH <= h1) grid.append(h('div', { class: 'b24-scheduler__now', style: `left:${x(today)}px` }));
+    if (today >= start && today < end && nowH >= h0 && nowH <= h1) {
+      // внутри «гармошки» линия «сейчас» прилипает к её середине
+      const g = segList.find((q) => q.closed && nowH >= q.a && nowH <= q.b);
+      const nx = g ? x(today) - hx(nowH) + hx(g.a) + FOLD_W / 2 : x(today);
+      grid.append(h('div', { class: 'b24-scheduler__now', style: `left:${nx}px` }));
+    }
     title.textContent = view === 'day'
       ? new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'long', year: 'numeric' }).format(start)
       : view === 'week' || view === 'days'
@@ -600,6 +741,15 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
         cur = Math.max(cur, b);
       }
       if (cur < w) track.append(h('div', { class: 'b24-scheduler__band b24-scheduler__band--offhours', style: `left:${cur}px;width:${w - cur}px` }));
+    }
+    if (view !== 'month') {
+      for (let i = 0; i < days(); i++) {
+        let off = 0;
+        for (const g of segs()) {
+          if (g.closed) track.append(h('div', { class: 'b24-scheduler__fold-zone', style: `left:${i * dayW() + off}px;width:${segW(g)}px` }));
+          off += segW(g);
+        }
+      }
     }
     for (const b of rb) {
       if (b.kind === 'work') continue;
@@ -892,7 +1042,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     const track = target.closest<HTMLElement>('.b24-scheduler__track');
     if (!track) return;
     viewport.focus({ preventScroll: true }); // для Ctrl/⌘+V
-    if (!canCreate()) return;
+    if (!canCreate() || inFold(trackX(e.clientX))) return;
     const row = track.closest<HTMLElement>('.b24-scheduler__row')!;
     const from = snap(timeAt(trackX(e.clientX)));
     const sel = h('div', { class: 'b24-scheduler__selection', style: `top:${ROW_PAD + 2}px;left:${x(from)}px;width:0` });
@@ -1104,6 +1254,7 @@ export function createScheduler(host: HTMLElement, options: SchedulerOptions): S
     setResources(r) { resources = r; render(); },
     setEvents(list) { events = normEvents(list); render(); },
     setBands(list) { bands = normBands(list); render(); },
+    setCollapse(list) { fold = list.filter((c) => c.to > c.from).map((c) => ({ ...c })); loadFold(); pxTarget = null; render(); },
     getEvents: () => events.map(({ s, e, ...rest }) => ({ ...rest, start: s, end: e })),
     scrollToTime,
     scrollToDate,

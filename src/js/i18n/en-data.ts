@@ -268,6 +268,7 @@ export const enData: Record<string, string> = {
   'Выберите сотрудника': 'Select an employee',
   'Выберите сотрудников': 'Select employees',
   'Название чата': 'Chat name',
+  'Свёрнуто': 'Collapsed',
   'Папки': 'Folders',
   'Что выбирать': 'Pick by',
   'Выбранные': 'Selected',
