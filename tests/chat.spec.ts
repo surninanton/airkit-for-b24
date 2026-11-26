@@ -1432,3 +1432,36 @@ test('стикеры: вкладка в панели эмодзи, паки, п�
   await page.screenshot({ path: '/tmp/stk.png' });
   expect(errors()).toEqual([]);
 });
+
+test('панель мессенджера: groupStyle card — подложки без значков, label в aria-label, элементы без группы вне', async ({ page }) => {
+  test.skip(isMobile(page), 'на телефоне панель скрыта');
+  await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as any).B24UI;
+    (window as any).__cbar = B.createMessengerBar({
+      groupStyle: 'card',
+      items: [
+        { id: 's1', name: 'Анна Сотрудникова', group: 'staff' },
+        { id: 'l1', name: 'Мария Образцова', group: 'lines', counter: 3 },
+        { id: 'l2', name: 'Иван Примеров', group: 'lines' },
+        { id: 'x', name: 'Без группы' },
+      ],
+      groups: [{ id: 'lines', label: 'Линии — покупатели', icon: 'headset', counter: true }, { id: 'staff', label: 'Сотрудники', icon: 'users' }],
+    });
+  });
+  const bar = page.locator('.b24-im-bar').last();
+  await expect(bar.locator('.b24-im-bar__group')).toHaveCount(0);
+  await expect(bar.locator('.b24-im-bar__card')).toHaveCount(2);
+  await expect(bar.locator('.b24-im-bar__card').first()).toHaveAttribute('aria-label', 'Линии — покупатели');
+  await expect(bar.locator('.b24-im-bar__card').first().locator('.b24-im-bar__item')).toHaveCount(2);
+  await expect(bar.locator('.b24-im-bar__card > svg')).toHaveCount(0);
+  await expect(bar.locator('.b24-im-bar__card').first().locator(':scope > .b24-im-bar__counter')).toHaveText('3');
+  await expect(bar.locator('.b24-im-bar__list > .b24-im-bar__item')).toHaveAttribute('data-id', 'x');   // «Без группы» — вне подложек
+  expect(await bar.locator('.b24-im-bar__card').first().evaluate((e) => getComputedStyle(e).borderRadius)).toBe('12px');
+  // клик и setActive работают внутри подложек
+  await bar.locator('.b24-im-bar__item[data-id="s1"]').click();
+  await expect(bar.locator('.b24-im-bar__item.is-active')).toHaveCount(1);
+  await page.evaluate(() => (window as any).__cbar.setGroups([]));
+  await expect(bar.locator('.b24-im-bar__card')).toHaveCount(0);
+  await page.evaluate(() => (window as any).__cbar.destroy());
+});

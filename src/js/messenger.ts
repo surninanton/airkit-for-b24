@@ -62,6 +62,8 @@ export interface MessengerBarOptions {
   items: MessengerBarItem[];
   /** группы: порядок и подписи; элементы с group идут по порядку групп (внутри группы — как в items), без group / с неизвестной group — в конце без разделителя. Без groups — один список */
   groups?: MessengerBarGroup[];
+  /** вид групп: 'divider' (по умолчанию) — разделитель со значком перед группой; 'card' — каждая группа на своей скруглённой подложке, без значка и подписи (label остаётся в aria-label обёртки, counter группы — бейдж на подложке); элементы без группы — в конце, вне подложек */
+  groupStyle?: 'divider' | 'card';
   value?: string | null;
   onSelect?: (id: string, item: MessengerBarItem) => void;
   /** кнопка «Все чаты» сверху; без обработчика — кнопки нет */
@@ -105,7 +107,7 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
   let allCounter = options.allCounter ?? 0;
   const root = h('nav', { class: 'b24-im-bar b24-root', 'aria-label': t('Мессенджер') });
   const top = h('div', { class: 'b24-im-bar__top' });
-  const list = h('div', { class: 'b24-im-bar__list', role: 'list' });
+  const list = h('div', { class: 'b24-im-bar__list', role: options.groupStyle === 'card' && options.groups?.length ? 'presentation' : 'list' });
   const bottom = h('div', { class: 'b24-im-bar__bottom' });
   root.append(top, list, bottom);
   (options.host ?? document.body).append(root);
@@ -139,6 +141,19 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
     if (!groups?.length) { list.replaceChildren(...items.map(itemEl)); return; }
     const rank = (it: MessengerBarItem) => { const i = groups.findIndex((g) => g.id === it.group); return i < 0 ? groups.length : i; };
     const sorted = items.map((it, i) => ({ it, i })).sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i).map((x) => x.it);
+    if (options.groupStyle === 'card') {
+      const cards: HTMLElement[] = [];
+      for (const g of groups) {
+        const mine = sorted.filter((x) => x.group === g.id);
+        if (!mine.length) continue;
+        const n = g.counter ? mine.reduce((sum, x) => sum + (x.counter ?? 0), 0) : 0;
+        // role=list: внутри — listitem; подпись группы — в aria-label
+        cards.push(h('div', { class: 'b24-im-bar__card', role: 'list', 'aria-label': g.label, 'data-group': g.id }, ...mine.map(itemEl), counterEl(n)));
+      }
+      const rest = sorted.filter((x) => !groups.some((g) => g.id === x.group)).map(itemEl);
+      list.replaceChildren(...cards, ...rest);
+      return;
+    }
     const out: HTMLElement[] = [];
     let prev: string | undefined;
     for (const it of sorted) {
@@ -196,7 +211,11 @@ export function createMessengerBar(options: MessengerBarOptions): MessengerBarHa
       });
     },
     setActions(next) { actions = next; renderBottom(); },
-    setGroups(next) { barGroups = next; renderList(); },
+    setGroups(next) {
+      barGroups = next;
+      if (options.groupStyle === 'card') list.setAttribute('role', next?.length ? 'presentation' : 'list');
+      renderList();
+    },
     setAllCounter(n) { allCounter = n; renderTop(); },
     destroy() {
       hideTip();
