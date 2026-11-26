@@ -45,7 +45,7 @@ export { isEmbed, setEmbed, initEmbed, initShellSearch, setShellActive, watchShe
 export { createSortable, type SortableItem, type SortableOptions, type SortableHandle } from './sortable';
 export { createReceipt, layoutReceipt, wrapReceiptText, type ReceiptLine, type ReceiptTextLine, type ReceiptColsLine, type ReceiptSepLine, type ReceiptQrLine, type ReceiptBarcodeLine, type ReceiptBlankLine, type ReceiptOptions, type ReceiptHandle } from './receipt';
 export { qrMatrix, qrSvg, createQr, type QrEcc, type QrSvgOptions, type QrOptions, type QrHandle } from './qr';
-export { createMemberList, pickUser, matchMember, type Member, type MemberAction, type MemberListOptions, type MemberListHandle, type PickUserOptions } from './members';
+export { createMemberList, pickUser, pickMembers, matchMember, type Member, type MemberAction, type MemberListOptions, type MemberListHandle, type PickUserOptions, type PickGroup, type PickGroupItem, type PickTitleField, type PickMembersResult } from './members';
 export { notifySound, desktopNotify, requestNotifyPermission, claimNotify, type NotifySoundOptions, type DesktopNotifyOptions } from './notify';
 export { initials, avatarColor, avatarHtml, type AvatarHtmlOptions } from './avatar';
 export { creditHtml, REPO_URL } from './credit';

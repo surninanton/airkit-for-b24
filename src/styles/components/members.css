@@ -56,3 +56,31 @@ button.b24-member:focus-visible { outline: 2px solid var(--b24-focus-color); out
 .b24-member__action:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
 .b24-member__action.is-danger:hover { color: var(--b24-color-danger); }
 .b24-member__action:focus-visible { outline: 2px solid var(--b24-focus-color); }
+
+/* «+ Добавить участников» над списком и роль справа */
+.b24-member-list__add {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; margin: 0 0 4px; box-sizing: border-box;
+  font: inherit; font-weight: var(--b24-font-weight-medium); text-align: left; cursor: pointer;
+  color: var(--b24-color-link); background: none; border: 0; border-radius: var(--b24-radius-sm);
+}
+.b24-member-list__add:hover { background: var(--b24-bg-hover); }
+.b24-member-list__add:focus-visible { outline: 2px solid var(--b24-focus-color); outline-offset: -2px; }
+.b24-member-list__add-icon { display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; color: var(--b24-color-link); background: var(--b24-color-soft-blue-3, #e5f4ff); }
+.b24-member__role { flex: 0 0 auto; padding: 1px 8px; font-size: var(--b24-font-size-xs); color: var(--b24-text-secondary); background: var(--b24-bg-surface-3); border-radius: var(--b24-radius-full, 999px); white-space: nowrap; }
+
+/* выбор участников: вкладки групп, чекбоксы, чипы */
+.b24-user-picker__tabs { align-self: flex-start; }
+.b24-user-picker__groups { height: min(300px, calc(100dvh - 300px)); margin: 0 -8px; padding: 0 8px; }
+.b24-user-picker__groups[hidden], .b24-user-picker__list[hidden] { display: none; }
+.b24-user-picker__group .b24-member__check { border-radius: 5px; }
+.b24-user-picker__group.is-selected .b24-member__check, .b24-user-picker__group.is-mixed .b24-member__check { color: #fff; background: var(--b24-color-primary); border-color: var(--b24-color-primary); }
+.b24-user-picker__group.is-mixed { background: none; }
+.b24-user-picker__foot { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
+.b24-user-picker__count { font-size: var(--b24-font-size-sm); color: var(--b24-text-secondary); font-variant-numeric: tabular-nums; }
+.b24-user-picker__chips { display: flex; flex-wrap: wrap; gap: 4px; max-height: 72px; overflow-y: auto; scrollbar-width: thin; }
+.b24-user-picker__chips[hidden] { display: none; }
+.b24-user-picker__chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 2px 4px 2px 10px; font-size: var(--b24-font-size-sm); background: var(--b24-bg-surface-3); border-radius: 999px; }
+.b24-user-picker__chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b24-user-picker__chip-x { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; color: var(--b24-text-subtle); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.b24-user-picker__chip-x:hover { color: var(--b24-text-primary); background: var(--b24-bg-hover); }
+.b24-user-picker__chip-x:focus-visible { outline: 2px solid var(--b24-focus-color); }

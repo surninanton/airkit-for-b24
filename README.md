@@ -615,6 +615,17 @@ const user = await B24UI.pickUser({ users: staff, title: 'Новый чат' });
 const added = await B24UI.pickUser({ users: staff, multiple: true, exclude: memberIds, okText: 'Добавить' }); // Member[] | null
 ```
 
+**Групповой чат** — `pickUser({ multiple: true, groups, titleField, okText })` (то же — `pickMembers`):
+- `groups: [{ id, label: 'Должности', items: [{ id, name, caption?, members: ['id', …] }] }]` — вкладки «Сотрудники» + по вкладке на группу. Строка «Курьер · 12 чел.» с чекбоксом: отметка добавляет всех `members`, снятие убирает только пришедших из неё; часть выбрана — `aria-checked="mixed"`. Недоступных (`disabled`, «вы», `exclude`) группа не добавляет.
+- `titleField: { label, placeholder, value, required }` — поле «Название чата» сверху; результат `{ title, users }` вместо `Member[]`. Кнопка (`okText`) неактивна при 0 выбранных и пустом обязательном названии.
+- Внизу «Выбрано: N» и чипы с крестиком (`chips`, по умолчанию включены при groups/titleField); `exclude` / `selected` / `Member.disabled` + `meta: 'в чате'` — как раньше.
+- `createMemberList`: `onAdd` + `addLabel` — строка «+ Добавить участников» над списком; `Member.role` — плашка роли справа («Создатель»).
+
+```js
+const r = await B24UI.pickUser({ users: staff, multiple: true, okText: 'Создать чат', titleField: { placeholder: 'Название', required: true },
+  groups: [{ id: 'pos', label: 'Должности', items: [{ id: 'cook', name: 'Повар', members: ['1', '2'] }] }] });  // { title, users } | null
+```
+
 React: `<MemberList items title onSelect compact selected />`; `pickUser` — та же функция из `airkit-for-b24/react`.
 
 ## Конструктор чеков: блоки, лента, QR, зоны печати

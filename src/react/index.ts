@@ -57,6 +57,6 @@ export type { IconName } from '../icons';
 export { ChatLayout, ChatHeader, ChatRail, ChatList, ChatFeed, ChatComposer, MessengerBar, ChatDock, MemberList, type MemberListProps, type ChatRailProps, type ChatLayoutProps, type ChatListProps, type ChatFeedProps, type ChatComposerProps, type MessengerBarProps, type ChatDockProps } from './Chat';
 export { notifySound, desktopNotify, requestNotifyPermission, claimNotify } from '../js/notify';
 export { openEmojiPicker, searchEmoji, getRecentEmoji, type EmojiPickerOptions } from '../js/emoji';
-export { pickUser, matchMember, type Member, type PickUserOptions } from '../js/members';
+export { pickUser, pickMembers, matchMember, type Member, type PickUserOptions, type PickGroup, type PickGroupItem, type PickTitleField, type PickMembersResult } from '../js/members';
 export type { MessengerBarItem, MessengerBarAction } from '../js/messenger';
 export type { ChatMessage, ChatListItem, ChatAttachment, ChatChannel, ChatRailItem, ChatRailStatus, ChatReaction, ChatMessageAction, ComposerAttachment, ChatComposerMode, ChatSendContext } from '../js/chat';

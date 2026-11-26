@@ -312,17 +312,20 @@ export function ChatDock({ id, name, avatar, status, meta, messages, hasMore, on
 
 export interface MemberListProps extends Omit<MemberListOptions, 'items'> { items: Member[]; className?: string }
 /** Список участников: аватар со статусом, имя, подпись, «вы»; items и selected применяются без пересоздания */
-export function MemberList({ items, onSelect, onAction, title, emptyText, compact, selected, selfSelectable, label, className }: MemberListProps) {
+export function MemberList({ items, onSelect, onAction, title, emptyText, compact, selected, selfSelectable, label, onAdd, addLabel, className }: MemberListProps) {
   const host = useRef<HTMLDivElement>(null);
   const h = useRef<MemberListHandle | null>(null);
   const sel = useRef(onSelect);
   sel.current = onSelect;
   const act = useRef(onAction);
   act.current = onAction;
+  const addRef = useRef(onAdd);
+  addRef.current = onAdd;
   useEffect(() => {
     h.current = createMemberList(host.current!, {
       onAction: (a, m) => act.current?.(a, m),
-      items, title, emptyText, compact, selected, selfSelectable, label,
+      items, title, emptyText, compact, selected, selfSelectable, label, addLabel,
+      onAdd: onAdd ? () => addRef.current?.() : undefined,
       onSelect: onSelect ? (id, m) => sel.current?.(id, m) : undefined,
     });
     if (className) h.current.element.classList.add(...className.split(/\s+/).filter(Boolean));
