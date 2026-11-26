@@ -82,6 +82,8 @@ export interface ChatMenuAction<T> {
   id?: string;
   label?: string;
   icon?: IconName;
+  /** цветной кружок 14 px вместо иконки: «Цвет папки → Бирюзовый» */
+  swatch?: string;
   danger?: boolean;
   disabled?: boolean;
   checked?: boolean;
@@ -92,7 +94,7 @@ export interface ChatMenuAction<T> {
 export function chatMenuItems<T>(actions: Array<ChatMenuAction<T>>, item: T): ContextMenuItem[] {
   return actions.map((a) => (a.separator
     ? { separator: true }
-    : { label: a.label, icon: a.icon, danger: a.danger, disabled: a.disabled, checked: a.checked, children: a.children ? chatMenuItems(a.children, item) : undefined, onClick: a.onClick ? () => a.onClick!(item) : undefined }));
+    : { label: a.label, icon: a.icon, swatch: a.swatch, danger: a.danger, disabled: a.disabled, checked: a.checked, children: a.children ? chatMenuItems(a.children, item) : undefined, onClick: a.onClick ? () => a.onClick!(item) : undefined }));
 }
 export interface ChatListItem {
   id: string;
@@ -132,6 +134,8 @@ export interface ChatListItem {
   dialogId?: string;
   /** найденное сообщение: после открытия диалога — feed.jumpTo(messageId) */
   messageId?: string;
+  /** цветные полоски папок по левому краю строки (3 px, первые 3); в подсказке строки — «Папки: …» (title каждой) */
+  stripes?: Array<{ color: string; title?: string }>;
 }
 export interface ChatListOptions {
   items: ChatListItem[];
@@ -218,7 +222,11 @@ export function createChatList(host: HTMLElement, options: ChatListOptions): Cha
     if (it.channel) bottom.append(channelBadge(it.channel));
     if (it.brand) { const bb = channelBadge(it.brand); bb.classList.add('b24-chat-channel--brand'); bottom.append(bb); }
     if (it.unread) bottom.append(h('span', { class: 'b24-counter' }, it.unread > 99 ? '99+' : String(it.unread)));
-    row.replaceChildren(av, h('span', { class: 'b24-chat-list__body' }, top, bottom));
+    const stripes = it.stripes?.length ? h('span', { class: 'b24-chat-list__stripes', 'aria-hidden': 'true' }, ...it.stripes.slice(0, 3).map((x) => { const b = h('span', {}); b.style.background = x.color; return b; })) : null;
+    row.classList.toggle('has-stripes', !!stripes);
+    const folders = (it.stripes ?? []).map((x) => x.title).filter(Boolean);
+    if (folders.length) row.title = `${t('Папки')}: ${folders.join(', ')}`; else row.removeAttribute('title');
+    row.replaceChildren(...(stripes ? [stripes] : []), av, h('span', { class: 'b24-chat-list__body' }, top, bottom));
     row.setAttribute('aria-label', `${it.name}${it.unread ? `, ${t('непрочитанных: {n}', { n: it.unread })}` : ''}${it.typing ? `. ${typeof it.typing === 'string' ? it.typing : t('печатает…')}` : it.preview ? `. ${it.preview}` : it.subtitle ? `. ${it.subtitle}` : ''}`);
   };
 
@@ -1970,6 +1978,8 @@ export interface ChatRailItem {
   status?: ChatRailStatus;
   /** подсказка; по умолчанию — подпись */
   title?: string;
+  /** лёгкий фон значка («#9be8dc»): цвет папки; иконка остаётся тёмной */
+  color?: string;
   disabled?: boolean;
   /** панель, которую показывает пункт (см. ChatRailOptions.panes): значение data-b24-chat-pane */
   pane?: string;
@@ -2058,10 +2068,12 @@ export function createChatRail(host: HTMLElement, options: ChatRailOptions): Cha
     prev.forEach((k) => { if (!next.has(k)) el.removeAttribute(k); });
     for (const [k, v] of Object.entries(it.attrs ?? {})) el.setAttribute(k, v);
     ownAttrs.set(it.id, next);
-    const s = `${it.icon}|${it.label}|${it.counter ?? ''}|${it.status ?? ''}`;
+    const s = `${it.icon}|${it.label}|${it.counter ?? ''}|${it.status ?? ''}|${it.color ?? ''}`;
     if (sig.get(it.id) !== s) {
       sig.set(it.id, s);
       const ico = h('span', { class: 'b24-chat-rail__icon' }, html(icon(it.icon, { size: 24 })));
+      if (it.color) ico.style.setProperty('--b24-chat-rail-color', it.color);
+      ico.classList.toggle('has-color', !!it.color);
       if (it.counter) ico.append(h('span', { class: 'b24-counter b24-chat-rail__counter' }, it.counter > 99 ? '99+' : String(it.counter)));
       if (it.status && it.status !== 'unknown') ico.append(h('span', { class: `b24-chat-rail__dot is-${it.status}`, 'aria-hidden': 'true' }));
       el.replaceChildren(ico, h('span', { class: 'b24-chat-rail__label' }, it.label));

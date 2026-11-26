@@ -1335,3 +1335,38 @@ test('фон ленты: тон, узор, tint, setBackground, затемнен
   await expect(voice.locator('audio')).toHaveCount(1);
   await page.evaluate(() => { (window as any).__bf.destroy(); document.getElementById('bg-host')?.remove(); });
 });
+
+test('цвета папок: полоски в списке, фон значка рейла, кружок в меню', async ({ page }) => {
+  const { errors } = await open(page, '/chat.html');
+  await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: Record<string, (...a: unknown[]) => unknown> }).B24UI;
+    const host = document.createElement('div'); host.id = 'zz-host'; host.style.cssText = 'position:fixed;left:0;top:0;width:320px;background:#fff;z-index:9999';
+    document.body.append(host);
+    B.createChatList(host, { items: [
+      { id: 'a', name: 'Анна', stripes: [{ color: '#9be8dc', title: 'Маркетинг' }, { color: '#fff1a0', title: 'Смена' }, { color: '#ffc7dc', title: 'VIP' }, { color: '#ccc', title: 'Ещё' }] },
+      { id: 'b', name: 'Борис' },
+    ], value: 'a' });
+    const rail = document.createElement('div'); rail.id = 'zz-rail'; rail.style.cssText = 'position:fixed;left:400px;top:0;width:68px;background:#fff;z-index:9999';
+    document.body.append(rail);
+    B.createChatRail(rail, { items: [{ id: 'r', label: 'Кухня', icon: 'chat', color: '#9be8dc' }, { id: 'q', label: 'Все', icon: 'chat' }] });
+  });
+  const a = page.locator('#zz-host .b24-chat-list__item').first();
+  await expect(a.locator('.b24-chat-list__stripes > span')).toHaveCount(3);
+  await expect(a).toHaveAttribute('title', 'Папки: Маркетинг, Смена, VIP, Ещё');
+  await expect(page.locator('#zz-host .b24-chat-list__item').nth(1)).not.toHaveAttribute('title', /.+/);
+  expect(await a.locator('.b24-chat-list__stripes > span').first().evaluate((e) => getComputedStyle(e).width)).toBe('3px');
+  const ico = page.locator('#zz-rail .b24-chat-rail__icon').first();
+  await expect(ico).toHaveClass(/has-color/);
+  expect(await ico.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe('rgb(155, 232, 220)');
+  await expect(page.locator('#zz-rail .b24-chat-rail__icon').nth(1)).not.toHaveClass(/has-color/);
+  await page.evaluate(() => {
+    const B = (window as unknown as { B24UI: { openContextMenu: (x: number, y: number, i: unknown[]) => void } }).B24UI;
+    B.openContextMenu(200, 300, [{ label: 'Цвет папки', children: [{ label: 'Бирюзовый', swatch: '#9be8dc', checked: true }, { label: 'Без цвета' }] }]);
+  });
+  await page.locator('.b24-menu__item', { hasText: 'Цвет папки' }).click();
+  const sw = page.locator('.b24-menu__item', { hasText: 'Бирюзовый' }).locator('.b24-menu__swatch');
+  await expect(sw).toHaveCount(1);
+  expect(await sw.evaluate((e) => [getComputedStyle(e).width, getComputedStyle(e).backgroundColor])).toEqual(['14px', 'rgb(155, 232, 220)']);
+  await page.screenshot({ path: '/tmp/folders.png' });
+  expect(errors()).toEqual([]);
+});

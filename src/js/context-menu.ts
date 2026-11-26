@@ -15,9 +15,17 @@
 import { icon, type IconName } from '../icons';
 import { bringToFront, h, html, pushLayer } from './dom';
 
+function swatchEl(color: string): HTMLElement {
+  const e = h('span', { class: 'b24-menu__swatch', 'aria-hidden': 'true' });
+  e.style.background = color;
+  return e;
+}
+
 export interface ContextMenuItem {
   label?: string;
   icon?: IconName;
+  /** цветной кружок 14 px вместо иконки */
+  swatch?: string;
   hint?: string;
   danger?: boolean;
   disabled?: boolean;
@@ -105,7 +113,7 @@ export function openContextMenu(x: number, y: number, items: ContextMenuItem[], 
       }
       if (it.title && !it.label) { list.append(h('div', { class: 'b24-menu__title' }, it.title)); continue; }
       const hasSub = !!it.children?.length;
-      const b = h('button', { type: 'button', role: it.checked !== undefined ? 'menuitemcheckbox' : 'menuitem', class: `b24-menu__item${it.danger ? ' b24-menu__item--danger' : ''}`, tabindex: '-1' }, it.icon ? html(icon(it.icon)) : '', h('span', {}, it.label ?? '')) as HTMLButtonElement;
+      const b = h('button', { type: 'button', role: it.checked !== undefined ? 'menuitemcheckbox' : 'menuitem', class: `b24-menu__item${it.danger ? ' b24-menu__item--danger' : ''}`, tabindex: '-1' }, it.swatch ? swatchEl(it.swatch) : it.icon ? html(icon(it.icon)) : '', h('span', {}, it.label ?? '')) as HTMLButtonElement;
       if (it.checked !== undefined) b.setAttribute('aria-checked', String(!!it.checked));
       if (it.hint) b.append(h('span', { class: 'b24-menu__hint' }, it.hint));
       if (hasSub) { b.setAttribute('aria-haspopup', 'menu'); b.append(h('span', { class: 'b24-menu__sub', 'aria-hidden': 'true' }, html(icon('chevronRight', { size: 14 })))); }

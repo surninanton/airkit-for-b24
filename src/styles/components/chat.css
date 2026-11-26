@@ -520,3 +520,14 @@
 .b24-wallpicker__check { position: absolute; top: 6px; right: 6px; display: none; place-items: center; width: 20px; height: 20px; color: #fff; background: var(--b24-color-primary); border-radius: 50%; }
 .b24-wallpicker__tile.is-selected .b24-wallpicker__check { display: grid; }
 .b24-wallpicker__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--b24-font-size-xs); }
+
+/* цвета папок: полоски у строки списка, фон значка рейла, кружок в меню */
+.b24-chat-list__item { position: relative; }
+.b24-chat-list__stripes { position: absolute; top: 0; bottom: 0; left: 0; display: flex; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.b24-chat-list__stripes > span { flex: 0 0 3px; width: 3px; }
+.b24-chat-list__item.is-active.has-stripes { box-shadow: none; }
+.b24-chat-list__item.is-active .b24-chat-list__stripes::after { content: ''; flex: 0 0 3px; background: var(--b24-color-primary); }
+.b24-chat-list__item.has-stripes { padding-left: 18px; }
+.b24-chat-rail__icon.has-color { width: 40px; height: 32px; margin: -2px 0; color: #1f2933; background: var(--b24-chat-rail-color); border-radius: 10px; }
+.b24-chat-rail__item.is-active .b24-chat-rail__icon.has-color, .b24-chat-rail__item[aria-current] .b24-chat-rail__icon.has-color { box-shadow: 0 0 0 2px var(--b24-color-primary); }
+.b24-chat-rail__icon.has-color .b24-chat-rail__counter { left: 28px; }
