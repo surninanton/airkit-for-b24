@@ -3,7 +3,7 @@
 import { icon, type IconName } from '../src/icons';
 
 const SECTIONS: Array<{ title: string; items: Array<[string, string, IconName]> }> = [
-  { title: 'Приложение', items: [['index.html', 'Компоненты', 'grid'], ['screens.html', 'Экраны приложения', 'chart'], ['editors.html', 'Редакторы полей', 'edit'], ['controls.html', 'Элементы управления', 'settings'], ['scheduler.html', 'Планировщик', 'calendar'], ['chat.html', 'Чаты', 'chat'], ['receipt.html', 'Конструктор чеков', 'ticket'], ['phone.html', 'Софтфон', 'phone'], ['cards.html', 'Карточки сущностей', 'user'], ['kb.html', 'База знаний', 'file'], ['react.html', 'React-пример', 'apps']] },
+  { title: 'Приложение', items: [['index.html', 'Компоненты', 'grid'], ['screens.html', 'Экраны приложения', 'chart'], ['editors.html', 'Редакторы полей', 'edit'], ['controls.html', 'Элементы управления', 'settings'], ['scheduler.html', 'Планировщик', 'calendar'], ['chat.html', 'Чаты', 'chat'], ['receipt.html', 'Конструктор чеков', 'ticket'], ['breakdown.html', 'Детализация расчёта', 'chart'], ['phone.html', 'Софтфон', 'phone'], ['cards.html', 'Карточки сущностей', 'user'], ['kb.html', 'База знаний', 'file'], ['react.html', 'React-пример', 'apps']] },
   { title: 'Сайт', items: [['site.html', 'Сайт приложения', 'home'], ['landing.html', 'Лендинг', 'star'], ['about.html', 'О компании', 'company'], ['blog.html', 'Блог', 'comment'], ['article.html', 'Статья', 'file'], ['docs.html', 'Документы', 'folder']] },
 ];
 

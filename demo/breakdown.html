@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru" data-b24-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Детализация расчёта — B24 UI</title>
+  <script type="module">import '../src/styles/index.css';</script>
+</head>
+<body class="b24-root">
+<div class="b24-app b24-app--air">
+  <div class="b24-page" style="--b24-page-max: 1000px">
+    <div id="header"></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap:16px; align-items:start">
+      <div id="bd"></div>
+      <div id="bd2"></div>
+    </div>
+    <p class="b24-text-sm b24-text-secondary" id="log" style="margin:0">Клик по сумме строки — правка (пусто = авто), ✕ — удаление, чип формулы — прокрутка к секции.</p>
+  </div>
+  <footer class="b24-credit-footer" id="demo-credit"></footer>
+</div>
+<script type="module">
+  import * as B24UI from '../src/js/global.ts';
+  document.getElementById('demo-credit').innerHTML = B24UI.creditHtml();
+  B24UI.createPageHeader(document.getElementById('header'), {
+    menu: [{ label: 'Начисления', href: '#', active: true }, { label: 'Ведомость', href: '#' }],
+    title: 'Детализация расчёта',
+  });
+  const log = (s) => { document.getElementById('log').textContent = s; };
+
+  const rows = {
+    o1: { id: 'o1', html: '<a href="#">№7371</a>', sub: 'Кумово, Амзя · 12:40', badges: [{ text: 'доставлен', kind: 'success' }], sum: 450, auto: 450, editable: true, removable: true },
+    o2: { id: 'o2', html: '<a href="#">№7372</a>', sub: 'Кумово, Амзя · 12:41', badges: [{ text: 'доставлен', kind: 'success' }, { text: 'доп. точка', kind: 'primary' }], sum: 100, auto: 100, editable: true, removable: true, note: '450 → 100: второй заказ рейса в ту же зону' },
+    o3: { id: 'o3', html: '<a href="#">№7373</a>', sub: 'Раздолье · 13:05', badges: [{ text: 'доставлен', kind: 'success' }], sum: 350, auto: 350, editable: true, removable: true },
+    o4: { id: 'o4', html: '<a href="#">№7374</a>', sub: 'Город · 15:10', sum: 120, auto: 120, editable: true, removable: true },
+    o5: { id: 'o5', html: '<a href="#">№7375</a>', sub: 'Город · 15:12', sum: 120, auto: 120, editable: true, removable: true },
+  };
+  const data = () => {
+    const pick = (...ids) => ids.map((i) => rows[i]).filter(Boolean);
+    const trip8 = pick('o1', 'o2', 'o3'), trip9 = pick('o4', 'o5');
+    const s = (a) => a.reduce((n, r) => n + (r.sum ?? 0), 0);
+    const deliveries = s(trip8) + s(trip9);
+    return {
+      title: 'Анна Рябова', subtitle: '12 ноября 2026', total: 500 + deliveries + 100,
+      parts: [{ key: 'shift', label: 'Выходы', sum: 500 }, { key: 'orders', label: 'Доставки', sum: deliveries }, { key: 'tasks', label: 'Задачи', sum: 100 }],
+      sections: [
+        { key: 'shift', title: 'Выходы', count: 1, sum: 500, hint: 'за выход: 500 ₽, от 10 — 600 ₽, от 15 — 700 ₽, от 20 — 800 ₽',
+          rows: [{ id: 's1', text: 'Основа', sub: '5 заказов', sum: 500 }] },
+        { key: 'orders', title: 'Доставки', count: trip8.length + trip9.length, sum: deliveries,
+          actionsHtml: '<button type="button" class="b24-btn b24-btn--sm b24-btn--secondary" data-action="add">+ Добавить</button>',
+          groups: [{ title: 'Рейс 8', sum: s(trip8), rows: trip8 }, { title: 'Рейс 9', sum: s(trip9), rows: trip9 }] },
+        { key: 'tasks', title: 'Задачи', count: 1, sum: 100,
+          rows: [{ id: 't1', text: 'Поездка в магазин', sub: 'записал Антон · купить пакеты', badges: [{ text: 'вручную', kind: 'warning' }], sum: 100, removable: true }] },
+        { key: 'fines', title: 'Штрафы', count: 0, sum: 0, rows: [] },
+      ],
+    };
+  };
+  const b = B24UI.breakdown(document.getElementById('bd'), {
+    ...data(),
+    onChange: (id, v) => { const r = rows[id]; r.sum = v == null ? r.auto : v; if (v != null) r.manual = true; else delete r.manual; log(`onChange ${id}: ${v}`); b.update(data()); },
+    onRemove: (id) => { delete rows[id]; log(`onRemove ${id}`); b.update(data()); },
+    onAction: (key, action) => log(`action ${key}/${action}`),
+  });
+  // без права правки, свёрнутая секция
+  B24UI.breakdown(document.getElementById('bd2'), {
+    title: 'Моя зарплата · неделя', total: 8450,
+    parts: [{ key: 'a', label: 'Смены', sum: 7200 }, { key: 'b', label: 'Премия', sum: 1500 }, { key: 'c', label: 'Штрафы', sum: -250 }],
+    sections: [
+      { key: 'a', title: 'Смены', count: 6, sum: 7200, collapsed: true, rows: [{ id: 'x', text: 'Пн, 3 ноября', sub: 'Повар · 8 ч', sum: 1200 }] },
+      { key: 'b', title: 'Премия', count: 1, sum: 1500, rows: [{ id: 'y', text: 'За качество', sum: 1500 }] },
+      { key: 'c', title: 'Штрафы', count: 1, sum: -250, rows: [{ id: 'z', text: 'Опоздание', sub: '12 мин', sum: -250 }] },
+    ],
+  });
+</script>
+<script type="module" src="./demo-nav.ts"></script>
+</body>
+</html>

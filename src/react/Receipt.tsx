@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { createReceipt, type ReceiptHandle, type ReceiptLine, type ReceiptOptions } from '../js/receipt';
+import { createBreakdown, type BreakdownHandle, type BreakdownOptions } from '../js/breakdown';
 import { createQr, type QrHandle, type QrOptions } from '../js/qr';
 import { createSortable, type SortableHandle, type SortableItem, type SortableOptions } from '../js/sortable';
 import { cx } from './utils';
@@ -88,4 +89,26 @@ export function SortableList({ items, className, toggle, onReorder, onToggle, on
       ))}
     </>
   );
+}
+
+/** Детализация расчёта: <Breakdown title="Анна · 12 ноября" total={1740} parts={parts} sections={sections} onChange={(id, v) => save(id, v)} onRemove={ask} /> */
+export interface BreakdownProps extends BreakdownOptions { className?: string }
+export function Breakdown({ className, ...options }: BreakdownProps) {
+  const host = useRef<HTMLDivElement>(null);
+  const h = useRef<BreakdownHandle | null>(null);
+  const opts = useRef(options);
+  opts.current = options;
+  useEffect(() => {
+    h.current = createBreakdown(host.current!, {
+      ...opts.current,
+      onChange: (id, v) => opts.current.onChange?.(id, v),
+      onRemove: (id) => opts.current.onRemove?.(id),
+      onAction: (k, a, e) => opts.current.onAction?.(k, a, e),
+    });
+    return () => h.current?.destroy();
+  }, []);
+  const { onChange, onRemove, onAction, ...data } = options; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const key = JSON.stringify(data);
+  useEffect(() => { h.current?.update(data); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div ref={host} className={className} />;
 }

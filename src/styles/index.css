@@ -27,6 +27,7 @@
 @import "./components/members.css";
 @import "./components/emoji.css";
 @import "./components/receipt.css";
+@import "./components/breakdown.css";
 @import "./components/phone.css";
 @import "./components/audio.css";
 @import "./components/sortable.css";

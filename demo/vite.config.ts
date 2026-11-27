@@ -25,6 +25,7 @@ export default defineConfig({
         scheduler: resolve(__dirname, 'scheduler.html'),
         chat: resolve(__dirname, 'chat.html'),
         receipt: resolve(__dirname, 'receipt.html'),
+        breakdown: resolve(__dirname, 'breakdown.html'),
         phone: resolve(__dirname, 'phone.html'),
         cards: resolve(__dirname, 'cards.html'),
         kb: resolve(__dirname, 'kb.html'),

@@ -628,6 +628,37 @@ const r = await B24UI.pickUser({ users: staff, multiple: true, okText: 'Созд
 
 React: `<MemberList items title onSelect compact selected />`; `pickUser` — та же функция из `airkit-for-b24/react`.
 
+## Детализация расчёта
+
+`B24UI.breakdown(el, opts)` (`createBreakdown`, React `<Breakdown>`) — карточка, где итог раскладывается на секции и строки с объяснением («Начисления курьеру», «Мои начисления»). Демо — `breakdown.html`.
+
+```js
+const b = B24UI.breakdown(el, {
+  title: 'Анна Рябова', subtitle: '12 ноября', total: 1740,
+  parts: [{ key: 'shift', label: 'Выходы', sum: 500 }, { key: 'orders', label: 'Доставки', sum: 1140 }],   // чипы формулы; клик → секция с тем же key
+  sections: [
+    { key: 'shift', title: 'Выходы', count: 1, sum: 500, hint: 'за выход: 500 ₽, от 10 — 600 ₽', rows: [{ id: 's1', text: 'Основа', sub: '5 заказов', sum: 500 }] },
+    { key: 'orders', title: 'Доставки', count: 3, sum: 1140, collapsed: false,
+      actionsHtml: '<button class="b24-btn b24-btn--sm" data-action="add">+ Добавить</button>',   // клик по [data-action] → onAction(key, action, event)
+      groups: [{ title: 'Рейс 8', sum: 900, rows: [
+        { id: 'o1', html: '<a href="#">№7371</a>', sub: 'Кумово · 12:40', badges: [{ text: 'доставлен', kind: 'success' }], sum: 450, auto: 450, editable: true, removable: true },
+        { id: 'o2', text: '№7372', sum: 100, auto: 450, editable: true, note: '450 → 100: второй заказ рейса в ту же зону' },
+      ] }] },
+  ],
+  money: (v) => B24UI.formatMoney(v),                      // по умолчанию «1 740 ₽»
+  onChange: (rowId, value) => save(rowId, value),          // value === null — вернуть авто
+  onRemove: (rowId) => confirmAndDelete(rowId),            // подтверждение — снаружи
+  onAction: (sectionKey, action, event) => {},
+});
+b.update({ total, sections });   // перерисовать (состояние свёрнуто/развёрнуто сохраняется по key)
+b.toggle('orders'); b.scrollTo('orders'); b.destroy();
+```
+
+- Строка: `sum` — итоговая сумма (`null` → «—»), `auto` — расчётное значение. Если `sum !== auto` (или `manual: true`), строка помечена бейджем «вручную». Клик по сумме (`editable`) открывает поле: пустое значение = «авто» (плейсхолдер — `auto`), Enter/blur — `onChange`, Esc — отмена. Без `editable` сумма — просто текст.
+- `html` — доверенный HTML основного текста (ссылка), вместо него `text`. Бейджи `kind`: `success | warning | danger | primary | violet | gray`.
+- ✕ (`removable`) — при наведении, на тач-экранах всегда; место под него резервируется во всей карточке, суммы стоят в одну колонку. Пустая секция показывает `empty` («нет за период»). Отрицательные суммы — красным.
+- Серверная разметка: `.b24-breakdown > __head (__title · __total · __parts > __part-chip + __op) · __section (.is-collapsed) > __section-head (__toggle · __count · __actions · __sum) · __hint · __body > __group (__group-head) · __row (.is-manual) > __main (__text · __sub · __badges) + __side (__sum · __note) · __remove · __empty`.
+
 ## Конструктор чеков: блоки, лента, QR, зоны печати
 
 Пример — `demo/receipt.html`. Все компоненты работают и поодиночке.

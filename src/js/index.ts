@@ -43,6 +43,7 @@ export { createAudioPlayer, formatAudioTime, type AudioPlayerOptions, type Audio
 export { createCallLog, formatCallDuration, type CallLogItem, type CallLogAction, type CallLogBrand, type CallLogOptions, type CallLogHandle } from './call-log';
 export { isEmbed, setEmbed, initEmbed, initShellSearch, setShellActive, watchShellActive, setSidebar, setTopNav, setNavCounter, type ShellSearchHandle, type ShellNavItem, type ShellNavGroup, type ShellActiveOptions } from './shell';
 export { createSortable, type SortableItem, type SortableOptions, type SortableHandle } from './sortable';
+export { createBreakdown, breakdown, type BreakdownOptions, type BreakdownHandle, type BreakdownSection, type BreakdownGroup, type BreakdownRow, type BreakdownPart, type BreakdownBadge } from './breakdown';
 export { createReceipt, layoutReceipt, wrapReceiptText, type ReceiptLine, type ReceiptTextLine, type ReceiptColsLine, type ReceiptSepLine, type ReceiptQrLine, type ReceiptBarcodeLine, type ReceiptBlankLine, type ReceiptOptions, type ReceiptHandle } from './receipt';
 export { qrMatrix, qrSvg, createQr, type QrEcc, type QrSvgOptions, type QrOptions, type QrHandle } from './qr';
 export { createMemberList, pickUser, pickMembers, matchMember, type Member, type MemberAction, type MemberListOptions, type MemberListHandle, type PickUserOptions, type PickGroup, type PickGroupItem, type PickTitleField, type PickMembersResult } from './members';
