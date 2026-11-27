@@ -180,3 +180,26 @@ test('карточка заказа: блоки переставляются Ctr
   expect(await titles()).toEqual(after);
   expect(errors()).toEqual([]);
 });
+
+test('карточка заказа: на касании блок двигается долгим нажатием, а быстрое движение — прокрутка', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile', 'касание имитируется событиями на десктопе');
+  await page.setViewportSize({ width: 1280, height: 1700 });
+  await open(page, '/cards.html?card=order');
+  const run = (hold: number, dy: number) => page.evaluate(async ({ hold, dy }) => {
+    const cards = document.querySelectorAll<HTMLElement>('.b24-entity__main > .b24-card');
+    const r = cards[0].getBoundingClientRect(), t = cards[1].getBoundingClientRect();
+    const ev = (type: string, y: number) => cards[0].dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'touch', button: 0, clientX: r.x + 100, clientY: y }));
+    const y0 = r.y + 20;
+    ev('pointerdown', y0);
+    await new Promise((res) => setTimeout(res, hold));
+    ev('pointermove', y0 + 30);
+    ev('pointermove', t.bottom - 4 + dy);
+    ev('pointerup', t.bottom - 4 + dy);
+    return Array.from(document.querySelectorAll('.b24-entity__main > .b24-card .b24-card__title')).map((e) => e.textContent);
+  }, { hold, dy });
+  // быстрое движение — не перетаскивание
+  expect((await run(50, 0))[0]).toBe('Клиент и доставка');
+  // долгое нажатие, затем движение вниз
+  const after = await run(600, 0);
+  expect(after[0]).toBe('Состав');
+});

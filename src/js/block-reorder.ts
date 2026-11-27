@@ -1,5 +1,5 @@
 /**
- * Перестановка блоков перетаскиванием с зажатым Ctrl (⌘ на Mac, Alt) и левой кнопкой мыши.
+ * Перестановка блоков перетаскиванием с зажатым Ctrl (⌘ на Mac, Alt) и левой кнопкой мыши; на телефоне — долгим нажатием на блок.
  * Включается сама на колонке карточки сущности (`.b24-entity__main`) и на любом контейнере с `data-b24-reorder`;
  * `data-b24-reorder="off"` отключает. Порядок запоминается в хранилище кита. Esc во время перетаскивания — отмена.
  *
@@ -20,6 +20,8 @@ export interface BlockReorderHandle { getOrder(): string[]; apply(): void; reset
 
 const PREFIX = 'b24-blocks:';
 const MOVE_THRESHOLD = 4;
+const LONG_PRESS = 420;
+const PRESS_SLOP = 8;
 
 export function enableBlockReorder(host: HTMLElement, options: BlockReorderOptions = {}): BlockReorderHandle {
   const items = () => Array.from(host.children).filter((c): c is HTMLElement => c instanceof HTMLElement && (!options.items || c.matches(options.items)));
@@ -83,27 +85,54 @@ export function enableBlockReorder(host: HTMLElement, options: BlockReorderOptio
   };
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); finish(false); } };
 
+  const begin = (el: HTMLElement, pointerId: number, x: number, y: number) => {
+    const rect = el.getBoundingClientRect();
+    drag = { el, startX: x, startY: y, grabDY: y - rect.top, before: getOrder(), active: false, id: pointerId };
+    scroller = scrollParent(host);
+    try { host.setPointerCapture(pointerId); } catch { /* нет захвата */ }
+    window.addEventListener('keydown', onKey, true);
+  };
+  const activate = () => {
+    const d = drag!;
+    d.active = true;
+    d.el.classList.add('is-reordering');
+    host.classList.add('is-reordering-host');
+    document.documentElement.classList.add('b24-is-reordering');
+  };
+  // касание: долгое нажатие на блок (с места, без сдвига) включает перетаскивание
+  let press: { timer: number; x: number; y: number; id: number; el: HTMLElement } | null = null;
+  const clearPress = () => { if (press) { window.clearTimeout(press.timer); press = null; } };
+
   const onDown = (e: PointerEvent) => {
-    if (e.button !== 0 || !modifier(e) || drag) return;
+    if (e.button !== 0 || drag) return;
     const target = e.target as HTMLElement;
     const el = items().find((x) => x.contains(target));
     if (!el) return;
-    e.preventDefault();
-    const rect = el.getBoundingClientRect();
-    drag = { el, startX: e.clientX, startY: e.clientY, grabDY: e.clientY - rect.top, before: getOrder(), active: false, id: e.pointerId };
-    scroller = scrollParent(host);
-    try { host.setPointerCapture(e.pointerId); } catch { /* нет захвата */ }
-    window.addEventListener('keydown', onKey, true);
+    if (modifier(e)) {
+      e.preventDefault();
+      begin(el, e.pointerId, e.clientX, e.clientY);
+    } else if (e.pointerType === 'touch') {
+      clearPress();
+      press = {
+        x: e.clientX, y: e.clientY, id: e.pointerId, el,
+        timer: window.setTimeout(() => {
+          const p = press;
+          press = null;
+          if (!p) return;
+          begin(p.el, p.id, p.x, p.y);
+          activate();
+          try { navigator.vibrate?.(15); } catch { /* нет вибрации */ }
+        }, LONG_PRESS),
+      };
+    }
   };
   const onMove = (e: PointerEvent) => {
+    if (press && e.pointerId === press.id && Math.hypot(e.clientX - press.x, e.clientY - press.y) > PRESS_SLOP) clearPress();
     const d = drag;
     if (!d || e.pointerId !== d.id) return;
     if (!d.active) {
       if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < MOVE_THRESHOLD) return;
-      d.active = true;
-      d.el.classList.add('is-reordering');
-      host.classList.add('is-reordering-host');
-      document.documentElement.classList.add('b24-is-reordering');
+      activate();
     }
     if (scroller) {
       const r = scroller.getBoundingClientRect();
@@ -111,10 +140,12 @@ export function enableBlockReorder(host: HTMLElement, options: BlockReorderOptio
     }
     position(e.clientY);
   };
-  const onUp = (e: PointerEvent) => { if (drag && e.pointerId === drag.id) finish(true); };
-  const onCancel = (e: PointerEvent) => { if (drag && e.pointerId === drag.id) finish(false); };
+  const onUp = (e: PointerEvent) => { clearPress(); if (drag && e.pointerId === drag.id) finish(true); };
+  const onCancel = (e: PointerEvent) => { clearPress(); if (drag && e.pointerId === drag.id) finish(false); };
   const onClick = (e: MouseEvent) => { if (blockNextClick) { e.preventDefault(); e.stopPropagation(); } };
-  const onMenu = (e: Event) => { if (drag) e.preventDefault(); };
+  const onMenu = (e: Event) => { if (drag || press) e.preventDefault(); };
+  // пока блок тащат пальцем, страница не прокручивается
+  const onTouchMove = (e: TouchEvent) => { if (drag?.active && e.cancelable) e.preventDefault(); };
   // Ctrl+клик на Mac открывает контекстное меню: во время и сразу после перетаскивания оно не нужно
   const onModDown = (e: KeyboardEvent) => { if (modifier(e)) host.classList.add('is-reorder-ready'); };
   const onModUp = (e: KeyboardEvent) => { if (!modifier(e)) host.classList.remove('is-reorder-ready'); };
@@ -125,6 +156,7 @@ export function enableBlockReorder(host: HTMLElement, options: BlockReorderOptio
   host.addEventListener('pointercancel', onCancel);
   host.addEventListener('click', onClick, true);
   host.addEventListener('contextmenu', onMenu, true);
+  host.addEventListener('touchmove', onTouchMove, { passive: false });
   window.addEventListener('keydown', onModDown);
   window.addEventListener('keyup', onModUp);
   host.classList.add('b24-reorderable');
@@ -141,6 +173,8 @@ export function enableBlockReorder(host: HTMLElement, options: BlockReorderOptio
       host.removeEventListener('pointercancel', onCancel);
       host.removeEventListener('click', onClick, true);
       host.removeEventListener('contextmenu', onMenu, true);
+      host.removeEventListener('touchmove', onTouchMove);
+      clearPress();
       window.removeEventListener('keydown', onModDown);
       window.removeEventListener('keyup', onModUp);
       host.classList.remove('b24-reorderable', 'is-reorder-ready');
