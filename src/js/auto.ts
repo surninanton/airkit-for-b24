@@ -1,6 +1,7 @@
 import { dropdown } from './dropdown';
 import { initTabs } from './tabs';
 import { initEntityOpen } from './entity';
+import { enableBlockReorder } from './block-reorder';
 import { initSortableTable } from './table';
 import { datepicker } from './calendar';
 import { parseDate, startOfDay } from './date';
@@ -126,6 +127,13 @@ export function init(root: ParentNode = document): void {
     if (board.dataset.b24Ready) return;
     board.dataset.b24Ready = '1';
     enableKanbanDnd(board);
+  });
+
+  // блоки карточки сущности и любого контейнера [data-b24-reorder] переставляются Ctrl + перетаскивание
+  root.querySelectorAll<HTMLElement>('.b24-entity__main, [data-b24-reorder]').forEach((el) => {
+    if (el.dataset.b24Reorder === 'off' || el.dataset.b24ReorderReady) return;
+    el.dataset.b24ReorderReady = '1';
+    enableBlockReorder(el, { key: el.dataset.b24Reorder && el.dataset.b24Reorder !== '' && el.dataset.b24Reorder !== 'on' ? el.dataset.b24Reorder : null });
   });
 
   root.querySelectorAll<HTMLElement>('[data-b24-filter]').forEach((el) => {

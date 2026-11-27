@@ -141,3 +141,42 @@ test('карточка: колонки прокручиваются незави
     expect(await page.locator('.b24-entity__main').first().evaluate((e) => e.scrollTop)).toBe(before);
   }
 });
+
+test('карточка заказа: блоки переставляются Ctrl + перетаскивание, порядок запоминается, Esc отменяет', async ({ page }, info) => {
+  test.skip(info.project.name === 'mobile', 'нужна мышь с Ctrl');
+  await page.setViewportSize({ width: 1280, height: 1700 });
+  const { errors } = await open(page, '/cards.html?card=order');
+  const main = page.locator('.b24-sidepanel .b24-entity__main');
+  const titles = () => main.locator(':scope > .b24-card .b24-card__title').allTextContents();
+  const before = await titles();
+  expect(before.slice(0, 3)).toEqual(['Клиент и доставка', 'Состав', 'Оплата']);
+  const box = async (i: number) => (await main.locator(':scope > .b24-card').nth(i).boundingBox())!;
+  const drag = async (from: number, toY: (b: { y: number; height: number }) => number, mod: 'Control' | null, finish = 'up') => {
+    const a = await box(from);
+    await page.mouse.move(a.x + a.width / 2, a.y + 20);
+    if (mod) await page.keyboard.down(mod);
+    await page.mouse.down();
+    const target = await box(2);
+    await page.mouse.move(a.x + a.width / 2, a.y + 40, { steps: 3 });
+    await page.mouse.move(a.x + a.width / 2, toY(target), { steps: 8 });
+    if (finish === 'esc') await page.keyboard.press('Escape');
+    await page.mouse.up();
+    if (mod) await page.keyboard.up(mod);
+  };
+  // без Ctrl — ничего не двигается
+  await drag(0, (t) => t.y + t.height - 4, null);
+  expect(await titles()).toEqual(before);
+  // Esc — отмена
+  await drag(0, (t) => t.y + t.height - 4, 'Control', 'esc');
+  expect(await titles()).toEqual(before);
+  // Ctrl + тянуть первый блок ниже третьего
+  await drag(0, (t) => t.y + t.height - 4, 'Control');
+  const after = await titles();
+  expect(after[0]).toBe('Состав');
+  expect(after.indexOf('Клиент и доставка')).toBeGreaterThanOrEqual(2);
+  // порядок запомнился: новая панель открывается в том же порядке
+  await page.reload();
+  await expect(main.locator(':scope > .b24-card .b24-card__title').first()).toHaveText('Состав');
+  expect(await titles()).toEqual(after);
+  expect(errors()).toEqual([]);
+});

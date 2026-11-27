@@ -628,6 +628,10 @@ const r = await B24UI.pickUser({ users: staff, multiple: true, okText: 'Созд
 
 React: `<MemberList items title onSelect compact selected />`; `pickUser` — та же функция из `airkit-for-b24/react`.
 
+## Перестановка блоков
+
+Блоки в колонке карточки сущности (`.b24-entity__main`) двигаются перетаскиванием с зажатым **Ctrl** (⌘ на Mac, Alt) и левой кнопкой мыши. Esc во время перетаскивания — отмена. Порядок запоминается в хранилище кита. Включается автоматически; на другом контейнере — `<div data-b24-reorder>` или `B24UI.enableBlockReorder(el, { items: '.card', key: 'my-key', onReorder: (ids) => save(ids) })` (`data-b24-reorder="off"` отключает). Id блока — `data-b24-block`, иначе текст `.b24-card__title`. Событие `b24:reorder` (`detail.ids`). На телефоне (без Ctrl) не работает.
+
 ## Детализация расчёта
 
 `B24UI.breakdown(el, opts)` (`createBreakdown`, React `<Breakdown>`) — карточка, где итог раскладывается на секции и строки с объяснением («Начисления курьеру», «Мои начисления»). Демо — `breakdown.html`.

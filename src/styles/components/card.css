@@ -179,3 +179,8 @@
 .b24-entity--compact .b24-entity__amount { font-size: var(--b24-font-size-xl); margin-left: 0; }
 .b24-entity--compact .b24-props--rows .b24-prop__label { flex-basis: 104px; }
 .b24-prop__value--row > .b24-select { width: auto; min-width: 200px; }
+
+/* перестановка блоков: Ctrl (⌘, Alt) + перетаскивание */
+.b24-reorderable.is-reorder-ready > * { cursor: grab; }
+.b24-is-reordering, .b24-is-reordering * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+.b24-reorderable > .is-reordering { position: relative; z-index: 5; opacity: 0.96; box-shadow: var(--b24-shadow-2xl); outline: 2px solid var(--b24-color-primary); outline-offset: 0; border-radius: var(--b24-radius-lg); pointer-events: none; }
