@@ -43,11 +43,19 @@ export interface BreakdownRow {
   /** пояснение мелким под суммой: «450 → 100: второй заказ рейса в ту же зону» */
   note?: string;
 }
-export interface BreakdownGroup { title: string; sum?: number; rows: BreakdownRow[] }
+export interface BreakdownGroup {
+  title: string;
+  /** вторичный текст в шапке группы: время, курьер */
+  sub?: string;
+  sum?: number;
+  rows: BreakdownRow[];
+}
 export interface BreakdownSection {
   key: string;
   title: string;
   count?: number;
+  /** цвет счётчика; по умолчанию серый */
+  countKind?: 'gray' | 'primary' | 'success' | 'warning' | 'danger';
   sum?: number;
   /** подпись-правило под заголовком */
   hint?: string;
@@ -106,13 +114,18 @@ export function createBreakdown(host: HTMLElement, options: BreakdownOptions): B
     const text = h('div', { class: 'b24-breakdown__text' });
     if (r.html != null) text.innerHTML = r.html; else text.textContent = r.text ?? '';
     const main = h('div', { class: 'b24-breakdown__main' }, text);
-    if (r.sub) main.append(h('div', { class: 'b24-breakdown__sub' }, r.sub));
     const badges = [...(r.badges ?? [])];
     if (manual) badges.push({ text: t('вручную'), kind: 'warning' });
-    if (badges.length) {
-      const bx = h('div', { class: 'b24-breakdown__badges' });
-      badges.forEach((b) => bx.append(h('span', { class: `b24-badge b24-badge--sm b24-badge--${b.kind ?? 'gray'}` }, b.text)));
-      main.append(bx);
+    if (r.sub || badges.length) {
+      // вторичный текст и бейджи — в одной линии, если помещаются
+      const meta = h('div', { class: 'b24-breakdown__meta' });
+      if (r.sub) meta.append(h('span', { class: 'b24-breakdown__sub' }, r.sub));
+      if (badges.length) {
+        const bx = h('span', { class: 'b24-breakdown__badges' });
+        badges.forEach((b) => bx.append(h('span', { class: `b24-badge b24-badge--sm b24-badge--${b.kind ?? 'gray'}` }, b.text)));
+        meta.append(bx);
+      }
+      main.append(meta);
     }
     const sum = r.editable
       ? h('button', { type: 'button', class: `b24-breakdown__sum is-editable${sumCls(r.sum)}`, 'data-edit': r.id, title: t('Изменить сумму') }, sumText(r.sum))
@@ -160,7 +173,7 @@ export function createBreakdown(host: HTMLElement, options: BreakdownOptions): B
       const toggle = h('button', { type: 'button', class: 'b24-breakdown__toggle', 'aria-expanded': String(!isCol), 'aria-controls': bodyId },
         h('span', { class: 'b24-breakdown__chevron' }, html(icon('chevronDown', { size: 16 }))),
         h('span', { class: 'b24-breakdown__section-title' }, s.title));
-      if (s.count != null) toggle.append(h('span', { class: 'b24-counter b24-breakdown__count' }, String(s.count)));
+      if (s.count != null) toggle.append(h('span', { class: `b24-counter b24-counter--${s.countKind ?? 'gray'} b24-breakdown__count` }, String(s.count)));
       const shead = h('div', { class: 'b24-breakdown__section-head' }, toggle);
       if (s.actionsHtml || s.actions) {
         const act = h('div', { class: 'b24-breakdown__actions' });
@@ -169,6 +182,7 @@ export function createBreakdown(host: HTMLElement, options: BreakdownOptions): B
         shead.append(act);
       }
       if (s.sum != null) shead.append(h('div', { class: `b24-breakdown__sum b24-breakdown__section-sum${sumCls(s.sum)}` }, money(s.sum)));
+      if (hasRemove) shead.append(h('span', { class: 'b24-breakdown__remove-gap' }));
       sec.append(shead);
       if (s.hint) sec.append(h('div', { class: 'b24-breakdown__hint' }, s.hint));
       const body = h('div', { class: 'b24-breakdown__body', id: bodyId });
@@ -178,13 +192,18 @@ export function createBreakdown(host: HTMLElement, options: BreakdownOptions): B
       if (!allRows.length) body.append(h('div', { class: 'b24-breakdown__empty' }, s.empty ?? t('нет за период')));
       for (const g of groups) {
         if (!g.rows.length && !g.title) continue;
-        const gEl = h('div', { class: 'b24-breakdown__group' });
+        const gEl = h('div', { class: `b24-breakdown__group${g.title ? ' has-title' : ''}` });
         if (g.title) {
-          gEl.append(h('div', { class: 'b24-breakdown__group-head' },
-            h('span', { class: 'b24-breakdown__group-title' }, g.title),
-            g.sum != null ? h('span', { class: `b24-breakdown__sum${sumCls(g.sum)}` }, money(g.sum)) : null));
+          const gt = h('span', { class: 'b24-breakdown__group-main' }, h('span', { class: 'b24-breakdown__group-title' }, g.title));
+          if (g.sub) gt.append(h('span', { class: 'b24-breakdown__group-sub' }, g.sub));
+          const gh = h('div', { class: 'b24-breakdown__group-head' }, gt);
+          if (g.sum != null) gh.append(h('span', { class: `b24-breakdown__sum b24-breakdown__group-sum${sumCls(g.sum)}` }, money(g.sum)));
+          if (hasRemove) gh.append(h('span', { class: 'b24-breakdown__remove-gap' }));
+          gEl.append(gh);
         }
-        g.rows.forEach((r) => gEl.append(rowEl(r, hasRemove)));
+        const rowsEl = h('div', { class: 'b24-breakdown__group-rows' });
+        g.rows.forEach((r) => rowsEl.append(rowEl(r, hasRemove)));
+        gEl.append(rowsEl);
         body.append(gEl);
       }
       sec.append(body);

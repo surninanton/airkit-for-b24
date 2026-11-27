@@ -62,6 +62,41 @@ test('детализация расчёта: формула, секции, пр�
 
 test('детализация расчёта: суммы выровнены по правому краю колонки', async ({ page }) => {
   await open(page, '/breakdown.html');
-  const rights = await page.locator('#bd .b24-breakdown__row .b24-breakdown__side').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
-  expect(new Set(rights).size).toBe(1);
+  for (const id of ['#bd', '#bd3']) {
+    // суммы секции, группы и строки — одна правая колонка
+    const rights = await page.locator(`${id} .b24-breakdown__row .b24-breakdown__sum, ${id} .b24-breakdown__section-sum, ${id} .b24-breakdown__group-sum`).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().right)));
+    expect(rights.length).toBeGreaterThan(4);
+    expect(new Set(rights).size, `${id}: ${rights}`).toBe(1);
+  }
+});
+
+test('детализация расчёта: группы, бейджи в линию с подписью, серый счётчик, пустая шапка, слот действий', async ({ page }, info) => {
+  await open(page, '/breakdown.html');
+  const g = page.locator('#bd .b24-breakdown__group-head').first();
+  await expect(g.locator('.b24-breakdown__group-sub')).toContainText('Антон');
+  expect(await g.evaluate((e) => getComputedStyle(e).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+  expect(await g.locator('.b24-breakdown__group-sum').evaluate((e) => Number(getComputedStyle(e).fontWeight))).toBeGreaterThanOrEqual(600);
+  // подпись и бейдж «доп. точка» — в одной строке
+  const meta = page.locator('#bd3 .b24-breakdown__row[data-id="d1"] .b24-breakdown__meta');
+  const [a, b] = await Promise.all([meta.locator('.b24-breakdown__sub').boundingBox(), meta.locator('.b24-badge').boundingBox()]);
+  expect(Math.abs((a!.y + a!.height / 2) - (b!.y + b!.height / 2))).toBeLessThan(8);
+  // счётчик серый по умолчанию, countKind меняет
+  await expect(page.locator('#bd [data-key="orders"] .b24-counter')).toHaveClass(/b24-counter--gray/);
+  await expect(page.locator('#bd3 [data-key="w"] .b24-counter')).toHaveClass(/b24-counter--success/);
+  // без title/subtitle в шапке нет пустого блока
+  await expect(page.locator('#bd3 .b24-breakdown__title')).toHaveCount(0);
+  const top = await page.locator('#bd3 .b24-breakdown__head').evaluate((h) => { const r = h.getBoundingClientRect(); const c = h.querySelector('.b24-breakdown__total')!.getBoundingClientRect(); return c.top - r.top; });
+  expect(top).toBeLessThanOrEqual(20);
+  // клики по select и кнопке в слоте действий не сворачивают секцию
+  const sec = page.locator('#bd3 [data-key="w"]');
+  await sec.locator('select').click();
+  await page.keyboard.press('Escape');
+  await sec.locator('[data-action="shift"]').click();
+  await expect(page.locator('#log')).toHaveText('action w/shift');
+  await expect(sec.locator('.b24-breakdown__body')).toBeVisible();
+  // выравнивание по центру линии заголовка (на узком экране слот переносится на свою строку)
+  if (info.project.name === 'mobile') return;
+  const hy = await sec.locator('.b24-breakdown__section-title').boundingBox();
+  const sy = await sec.locator('select').boundingBox();
+  expect(Math.abs((hy!.y + hy!.height / 2) - (sy!.y + sy!.height / 2))).toBeLessThan(4);
 });

@@ -13,6 +13,7 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap:16px; align-items:start">
       <div id="bd"></div>
       <div id="bd2"></div>
+      <div id="bd3"></div>
     </div>
     <p class="b24-text-sm b24-text-secondary" id="log" style="margin:0">Клик по сумме строки — правка (пусто = авто), ✕ — удаление, чип формулы — прокрутка к секции.</p>
   </div>
@@ -47,7 +48,7 @@
           rows: [{ id: 's1', text: 'Основа', sub: '5 заказов', sum: 500 }] },
         { key: 'orders', title: 'Доставки', count: trip8.length + trip9.length, sum: deliveries,
           actionsHtml: '<button type="button" class="b24-btn b24-btn--sm b24-btn--secondary" data-action="add">+ Добавить</button>',
-          groups: [{ title: 'Рейс 8', sum: s(trip8), rows: trip8 }, { title: 'Рейс 9', sum: s(trip9), rows: trip9 }] },
+          groups: [{ title: 'Рейс 8', sub: '27.11 14:34 · Антон', sum: s(trip8), rows: trip8 }, { title: 'Рейс 9', sub: '27.11 15:20', sum: s(trip9), rows: trip9 }] },
         { key: 'tasks', title: 'Задачи', count: 1, sum: 100,
           rows: [{ id: 't1', text: 'Поездка в магазин', sub: 'записал Антон · купить пакеты', badges: [{ text: 'вручную', kind: 'warning' }], sum: 100, removable: true }] },
         { key: 'fines', title: 'Штрафы', count: 0, sum: 0, rows: [] },
@@ -69,6 +70,18 @@
       { key: 'b', title: 'Премия', count: 1, sum: 1500, rows: [{ id: 'y', text: 'За качество', sum: 1500 }] },
       { key: 'c', title: 'Штрафы', count: 1, sum: -250, rows: [{ id: 'z', text: 'Опоздание', sub: '12 мин', sum: -250 }] },
     ],
+  });
+  // без заголовка (имя и период — в заголовке панели), в слоте действий — select и кнопка
+  B24UI.breakdown(document.getElementById('bd3'), {
+    total: 1300,
+    parts: [{ key: 'w', label: 'Выходы', sum: 800 }, { key: 'd', label: 'Доставки', sum: 500 }],
+    sections: [
+      { key: 'w', title: 'Выходы', count: 1, countKind: 'success', sum: 800,
+        actionsHtml: '<select class="b24-select b24-select--sm" aria-label="Состав"><option>Основа</option><option>Подмена</option></select><button type="button" class="b24-btn b24-btn--sm b24-btn--secondary" data-action="shift">+ Выход</button>',
+        rows: [{ id: 'w1', text: 'Основа', sum: 800, editable: true, removable: true }] },
+      { key: 'd', title: 'Доставки', count: 2, sum: 500, groups: [{ title: 'Рейс 1', sub: '10:05', sum: 500, rows: [{ id: 'd1', text: '№1', sub: 'Кумово, Амзя', badges: [{ text: 'доп. точка', kind: 'primary' }], sum: 500, editable: true, removable: true }] }] },
+    ],
+    onAction: (key, action) => log(`action ${key}/${action}`),
   });
 </script>
 <script type="module" src="./demo-nav.ts"></script>
