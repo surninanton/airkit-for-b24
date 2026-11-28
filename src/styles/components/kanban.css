@@ -65,7 +65,7 @@
   flex: 0 0 auto;
   display: flex;
   justify-content: center;
-  margin: 10px 8px 2px 4px;
+  margin: 10px 8px 10px 4px;
 }
 .b24-kanban__total > span {
   display: inline-flex; align-items: center;
