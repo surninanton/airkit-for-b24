@@ -12,6 +12,28 @@
 }
 /* Браузерный margin у body (8px) ломает подгонку высоты фрейма: scrollHeight = 100vh + 16 → бесконечный рост */
 body.b24-root { margin: 0; }
+/* Полосы прокрутки в стиле Air: тонкие, без белой дорожки, ползунок полупрозрачный.
+   Переопределить: --b24-scrollbar-thumb / --b24-scrollbar-thumb-hover / --b24-scrollbar-track */
+.b24-root {
+  --b24-scrollbar-thumb: rgba(82, 92, 105, 0.32);
+  --b24-scrollbar-thumb-hover: rgba(82, 92, 105, 0.55);
+  --b24-scrollbar-track: transparent;
+}
+/* на подложке Air (обои, тёмный фон) — светлый ползунок */
+.b24-sidepanel--air, .b24-kanban:not(.b24-kanban--light), .b24-air-bg {
+  --b24-scrollbar-thumb: rgba(255, 255, 255, 0.4);
+  --b24-scrollbar-thumb-hover: rgba(255, 255, 255, 0.7);
+}
+.b24-root, .b24-root * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--b24-scrollbar-thumb) var(--b24-scrollbar-track);
+}
+@supports not (scrollbar-width: thin) {
+  .b24-root *::-webkit-scrollbar { width: 8px; height: 8px; }
+  .b24-root *::-webkit-scrollbar-track { background: var(--b24-scrollbar-track); }
+  .b24-root *::-webkit-scrollbar-thumb { background: var(--b24-scrollbar-thumb); border-radius: 4px; }
+  .b24-root *::-webkit-scrollbar-thumb:hover { background: var(--b24-scrollbar-thumb-hover); }
+}
 /* атрибут hidden сильнее display у компонентов (.b24-field, .b24-row …) */
 .b24-root [hidden] { display: none !important; }
 .b24-root *,
