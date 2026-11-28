@@ -100,3 +100,14 @@ test('детализация расчёта: группы, бейджи в ли�
   const sy = await sec.locator('select').boundingBox();
   expect(Math.abs((hy!.y + hy!.height / 2) - (sy!.y + sy!.height / 2))).toBeLessThan(4);
 });
+
+test('детализация расчёта: отрицательное слагаемое — знак «−» и сумма по модулю', async ({ page }) => {
+  await open(page, '/breakdown.html');
+  const parts = page.locator('#bd2 .b24-breakdown__parts');
+  const ops = await parts.locator('.b24-breakdown__op').allTextContents();
+  expect(ops).toEqual(['+', '−', '=']);
+  const fine = parts.locator('[data-part="c"] .b24-breakdown__part-sum');
+  await expect(fine).toHaveClass(/is-negative/);
+  await expect(fine).not.toContainText('−');
+  await expect(fine).toContainText('250');
+});

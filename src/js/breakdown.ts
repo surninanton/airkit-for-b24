@@ -21,7 +21,11 @@ import { formatMoney } from './editor';
 import { h, html } from './dom';
 import { t } from './i18n';
 
-export interface BreakdownPart { key: string; label: string; sum: number }
+export interface BreakdownPart {
+  key: string; label: string; sum: number;
+  /** знак перед слагаемым; по умолчанию «−» для отрицательной суммы (она показывается по модулю), иначе «+» */
+  op?: '+' | '−';
+}
 export interface BreakdownBadge { text: string; kind?: 'success' | 'warning' | 'danger' | 'primary' | 'violet' | 'gray' }
 export interface BreakdownRow {
   id: string;
@@ -153,9 +157,10 @@ export function createBreakdown(host: HTMLElement, options: BreakdownOptions): B
     if (opts.parts?.length) {
       const parts = h('div', { class: 'b24-breakdown__parts' });
       opts.parts.forEach((p, i) => {
-        if (i) parts.append(h('span', { class: 'b24-breakdown__op', 'aria-hidden': 'true' }, '+'));
+        const op = p.op ?? (p.sum < 0 ? '−' : '+');
+        if (i) parts.append(h('span', { class: 'b24-breakdown__op', 'aria-hidden': 'true' }, op));
         const chip = h('button', { type: 'button', class: 'b24-breakdown__part-chip', 'data-part': p.key });
-        chip.append(h('span', { class: 'b24-breakdown__part-label' }, p.label), h('span', { class: `b24-breakdown__part-sum${sumCls(p.sum)}` }, money(p.sum)));
+        chip.append(h('span', { class: 'b24-breakdown__part-label' }, p.label), h('span', { class: `b24-breakdown__part-sum${sumCls(p.sum)}` }, money(i && op === '−' && p.sum < 0 ? Math.abs(p.sum) : p.sum)));
         parts.append(chip);
       });
       parts.append(h('span', { class: 'b24-breakdown__op', 'aria-hidden': 'true' }, '='), h('span', { class: 'b24-breakdown__part-total' }, money(opts.total)));
