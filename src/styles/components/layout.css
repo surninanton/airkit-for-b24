@@ -228,3 +228,22 @@ html.b24-embed .b24-im-bar { display: none; }
   .b24-shell__search--collapsible-mobile.is-open > .b24-shell__search-toggle { position: absolute; z-index: 6; top: 50%; right: var(--b24-space-md); transform: translateY(-50%); }
   .b24-shell__search--collapsible-mobile.is-open > .b24-shell__search-field { padding-right: calc(var(--b24-space-md) + 48px); overflow: hidden; }
 }
+
+/* ── Обои страницы: затемнение и размытие под меню и шапкой ─────────────
+ * Переменные ставит setAirWallpaper() (src/js/air-wallpaper.ts); без неё правила не действуют. */
+html[data-b24-wallpaper] .b24-shell__sidebar {
+  background: rgba(var(--b24-wp-scrim, 8, 14, 30), var(--b24-wp-a-side, 0.4));
+  -webkit-backdrop-filter: blur(var(--b24-wp-blur, 12px)) saturate(1.1); backdrop-filter: blur(var(--b24-wp-blur, 12px)) saturate(1.1);
+}
+html[data-b24-wallpaper] .b24-shell__header {
+  background: linear-gradient(rgba(var(--b24-wp-scrim, 8, 14, 30), var(--b24-wp-a-head, 0.3)), rgba(var(--b24-wp-scrim, 8, 14, 30), 0));
+}
+html[data-b24-wallpaper] .b24-im-bar {
+  background: rgba(var(--b24-wp-scrim, 8, 14, 30), var(--b24-wp-a-side, 0.4));
+  -webkit-backdrop-filter: blur(var(--b24-wp-blur, 12px)); backdrop-filter: blur(var(--b24-wp-blur, 12px));
+}
+/* текст прямо на картинке: мягкая тень-ореол */
+html[data-b24-wallpaper] :is(.b24-toolbar__title, .b24-page-header__title, .b24-shell__header .b24-topnav__item, .b24-page-header__menu .b24-topnav__item, .b24-sidebar__group-title, .b24-credit) {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 0 14px rgba(0, 0, 0, 0.3);
+}
+html[data-b24-wallpaper] .b24-sidebar__group { background: rgba(255, 255, 255, 0.1); }

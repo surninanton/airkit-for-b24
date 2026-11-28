@@ -74,6 +74,7 @@ export { createLogViewer, jsonHtml, codeHtml, traceHtml, copyText, type LogEntry
 export { createScheduler, bx24SchedulerLoader, type SchedulerOptions, type SchedulerHandle, type SchedulerResource, type SchedulerEvent, type SchedulerBand, type SchedulerChange, type SchedulerView, type BandKind, type SchedulerEventType, type SchedulerEditorField, type SchedulerEditorOptions, type SchedulerMenuContext, type SchedulerMenuItem, type SchedulerDraft, type SchedulerCollapse } from './scheduler';
 export { t, setLocale, getLocale, addMessages, intlLocale, type Messages } from './i18n';
 export { init, delegateGlobalEvents } from './auto';
+export { setAirWallpaper, clearAirWallpaper, scrimFor, type WallpaperOptions, type WallpaperAnalysis } from './air-wallpaper';
 export { setTheme, getTheme, setAirPreset, type Theme, type AirPreset } from './theme';
 export { escapeHtml, h, html } from './dom';
 export * as bx24 from './bx24';
