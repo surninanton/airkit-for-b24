@@ -78,3 +78,21 @@ test('idleLock: onIdle после простоя, действие сбрасы�
   await page.clock.runFor(25_000);
   expect(await idle()).toBe(1);
 });
+
+test('idleLock shared: активность в другой вкладке откладывает onIdle', async ({ page }) => {
+  await page.clock.install();
+  await open(page, '/screens.html');
+  await page.evaluate(() => {
+    const w = window as unknown as { B24UI: typeof import('../src/js/index'); idle: number };
+    w.idle = 0;
+    w.B24UI.idleLock({ minutes: 1, shared: 't', onIdle: () => { w.idle += 1; } });
+  });
+  const idle = () => page.evaluate(() => (window as unknown as { idle: number }).idle);
+  await page.clock.runFor(45_000);
+  // «соседняя вкладка» пишет активность
+  await page.evaluate(() => localStorage.setItem('b24-idle:t', String(Date.now())));
+  await page.clock.runFor(45_000);
+  expect(await idle()).toBe(0);
+  await page.clock.runFor(30_000);
+  expect(await idle()).toBe(1);
+});

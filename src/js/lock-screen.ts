@@ -301,15 +301,40 @@ export interface IdleLockOptions {
   /** минуты без действий пользователя */
   minutes: number;
   onIdle: () => void;
+  /** ключ общего счётчика: бездействие считается по всем вкладкам (последняя активность в localStorage), onIdle зовётся, только когда простаивают все */
+  shared?: string;
 }
 /** Вызывает onIdle после простоя (мышь, клавиатура, касания, прокрутка сбрасывают таймер). Возвращает функцию остановки. */
 export function idleLock(options: IdleLockOptions): () => void {
   const ms = Math.max(1, options.minutes) * 60_000;
-  let timer = 0;
-  const reset = () => { clearTimeout(timer); timer = window.setTimeout(options.onIdle, ms); };
   const events = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'scroll'];
-  events.forEach((ev) => window.addEventListener(ev, reset, { passive: true, capture: true }));
-  reset();
-  return () => { clearTimeout(timer); events.forEach((ev) => window.removeEventListener(ev, reset, { capture: true })); };
+  if (!options.shared) {
+    let timer = 0;
+    const reset = () => { clearTimeout(timer); timer = window.setTimeout(options.onIdle, ms); };
+    events.forEach((ev) => window.addEventListener(ev, reset, { passive: true, capture: true }));
+    reset();
+    return () => { clearTimeout(timer); events.forEach((ev) => window.removeEventListener(ev, reset, { capture: true })); };
+  }
+  const key = `b24-idle:${options.shared}`;
+  const WRITE_EVERY = 2_000;
+  const CHECK_EVERY = Math.min(10_000, Math.max(1_000, ms / 4));
+  let last = Date.now();
+  let wrote = 0;
+  let fired = false;
+  const read = () => { try { const v = Number(localStorage.getItem(key)); return Number.isFinite(v) ? v : 0; } catch { return 0; } };
+  const write = (now: number) => { wrote = now; try { localStorage.setItem(key, String(now)); } catch { /* хранилище недоступно: считаем по вкладке */ } };
+  const touch = () => {
+    const now = Date.now();
+    last = now; fired = false;
+    if (now - wrote >= WRITE_EVERY) write(now);
+  };
+  const check = () => {
+    const at = Math.max(last, read());
+    if (!fired && Date.now() - at >= ms) { fired = true; options.onIdle(); }
+    else if (Date.now() - at < ms) fired = false;
+  };
+  events.forEach((ev) => window.addEventListener(ev, touch, { passive: true, capture: true }));
+  write(last);
+  const iv = window.setInterval(check, CHECK_EVERY);
+  return () => { clearInterval(iv); events.forEach((ev) => window.removeEventListener(ev, touch, { capture: true })); };
 }
-
