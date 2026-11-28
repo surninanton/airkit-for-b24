@@ -680,6 +680,7 @@ b.toggle('orders'); b.scrollTo('orders'); b.destroy();
 - Строка: `sum` — итоговая сумма (`null` → «—»), `auto` — расчётное значение. Если `sum !== auto` (или `manual: true`), строка помечена бейджем «вручную». Клик по сумме (`editable`) открывает поле: пустое значение = «авто» (плейсхолдер — `auto`), Enter/blur — `onChange`, Esc — отмена. Без `editable` сумма — просто текст.
 - `html` — доверенный HTML основного текста (ссылка), вместо него `text`. Бейджи `kind`: `success | warning | danger | primary | violet | gray`.
 - ✕ (`removable`) — при наведении, на тач-экранах всегда; место под него резервируется во всей карточке, суммы стоят в одну колонку. Пустая секция показывает `empty` («нет за период»). Отрицательные суммы — красным.
+- Слагаемое формулы с отрицательной суммой рисуется со знаком «−» и суммой по модулю (`+ 7 200 ₽  − 250 ₽`); `part.op: '+' | '−'` задаёт знак явно.
 - Серверная разметка: `.b24-breakdown > __head (__title · __total · __parts > __part-chip + __op) · __section (.is-collapsed) > __section-head (__toggle · __count · __actions · __sum) · __hint · __body > __group (__group-head > __group-main (__group-title · __group-sub) + __group-sum; __group-rows) · __row (.is-manual) > __main (__text · __meta > __sub + __badges) + __side (__sum · __note) · __remove · __empty`. Группа: `{ title, sub, sum, rows }`; счётчик секции — `countKind` (по умолчанию серый).
 
 ## Конструктор чеков: блоки, лента, QR, зоны печати
