@@ -1,4 +1,4 @@
-export { toast, TOAST_LIMIT, type ToastOptions, type ToastHandle, type ToastType } from './toast';
+export { toast, TOAST_LIMIT, type ToastOptions, type ToastHandle, type ToastType, type ToastCloseReason } from './toast';
 export { modal, confirm, alert, prompt, type PromptOptions, type ModalOptions, type ModalHandle, type ModalButton } from './modal';
 export { openSidePanel, closeAllSidePanels, type SidePanelOptions, type SidePanelHandle } from './sidepanel';
 export { dropdown, type DropdownOptions, type DropdownHandle } from './dropdown';

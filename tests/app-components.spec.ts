@@ -297,3 +297,30 @@ test('планировщик: шапка и угол покрывают всю �
   expect(r.cornerLeft).toBe(0);
   expect(r.headRight).toBeGreaterThanOrEqual(r.scaleRight);
 });
+
+test('toast: onClose с причиной (user, action, timeout, limit, api) и key для дедупликации', async ({ page }) => {
+  await open(page, '/index.html');
+  const r = await page.evaluate(async () => {
+    const B = (window as any).B24UI;
+    const log: string[] = [];
+    document.querySelectorAll('.b24-toast').forEach((e) => e.remove());
+    B.toast('user', { duration: 0, onClose: (x: string) => log.push('user:' + x) });
+    (document.querySelector('.b24-toast__close') as HTMLElement).click();
+    B.toast('act', { duration: 0, action: { label: 'Ок', onClick: () => {} }, onClose: (x: string) => log.push('act:' + x) });
+    (document.querySelector('.b24-toast__action') as HTMLElement).click();
+    B.toast('time', { duration: 30, onClose: (x: string) => log.push('time:' + x) });
+    await new Promise((res) => setTimeout(res, 120));
+    const h = B.toast('api', { duration: 0, onClose: (x: string) => log.push('api:' + x) });
+    await h.close(); await h.close();
+    await new Promise((res) => setTimeout(res, 400));
+    // переполнение стопки: самые старые — limit
+    for (let i = 0; i < B.TOAST_LIMIT + 2; i++) B.toast('t' + i, { duration: 0, onClose: (x: string) => log.push('t' + i + ':' + x) });
+    // ключ: один тост, текст обновляется
+    B.toast('v1', { key: 'k', duration: 0 }); B.toast('v2', { key: 'k', duration: 0 });
+    const keyed = Array.from(document.querySelectorAll('.b24-toast')).filter((e) => e.textContent?.includes('v')).map((e) => e.querySelector('.b24-toast__text')!.textContent);
+    return { log, keyed };
+  });
+  expect(r.log.slice(0, 4)).toEqual(['user:user', 'act:action', 'time:timeout', 'api:api']);
+  expect(r.log.filter((x) => x.endsWith(':limit')).length).toBeGreaterThanOrEqual(2);
+  expect(r.keyed).toEqual(['v2']);
+});

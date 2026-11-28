@@ -628,6 +628,10 @@ const r = await B24UI.pickUser({ users: staff, multiple: true, okText: 'Созд
 
 React: `<MemberList items title onSelect compact selected />`; `pickUser` — та же функция из `airkit-for-b24/react`.
 
+## Уведомления: причина закрытия и ключ
+
+`toast(text, { onClose, key })`: `onClose(reason)` вызывается один раз, `reason` — `'user'` (крестик), `'action'` (кнопка действия), `'timeout'`, `'limit'` (вытеснен, когда в стопке больше `TOAST_LIMIT`), `'api'` (`handle.close()`). Постоянное уведомление (`duration: 0`) запоминает «закрыто пользователем» по `reason === 'user'`. `key` — ключ дедупликации: тост с тем же ключом не плодится, а обновляет текст и счётчик ×N (без `key` — по типу и тексту).
+
 ## Обои страницы и читаемость
 
 Любая фоновая картинка делает интерфейс нечитаемым, если не подложить под текст затемнение (scrim) и размытие. `B24UI.setAirWallpaper(src, { strength })` ставит картинку фоном Air и сама подбирает их:
