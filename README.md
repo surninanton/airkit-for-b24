@@ -628,6 +628,21 @@ const r = await B24UI.pickUser({ users: staff, multiple: true, okText: 'Созд
 
 React: `<MemberList items title onSelect compact selected />`; `pickUser` — та же функция из `airkit-for-b24/react`.
 
+## Обои страницы и читаемость
+
+Любая фоновая картинка делает интерфейс нечитаемым, если не подложить под текст затемнение (scrim) и размытие. `B24UI.setAirWallpaper(src, { strength })` ставит картинку фоном Air и сама подбирает их:
+
+```js
+const info = await B24UI.setAirWallpaper('/wallpapers/forest.jpg');   // { sidebar, header, page, blur, luma, busy, fallback }
+await B24UI.setAirWallpaper(url, { strength: 'strong' });             // 'soft' | 'auto' (по умолчанию) | 'strong'
+await B24UI.setAirWallpaper(null);                                    // штатный фон
+```
+
+- Замер идёт по трём зонам (боковое меню, шапка, страница) с учётом `background-size: cover` и размера окна; берутся самые светлые места, а не среднее. Затемнение — по WCAG: 4.5:1 для меню, 3:1 для заголовков (`'strong'` — 7:1 и 4.5:1, `'soft'` — 3.5:1 и 3:1).
+- Результат: `--b24-wp-a-side`, `--b24-wp-a-head`, `--b24-wp-a-page`, `--b24-wp-blur`, `--b24-wp-scrim` и `data-b24-wallpaper="light|dark|unknown"` на `<html>`. Сайдбар, шапка оболочки (`.b24-shell__header`), панель мессенджера и заголовки на подложке подхватывают их сами. Белые карточки обои не затрагивают.
+- Картинка с другого домена без CORS-заголовков не читается: берутся осторожные значения (`fallback: true`). Держите обои на своём домене или отдавайте `Access-Control-Allow-Origin`.
+- Если обои ставятся вручную через `--b24-air-bg-image`, эти правила не включаются: вызывайте `setAirWallpaper`.
+
 ## Перестановка блоков
 
 Блоки в колонке карточки сущности (`.b24-entity__main`) двигаются перетаскиванием с зажатым **Ctrl** (⌘ на Mac, Alt) и левой кнопкой мыши. Esc во время перетаскивания — отмена. Порядок запоминается в хранилище кита. Включается автоматически; на другом контейнере — `<div data-b24-reorder>` или `B24UI.enableBlockReorder(el, { items: '.card', key: 'my-key', onReorder: (ids) => save(ids) })` (`data-b24-reorder="off"` отключает). Id блока — `data-b24-block`, иначе текст `.b24-card__title`. Событие `b24:reorder` (`detail.ids`). На телефоне — долгое нажатие на блок, затем перетаскивание.
